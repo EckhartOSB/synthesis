@@ -1,0 +1,107 @@
+<html>
+<head>
+<title>CommandLine class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class CommandLine</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides several useful methods for parsing the command line.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-args">Args</a> - list of all arguments</li>
+    <li><a href="#ref-hasswitch">HasSwitch</a> - test for command-line switch</li>
+    <li><a href="#ref-switchargs">SwitchArgs</a> - return the parameters for a switch</li>
+    <li><a href="#ref-switchprefix">SwitchPrefix</a> - prefix for switches</li>
+    <li><a href="#ref-text">Text</a> - full text of the command line</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-args" class="ref">
+    <h3>static property Args</h3>
+    <code>
+      CommandLine.Args =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      This static property yields a list of all whitespace-delimited arguments on the
+      command line, not including dbr/dbs, the program name, or any of the runtime switches
+      that occur between them.  If quoted strings are encountered, they are returned as a
+      single argument, without the quotes.  This list of arguments will include any switches
+      that follow the program name.
+    </div>
+  </div>
+  <div id="ref-hasswitch" class="ref">
+    <h3>static method HasSwitch</h3>
+    <code>
+      CommandLine.HasSwitch(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This static method tests the command line arguments for the existence of a switch specified
+      by <em>a</em>, and returns true if found, otherwise false.
+      Do not include the switch prefix in <em>a</em>, it will be added.  Switch names are
+      case-sensitive and may not be abbreviated.
+    </div>
+  </div>
+  <div id="ref-switchargs" class="ref">
+    <h3>static method SwitchArgs</h3>
+    <code>
+      CommandLine.SwitchArgs(<em>a</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      This static method returns the arguments that follow the switch specified by <em>a</em>
+      up to the next switch.  Do not include the switch prefix in <em>a</em>, it will be
+      added.  Switch parameters must follow their switch, delimited by spaces.  If the same
+      switch occurs more than once, all parameters from all occurrences will be collected.
+      If the switch does not occur, or has no arguments, then <em>ls</em> will be returned
+      as an empty list.
+    </div>
+  </div>
+  <div id="ref-switchprefix" class="ref">
+    <h3>static SwitchPrefix</h3>
+    <code>
+      CommandLine.SwitchPrefix =&gt; <em>a</em><br/>
+      CommandLine.SwitchPrefix = <em>a</em>
+    </code>
+    <div class="description">
+      The static member holds the character used to prefix switches in the command line.
+      If not set, it will be set on first use to '-' unless Synergy/DE option 34 is enabled,
+      in which case it will be set to '/'.  You may set this to any single character.
+    </div>
+  </div>
+  <div id="ref-text" class="ref">
+    <h3>static property Text</h3>
+    <code>
+      CommandLine.Text =&gt; <em>a</em>
+    </code>
+    <div class="description">
+      Returns the full text of the command line for the current process.
+    </div>
+  </div>
+</div>
+</body>
+</html>

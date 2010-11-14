@@ -1,0 +1,63 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+    public class Console
+
+        private static m_file, @File
+
+	private static property fd, @File
+	  method get
+	  proc
+	    if (m_file == ^null)
+	      begin
+	        m_file = new File("TT:")
+	      end
+	    mreturn m_file
+	  end
+	endproperty
+
+	public static method Display, void
+	D_INARG text, a
+	proc
+	    fd.Display(text)
+	end
+
+	public static method WriteLine, void
+	D_INARG line, a
+	proc
+	    fd.WriteLine(line)
+	end
+
+	public static method WriteLine, void
+	D_INARG ary, @System.Collections.ArrayList
+	proc
+	    fd.WriteLine(ary)
+	end
+
+	public static method WriteLine, void
+	D_INARG val, int
+	proc
+	    fd.WriteLine(val)
+	end
+
+	public static method WriteLine, void
+	D_INARG val, decimal
+	proc
+	    fd.WriteLine(val)
+	end
+
+	public static method WriteLine, void
+	D_INARG obj, @*
+	proc
+	    fd.WriteLine(obj)
+	end
+
+	public static method ReadLine, string
+	proc
+	    mreturn fd.ReadLine()
+	end
+
+    endclass
+
+endnamespace

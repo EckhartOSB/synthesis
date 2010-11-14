@@ -1,0 +1,92 @@
+.include "SYNTHESIS:synthesis.def"
+;
+; ElapsedTime - class for timing execution in a Synergy/DE routine
+;
+namespace Synthesis
+	
+    public structure datetime_struct	;Structure for return value of datetime()
+	group date, d8
+	    yyyy,d4
+	    mm	,d2
+	    dd	,d2
+	endgroup
+	group tm, d9
+	    hr	,d2
+	    min	,d2
+	    sec	,d2
+	    msec,d3
+	endgroup
+    endstructure
+
+	class ElapsedTime	;The class for an elapsed timer
+
+	    private m_start, datetime_struct	;Start time
+	    private m_secno, int	;Number of seconds from beginning of day in start time
+	    private m_jperiod, int	;Julian period of start time
+	    
+	    public Overhead, decimal	;Number of seconds to subtract from elapsed time
+
+	    public method ElapsedTime	;Constructor
+	    proc
+		reset()			;Starts the timer by default
+		Overhead = 0		;And default to no overhead
+	    endmethod
+	    
+	    public method reset, void	;Method to reset the timer to 0
+	    proc
+		StartTime = %datetime
+	    endmethod
+
+	    public property StartTime, datetime_struct
+	      method get
+	      proc
+	        mreturn m_start
+	      end
+	      method set
+	      proc
+	        m_start = value
+		m_secno = (m_start.hr * 60 * 60) + (m_start.min * 60) + m_start.sec
+		m_jperiod = %jperiod(m_start.date)
+	      end
+	    endproperty
+	    
+	    public property nSeconds, decimal	;Number of seconds since start
+		method get			;Readonly
+		record
+		    dt		,datetime_struct
+		    secno	,int
+		proc
+		    dt = %datetime
+		    secno = (dt.hr * 60 * 60) + (dt.min * 60) + dt.sec
+		    mreturn (secno - m_secno) + ((%jperiod(dt.date) - m_jperiod) * 24 * 60 * 60) + ((m_start.msec - dt.msec) * 0.001) - Overhead
+		endmethod
+	    endproperty
+	    
+	    public override method ToString, string	;Format elapsed time as a string
+		record
+		    dt		,datetime_struct	;Elapsed datetime
+		    ns		,d28.10			;Seconds elapsed
+		    ret		,string			;Returned string
+		    days	,int			;Days in elapsed time
+	    proc
+		ns = nSeconds
+		days = ns / (24 * 60 * 60)
+		ns -= (days * 24.0 * 60 * 60)
+		dt.hr = ns / (60 * 60)
+		ns -= (implied(dt.hr) * 60.0 * 60.0)
+		dt.min = ns / 60
+		ns -= (implied(dt.min) * 60.0)
+		dt.sec = ns
+		ns -= implied(dt.sec)
+		dt.msec = ns * 1000
+		ret = ""
+		if (days == 1) then 
+		  ret = "1 day + "
+		else if (days > 0)
+		  ret = %string(days) + " days + "
+		mreturn ret + %string(dt.tm, "XX:XX:XX.XXX")
+	    endmethod
+
+	endclass
+
+endnamespace

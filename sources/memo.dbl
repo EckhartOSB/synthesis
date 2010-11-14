@@ -1,0 +1,69 @@
+;-----------------------------------------------------------------------------
+;
+; memo.dbl	Memoization
+;
+; Chip Camden	March, 2010
+;
+;-----------------------------------------------------------------------------
+
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+public class Memo
+
+    public static method retrieve, @*
+    ;
+    ; Find a memoized function return value
+    ;
+    D_INARG func, a	;Name of the function
+    D_INARG arg, @*	;Argument
+    ;
+    ; Returns the memoized value, or ^null if none
+    ;
+    record
+    	l	,@ls
+    proc
+	if (s_memofuncs == ^null)
+	  mreturn ^null			;Nothing memoized yet
+
+    	if ((func .eqs. s_lastfunc) && (arg != ^null) && (arg.Equals(s_lastarg)))
+	  mreturn s_lastrslt		;Same as last time
+
+	if ((l = (ls)s_memofuncs[func]) == ^null)
+	  mreturn ^null			;Haven't seen this function
+
+	s_lastfunc = func
+	mreturn (s_lastrslt = l.keyget((s_lastarg = arg)))
+    end
+
+    public static method store, @*
+    ;
+    ; Store a result for future retrieval
+    ;
+    D_INARG rslt, @*	;Result to memoize
+    D_INARG func, a	;Name of the function
+    D_INARG arg, @*	;Argument
+    ;
+    ; Returns rslt
+    ;
+    record
+    	l	,@ls
+    proc
+    	if (s_memofuncs == ^null)
+	  s_memofuncs = new Hash()
+    	if ((l = (ls)s_memofuncs[func]) == ^null)
+	  s_memofuncs[func] = l = new ls()
+	s_lastfunc = func
+	l.keyset(s_lastarg = arg, s_lastrslt = rslt)
+	mreturn rslt
+    end
+
+    private static s_memofuncs, @Hash
+    private static s_lastfunc, string
+    private static s_lastarg, @*
+    private static s_lastrslt, @*
+
+endclass
+
+endnamespace

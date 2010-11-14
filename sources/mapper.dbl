@@ -1,0 +1,562 @@
+; Functor classes for use with ls.map(), ls.removeif(), etc.
+
+.ifndef D_MAPCOMPARE_CLASS
+.ifndef D_MAPIF_PRIMITIVE
+
+.include "SYNTHESIS:synthesis.def"
+namespace Synthesis
+
+public abstract class MapObject
+
+    public abstract method map, @*
+    ;
+    ; Description:  map one object to another
+    ;
+    D_INARG obj, @*	;Object to map
+    ;
+    ; Returns:  mapped object
+    ;
+    proc
+    end
+
+endclass
+
+;;Enumeration for case conversions
+
+public enum Case
+    NoChange
+    Upper
+    Lower
+endenum
+
+public class MapAlpha extends MapVar
+;
+; Maps objects to their alpha representation in a Var
+;
+
+    public method MapAlpha
+    proc
+    	m_case = Case.NoChange
+    end
+
+    public method MapAlpha
+    D_INARG a_case	,Case
+    proc
+    	m_case = a_case
+    end
+
+    public override method map, @*
+    D_INARG obj, @*
+    record
+    	str	,string
+    proc
+	if (obj == ^null) then
+	  str = ""
+	else
+    	  str = obj.ToString()		;Works with all objects!
+	using m_case select
+	(Case.Upper),	str = str.ToUpper()
+	(Case.Lower),	str = str.ToLower()
+	endusing
+	mreturn Var.Box(str)
+    end
+
+    private m_case, Case
+
+endclass
+
+public class MapInt extends MapVar
+;
+; Maps an object to a VarInt
+;
+    public override method map, @*
+    D_INARG obj, @*
+    record
+    	val	,int
+    proc
+	if (obj == ^null) then
+	  val = 0
+    	else if (obj .is. Var) then
+	  val = (int)(Var)obj
+	else
+	  val = (int)Var.Box(obj.ToString())
+	mreturn Var.Box(val)
+    end
+
+endclass
+
+public class MapDec extends MapVar
+;
+; Maps an object to a VarDec
+;
+    public override method map, @*
+    D_INARG obj, @*
+    record
+    	val	,decimal
+    proc
+	if (obj == ^null) then
+	  val = 0
+    	else if (obj .is. Var) then
+	  val = (decimal)(Var)obj
+	else
+	  val = (decimal)Var.Box(obj.ToString())
+	mreturn Var.Box(val)
+    end
+
+endclass
+
+public class MapReplace extends MapVar
+;
+; Maps an object to a VarAlpha after doing a regex replace on it
+;
+    public method MapReplace
+    D_INARG rgx, @Regex
+    D_INARG with, @Var
+    proc
+    	m_regex = rgx
+	m_with = with
+    end
+
+    public method MapReplace
+    D_INARG rgx, @Regex
+    D_INARG with, a
+       this(rgx, Var.Box(with))
+    proc
+    end
+
+    public method MapReplace
+    D_INARG rgx, @Regex
+    D_INARG with, int
+       this(rgx, Var.Box(with))
+    proc
+    end
+
+    public method MapReplace
+    D_INARG rgx, @Regex
+    D_INARG with, decimal
+       this(rgx, Var.Box(with))
+    proc
+    end
+
+    public override method map, @*
+    D_INARG obj, @*
+    proc
+    	mreturn Var.Box(m_regex.replace(obj.ToString(), (a)m_with))
+    end
+
+    private m_regex, @Regex
+    private m_with, @Var
+
+endclass
+
+public class MapIf extends MapObject
+;
+; Uses MapBoolean to determine what object to map
+;
+    public method MapIf
+    D_INARG a_if, @MapBoolean
+    D_INARG a_then, @*
+    D_INARG a_else, @*
+
+    proc
+    	m_if = a_if
+	m_then = a_then
+	m_else = a_else
+	m_doelse = true
+    end
+
+    public method MapIf
+    D_INARG a_if, @MapBoolean
+    D_INARG a_then, @*
+    proc
+    	m_if = a_if
+	m_then = a_then
+	m_doelse = false
+    end
+
+ ;Generate constructors for each primitive type for each argument
+ .define D_MAPIF_PRIMITIVE, int
+ .include "mapper"
+ .define D_MAPIF_PRIMITIVE, decimal
+ .include "mapper"
+ .define D_MAPIF_PRIMITIVE, a
+ .include "mapper"
+
+    public override method map, @*
+    D_INARG obj, @*
+    record
+    	rslt	,@*
+    proc
+    	if (m_if.test(obj)) then
+	  rslt = m_then
+	else if (m_doelse) then
+	  rslt = m_else
+	else
+	  rslt = obj
+	if (rslt .is. MapObject)
+	  rslt = ((MapObject)rslt).map(obj)
+	mreturn rslt
+    end
+
+    private m_if, @MapBoolean
+    private m_then, @*
+    private m_else, @*
+    private m_doelse, boolean
+
+endclass
+
+public class MapKey extends MapObject
+;
+; Uses another MapObject to create key => value pairs for an alist
+;
+    public method MapKey
+    D_INARG mapper, @MapObject	;The mapper for object => key
+    proc
+    	m_map = mapper
+    end
+
+    public override method map, @*
+    D_INARG obj	,@*
+    proc
+    	mreturn ls.of(m_map.map(obj)).add$(obj)
+    end
+
+    private m_map, @MapObject
+
+endclass
+
+public class MapAssoc extends MapObject
+;
+; Maps association in an alist
+;
+    public method MapAssoc
+    D_INARG alist, @ls		;Alist to use for associations
+    proc
+    	m_alist = alist
+    end
+
+    public override method map, @*
+    D_INARG obj, @*
+    proc
+    	mreturn m_alist.keyget(obj)
+    end
+
+    private m_alist, @ls
+
+endclass
+
+public class MapDeep extends MapObject
+;
+; Recursively maps all members and members of members
+;
+    public method MapDeep
+    D_INARG mapper, @MapObject
+    proc
+        m_map = mapper
+    end
+
+    public override method map, @*
+    D_INARG obj, @*
+    proc
+    	if (obj .is. ls)	;Recurse on contained lists
+	  mreturn ((ls)obj).map(new MapDeep(m_map))
+	mreturn m_map.map(obj)
+    end
+
+    private m_map, @MapObject
+
+endclass
+
+public abstract class MapBoolean
+
+    public abstract method test, boolean
+    ;
+    ; Description:  Evaluate an object for a boolean result
+    ;
+    D_INARG obj,	@*
+    ;
+    ; Returns:	true or false
+    ;
+    proc
+    end
+
+    public static method op_LogicalAnd, @MapAnd
+    ;
+    ; Description:  Anding two MapBooleans together
+    ;
+    D_INARG map1, @MapBoolean
+    D_INARG map2, @MapBoolean
+    ;
+    ; Returns a MapAnd for the two objects
+    ;
+    proc
+    	mreturn new MapAnd(map1, map2)
+    end
+
+    public static method op_LogicalOr, @MapOr
+    ;
+    ; Description:  Oring two MapBooleans together
+    ;
+    D_INARG map1, @MapBoolean
+    D_INARG map2, @MapBoolean
+    ;
+    ; Returns a MapOr for the two objects
+    ;
+    proc
+    	mreturn new MapOr(map1, map2)
+    end
+
+    public static method op_ExclusiveOr, @MapXOr
+    ;
+    ; Description:  Xoring two MapBooleans together
+    ;
+    D_INARG map1, @MapBoolean
+    D_INARG map2, @MapBoolean
+    ;
+    ; Returns a MapXor for the two objects
+    ;
+    proc
+    	mreturn new MapXor(map1, map2)
+    end
+
+    public static method op_LogicalNot, @MapNot
+    ;
+    ; Description:  Logical Not of a MapBoolean
+    ;
+    D_INARG map, @MapBoolean
+    ;
+    ; Returns a MapNot for the object
+    ;
+    proc
+    	mreturn new MapNot(map)
+    end
+
+endclass
+
+public class MapMatches extends MapBoolean
+;
+; Class to test for regex matching
+;
+    public method MapMatches
+    D_INARG rgx, @Regex	;Regex to match
+    proc
+    	m_regex = rgx
+    end
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+    	mreturn (m_regex.match(obj.ToString()).start > 0)
+    end
+
+    private m_regex, @Regex
+
+endclass
+
+public class MapAnd extends MapBoolean
+;
+; Class to "and" two MapBooleans together
+;
+    public method MapAnd	;constructor
+    D_INARG map1	,@MapBoolean
+    D_INARG map2 ,@MapBoolean
+    proc
+    	m_map1 = map1
+	m_map2 = map2
+    end
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+    	mreturn m_map1.test(obj) && m_map2.test(obj)	;Synergy/DE optimizations apply
+    end
+
+    private m_map1, @MapBoolean
+    private m_map2, @MapBoolean
+
+endclass
+
+public class MapOr extends MapBoolean
+;
+; Class to "or" two MapBooleans together
+;
+    public method MapOr	;constructor
+    D_INARG map1	,@MapBoolean
+    D_INARG map2 ,@MapBoolean
+    proc
+    	m_map1 = map1
+	m_map2 = map2
+    end
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+    	mreturn m_map1.test(obj) || m_map2.test(obj)	;Synergy/DE optimizations apply
+    end
+
+    private m_map1, @MapBoolean
+    private m_map2, @MapBoolean
+
+endclass
+
+public class MapXor extends MapBoolean
+;
+; Class to "exclusive or" two MapBooleans together
+;
+    public method MapXor	;constructor
+    D_INARG map1	,@MapBoolean
+    D_INARG map2 ,@MapBoolean
+    proc
+    	m_map1 = map1
+	m_map2 = map2
+    end
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+    	mreturn m_map1.test(obj) .xor. m_map2.test(obj)	;Synergy/DE optimizations apply
+    end
+
+    private m_map1, @MapBoolean
+    private m_map2, @MapBoolean
+
+endclass
+
+public class MapNot extends MapBoolean
+;
+; Class to "not" a MapBoolean
+;
+    public method MapNot	;constructor
+    D_INARG map	,@MapBoolean
+    proc
+    	m_map = map
+    end
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+        mreturn !m_map.test(obj)
+    end
+
+    private m_map, @MapBoolean
+
+endclass
+
+public class MapNull extends MapBoolean
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+    	mreturn (obj == ^null)
+    end
+
+endclass
+
+public class MapNonNull extends MapBoolean
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+        mreturn (obj != ^null)
+    end
+
+endclass
+
+.define D_MAPCOMPARE_CLASS, MapCompareEqual
+.define D_MAPCOMPARE_OP, ==
+.include "mapper"
+.define D_MAPCOMPARE_CLASS, MapCompareNotEqual
+.define D_MAPCOMPARE_OP, !=
+.include "mapper"
+.define D_MAPCOMPARE_CLASS, MapCompareGreaterThan
+.define D_MAPCOMPARE_OP, >
+.include "mapper"
+.define D_MAPCOMPARE_CLASS, MapCompareLessThan
+.define D_MAPCOMPARE_OP, <
+.include "mapper"
+.define D_MAPCOMPARE_CLASS, MapCompareGreaterThanOrEqual
+.define D_MAPCOMPARE_OP, >=
+.include "mapper"
+.define D_MAPCOMPARE_CLASS, MapCompareLessThanOrEqual
+.define D_MAPCOMPARE_OP, <=
+.include "mapper"
+
+endnamespace
+
+.else	;D_MAPIF_PRIMITIVE
+
+    public method MapIf
+    D_INARG a_if, @MapBoolean
+    D_INARG a_then, D_MAPIF_PRIMITIVE
+    proc
+    	m_if = a_if
+	m_then = Var.Box(a_then)
+	m_doelse = false
+    end
+
+    public method MapIf
+    D_INARG a_if, @MapBoolean
+    D_INARG a_then, D_MAPIF_PRIMITIVE
+    D_INARG a_else, @*
+
+    proc
+    	m_if = a_if
+	m_then = Var.Box(a_then)
+	m_else = a_else
+	m_doelse = true
+    end
+
+    public method MapIf
+    D_INARG a_if, @MapBoolean
+    D_INARG a_then, @*
+    D_INARG a_else, D_MAPIF_PRIMITIVE
+
+    proc
+    	m_if = a_if
+	m_then = a_then
+	m_else = Var.Box(a_else)
+	m_doelse = true
+    end
+
+    public method MapIf
+    D_INARG a_if, @MapBoolean
+    D_INARG a_then, D_MAPIF_PRIMITIVE
+    D_INARG a_else, D_MAPIF_PRIMITIVE
+
+    proc
+    	m_if = a_if
+	m_then = Var.Box(a_then)
+	m_else = Var.Box(a_else)
+	m_doelse = true
+    end
+
+.undefine D_MAPIF_PRIMITIVE
+.endc
+.else	;D_MAPCOMPARE_CLASS
+
+public class D_MAPCOMPARE_CLASS extends MapBoolean
+;
+; Class to evaluate a Compare for D_MAPCOMPARE_OP
+;
+    public method D_MAPCOMPARE_CLASS
+    D_INARG cmp, @Compare
+    D_INARG other, @*
+    proc
+    	m_cmp = cmp
+	m_other = other
+    end
+
+    public override method test, boolean
+    D_INARG obj	,@*
+    proc
+	mreturn (m_cmp.test(obj, m_other) D_MAPCOMPARE_OP 0)
+    end
+
+    private m_cmp, @Compare
+    private m_other, @*
+
+endclass
+
+.undefine D_MAPCOMPARE_CLASS
+.undefine D_MAPCOMPARE_OP
+.endc

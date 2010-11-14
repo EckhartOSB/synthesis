@@ -1,0 +1,1935 @@
+.include "SYNTHESIS:synthesis.def"
+
+.ifndef D_LS_VARTYPE
+;
+; ls version 1.10
+;
+; List extensions for Synergy/DE ArrayLists
+
+import System.Collections
+
+namespace Synthesis
+
+    public class ls extends ArrayList
+
+	public method ls
+	;
+	; Default constructor merely invokes ArrayList default constructor
+	;
+	  parent()
+	proc
+	end
+
+	public method ls
+	;
+	; Constructor specifying initial capacity (gets doubled when needed)
+	;
+	D_INARG capacity, int
+	  parent(capacity)
+	proc
+	end
+
+	public static method empty, @ls
+	;
+	; Description:  Create an empty list
+	;
+	; This is mostly necessary because "new ls()" doesn't work
+	; syntactically in every context where "ls.empty()" does.
+	;
+	proc
+		mreturn new ls()
+	end
+
+	public static method from, @ls
+	;
+	; Description:  Create an ls from an ArrayList (or another ls)
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,@ArrayList
+	;
+	; Returns:  a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in a_src
+		  newls.Add(obj)
+		mreturn newls
+	end
+
+	public static method from, @ls
+	;
+	; Description:  Create an alist from a Hash
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,@Hash
+	;
+	; Returns:  a new ls
+	;
+	record
+		newls	,@ls
+		iter	,@Hash.Iterator
+		obj	,@*
+		key	,a255	;Documented maximum for Synergy/DE nspc_add
+	proc
+		newls = new ls()
+		iter = new Hash.Iterator(a_src)
+		obj = iter.First(key)
+		while (obj != ^null)
+		  begin
+		    newls[atrim(key)] = obj
+		    obj = iter.Next(key)
+		  end
+		mreturn newls
+	end
+
+	public static method from, @ls
+	;
+	; Description:  Create an ls from an array
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,[#]@*
+	;
+	; Returns:  a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in a_src
+		  newls.Add(obj)
+		mreturn newls
+	end
+
+	public static method from, @ls
+	;
+	; Description:  Create an ls from an array
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,[#,#]@*
+	;
+	; Returns:  a new ls
+	;
+	record
+		newls	,@ls
+		x1	,int
+		x2	,int
+	proc
+		newls = new ls()
+		for x1 from 1 thru a_src.GetLength(1)
+		  begin
+		    data subls, @ls, new ls()
+		    newls.Add(subls)
+		    for x2 from 1 thru a_src.GetLength(2)
+		      subls.Add(a_src[x1,x2])
+		  end
+		mreturn newls
+	end
+
+	public static method from, @ls
+	;
+	; Description:  Create an ls from an array
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,[#,#,#]@*
+	;
+	; Returns:  a new ls
+	;
+	record
+		newls	,@ls
+		x1	,int
+		x2	,int
+		x3	,int
+	proc
+		newls = new ls()
+		for x1 from 1 thru a_src.GetLength(1)
+		  begin
+		    data subls, @ls, new ls()
+		    newls.Add(subls)
+		    for x2 from 1 thru a_src.GetLength(2)
+		      begin
+		        data subls2, @ls, new ls()
+			subls.Add(subls2)
+			for x3 from 1 thru a_src.GetLength(3)
+		          subls2.Add(a_src[x1,x2,x3])
+		      end
+		  end
+		mreturn newls
+	end
+
+	public static method of, @ls
+	;
+	; Description:  Create an ls from some other object (one member)
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,@*
+	;
+	record
+		newls	,@ls
+	proc
+		newls = new ls()
+		newls.Add(a_src)
+		mreturn newls
+	end
+
+	public static method op_Addition, @ls
+	;
+	; Description:  Add two lists together, using the operator +
+	;
+	; Arguments:
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_ary2	,@Arraylist
+	;
+	; Return value:	a new ls
+
+	proc
+		mreturn a_ary1.append(a_ary2)
+	end
+
+	public static method op_Addition, @ls
+	;
+	; Description:  Add an object to a list, using the operator +
+	;
+	; Arguments:
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,@*
+	;
+	; Return value: a new ls
+	;
+	proc
+		mreturn a_ary1.append(a_obj)
+	end
+
+	public static method op_Subtraction, @ls
+	;
+	; Description:  Remove the items of one list from another, using the operator -
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_ary2	,@Arraylist
+	;
+	proc
+		mreturn a_ary1.subtract(a_ary2)
+	end
+
+	public static method op_Subtraction, @ls
+	;
+	; Description:  Remove an object from a list, using the operator -
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,@*
+
+	proc
+		mreturn a_ary1.remove(a_obj)
+	end
+
+	public static method op_BitwiseOr, @ls
+	;
+	; Description:  Destructively add another list to this one, using the operator |
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_ary2	,@ArrayList
+	proc
+		mreturn a_ary1.append$(a_ary2)
+	end
+
+	public static method op_BitwiseOr, @ls
+	;
+	; Description:  Destructively add an object to this list, using the operator |
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,@*
+	proc
+		mreturn a_ary1.append$(a_obj)
+	end
+
+	public static method op_BitwiseAnd, @ls
+	;
+	; Description:  Destructively add an object to this list, using the operator &
+	;
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,@*
+	;
+	; Note:	This differs from | in that ArrayList arguments are maintained as ArrayLists
+	;
+	proc
+		mreturn a_ary1.add$(a_obj)
+	end
+
+	public method copy, @ls
+	;
+	; Description:  Copy this list (members by reference, not deep copy)
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  newls.Add(obj)
+		mreturn newls
+	end
+
+	public method deepcopy, @ls
+	;
+	; Description:  Copy all elements or all embedded lists
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  begin
+		    if (obj .is. ls) then
+		      newls.Add(((ls)obj).deepcopy())	;Copy the inner list
+		    else
+		      newls.Add(obj)
+		  end
+		mreturn newls
+	end
+
+	public method append$, @ls
+	;
+	; Description:  Destructively append a list to this one
+	;
+	; Arguments:
+	;
+	D_INARG a_other	,@ArrayList
+	;
+	record
+		obj	,@*
+	proc
+		foreach obj in a_other
+		  this.Add(obj)
+		mreturn this
+	end
+
+	public method append$, @ls
+	;
+	; Description:  Destructively append an object to this list
+	;
+	D_INARG a_obj	,@*
+	proc
+		this.Add(a_obj)
+		mreturn this
+	end
+
+    	public method append, @ls
+	;
+	; Description:  Append a list to this one
+	;
+	; Arguments:
+	;
+	D_INARG a_other	,@ArrayList	;(or ls, or anything else derived from ArrayList)
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		mreturn this.copy().append$(a_other)
+	end
+
+	public method append, @ls
+	;
+	; Description:  Append some (non ArrayList) object to this list
+	;
+	; Arguments:
+	;
+	D_INARG a_obj	,@*	;Object to append
+	;
+	; Return value:	a new ls
+	;
+	record
+		newls	,@ls
+	proc
+		newls = this.copy()
+		newls.Add(a_obj)
+		mreturn newls
+	end
+
+	public method appendflat$, @ls
+	;
+	; Description:  Destructively append a list to this one, flattening its members
+	;
+	D_INARG a_other	,@ArrayList
+	record
+		obj	,@*
+	proc
+		foreach obj in a_other
+		  begin
+		    if (obj .is. ArrayList) then	;or ls
+		      appendflat$((ArrayList)obj)	;Recurse
+		    else
+		      append$(obj)
+		  end
+		mreturn this
+	end
+
+	public method add$, @ls
+	;
+	; Description:  Destructively add an object to the end of the list
+	;
+	; Arguments:
+	;
+	D_INARG a_obj, @*
+	;
+	; Returns: this (the only difference between add$ and ArrayList.Add)
+	;
+	proc
+		this.Add(a_obj)
+		mreturn this		;Allows chaining
+	end
+
+	public method remove$, @ls
+	;
+	; Description:  Destructively remove an object
+	;
+	D_INARG a_obj, @*
+	;
+	record
+		ndx	,int
+	proc
+		while ((ndx = IndexOf(a_obj)) >= 0)
+		  RemoveAt(ndx)
+		mreturn this
+	end
+
+.ifdef DBLNET
+	public new method remove, @ls
+.else
+	public method remove, @ls
+.endc
+	;
+	; Description:  Copy this list, removing an object
+	;
+	D_INARG a_obj, @*
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  if (!obj.Equals(a_obj))
+		    newls.add(obj)
+		mreturn newls
+	end
+
+	public method subtract$, @ls
+	;
+	; Remove the members of one list from another
+	;
+	D_INARG other, @ArrayList
+	;
+	record
+		obj	,@*
+	proc
+		foreach obj in other
+		  this.remove$(obj)
+		mreturn this
+	end
+
+	public method subtract, @ls
+	;
+	; Remove the members of one list from another
+	;
+	D_INARG other, @ArrayList
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  if (other.IndexOf(obj) < 0)
+		    newls.add(obj)
+		mreturn newls
+	end
+
+	public method chop$, @ls
+	;
+	; Description:  Destructively truncate this list at a given length
+	;
+	D_INARG a_length	,int
+	proc
+		while (this.Count > a_length)
+		  RemoveAt(a_length)
+		mreturn this
+	end
+
+	public method chop, @ls
+	;
+	; Description:  Return a trucated copy of this list
+	;
+	D_INARG a_length, int
+	proc
+		mreturn this.copy().chop$(a_length)
+	end
+
+	public method intersection, @ls
+	;
+	; Description:  Return the intersection of this list and another one
+	;
+	D_INARG a_other	,@ArrayList
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in a_other
+		  if (this.IndexOf(obj) >= 0)
+		    newls.Add(obj)
+		mreturn newls
+	end
+
+	public method union, @ls
+	;
+	; Description:  Return the union of this list and another one
+	;
+	D_INARG a_other, @ArrayList
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = this.copy()
+		foreach obj in a_other
+		  if (newls.IndexOf(obj) < 0)
+		    newls.Add(obj)
+		mreturn newls
+	end
+
+	public method union$, @ls
+	;
+	; Description: Add the unique members of another list to this one
+	;
+	D_INARG a_other, @Arraylist
+	;
+	record
+		obj	,@*
+	proc
+		foreach obj in a_other
+		  this.union$(obj)
+		mreturn this
+	end
+
+	public method union, @ls
+	;
+	; Description:  Add an object to a copy of this list if not already a member
+	;
+	D_INARG a_obj, @*
+
+	record
+		newls	,@ls
+	proc
+		newls = this.copy()
+		newls.union$(a_obj)
+		mreturn newls
+	end
+
+	public method union$, @ls
+	;
+	; Description:  Add an object, only if it isn't already a member
+	;
+	D_INARG a_obj, @*
+	;
+	proc
+		if (IndexOf(a_obj) < 0)
+		  this.add(a_obj)
+		mreturn this
+	end
+
+.ifndef DBLNET		;.NET Arraylist provides this
+	public method contains, boolean
+	;
+	; Description:  Does this list contain this object?
+	;
+	D_INARG obj, @*
+	proc
+		mreturn this.IndexOf(obj) >= 0
+	end
+.endc
+
+	public method issubsetof, boolean
+	;
+	; Description: Is this list a subset of another list?
+	;
+	D_INARG other, @ls
+	proc
+		mreturn other.issupersetof(this)
+	end
+
+	public method issupersetof, boolean
+	;
+	; Description:  Does this list contain the members of another list?
+	;
+	D_INARG other, @ArrayList
+	record
+		obj	,@*
+	proc
+		foreach obj in other
+		  if (this.IndexOf(obj) < 0)
+		    mreturn false
+		mreturn true
+	end
+
+	public unique varargs method rotate$, @ls
+	;
+	; Description: Rotate members of a list
+	;
+	; Arguments:  Any number of indices.
+	;
+	; Notes:  Members are shifted left.  That is, the first
+	;	  index receives the contents of the second index,
+	;	  and so on.  The last index receives the contents
+	;	  of the first.
+	;
+	D_INARG a_ndx1	,int	;Must have at least one index
+	;
+	record
+	    swap	,@*
+	    argnm	,int
+	    prev	,int
+	    next	,int
+	proc
+	    prev = a_ndx1
+	    swap = parent[prev]
+	    for argnm from 2 thru %numargs
+	      begin
+		next = ^argn(argnm)
+	        parent[prev] = parent[next]
+		prev = next
+	      end
+	    parent[prev] = swap
+	    mreturn this
+	end
+
+	public method push, @ls
+	;
+	; Description:  Insert a new object as the first element in a list
+	;
+	D_INARG a_obj, @*
+	proc
+		Insert(0, a_obj)
+		mreturn this
+	end
+
+	public method pop, @*
+	;
+	; Description:  Remove and return the first element in a list
+	;
+	; Returns ^null if the list is empty
+	;
+	record
+		obj	,@*
+	proc
+		if (this.Count > 0)
+		  begin
+		    obj = parent[0]
+		    RemoveAt(0)
+		    mreturn obj
+		  end
+		mreturn ^null
+	end
+
+	public method poplast, @*
+	;
+	; Description:  Remove and return the last item (complement to add$)
+	;
+	record
+		obj	,@*
+	proc
+		if (this.Count > 0)
+		  begin
+		    data ndx, int, this.Count-1
+		    obj = parent[ndx]
+		    RemoveAt(ndx)
+		    mreturn obj
+		  end
+		mreturn ^null
+	end
+
+.ifdef DBLNET
+	public new method reverse, @ls
+.else
+	public method reverse, @ls
+.endc
+	;
+	; Description:  Return a copy of this list in reverse order
+	;
+	record
+		newls	,@ls
+		ndx	,int
+	proc
+		newls = new ls()
+		for ndx from this.Count-1 thru 0 by -1
+		  newls.add(parent[ndx])	;Add to end, for performance
+		mreturn newls
+	end
+
+	public method flatten, @ls
+	;
+	; Description:  Return a copy of this list, with all ArrayList
+	;		members flattened, recursively.
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		newls.appendflat$(this)
+		mreturn newls
+	end
+
+	public method subseq, @ls
+	;
+	; Description:  Return a subsequence of the list
+	;
+	; Arguments:
+	;
+	D_INARG a_beg	,i	;Beginning index
+	D_INARG a_end	,i	;Ending index
+	;
+	; Returns: a new ls
+	;
+	record
+		newls	,@ls
+		ndx	,int
+		beg	,int
+		end	,int
+	proc
+		newls = new ls()
+		beg = a_beg
+		end = a_end
+		if (beg < 0)
+		  beg = 0
+		if (end >= this.Count)
+		  end = this.Count-1
+		for ndx from beg thru end
+		  newls.add(parent[ndx])
+		mreturn newls
+	end
+
+	public method subseq, @ls
+	;
+	; Description:  Return a subsequence of the list
+	;
+	; Arguments:
+	;
+	D_INARG beg,	i	;Beginning index
+	;
+	; Returns: a new ls
+	;
+	proc
+		mreturn subseq(beg, this.Count-1)
+	end
+
+	public property car, @*
+	;
+	; Description:  The first element of the list
+	;
+	  method get
+	  proc
+	    if (this.Count > 0)
+	      mreturn parent[0]	;This is easy
+	    mreturn ^null
+	  end
+	  method set
+	  proc
+	    if (this.Count > 0) then
+	      parent[0] = value
+	    else
+	      this.add(value)
+	  end
+	endproperty
+
+	public property cdr, @ls
+	;
+	; Description:  The second through last elements in the list
+	;
+	  method get
+	  record
+		newls	,@ls
+		ndx	,int
+	  proc
+		newls = new ls()
+		for ndx from 1 thru (this.Count - 1)
+		  newls.Add(parent[ndx])
+		mreturn newls
+	  end
+	  method set
+	  proc
+	  	this.chop$(1)
+		this.append$(value)
+	  end
+	endproperty
+
+	public property last, @*
+	;
+	; Description:  The last element of a list
+	;
+	  method get
+	  proc
+	  	if (this.Count > 0)
+		  mreturn parent[(int)(this.Count-1)]
+		mreturn ^null
+	  end
+	  method set
+	  proc
+	  	if (this.Count > 0) then
+		  parent[(int)(this.Count-1)] = value
+		else
+		  this.add(value)
+	  end
+	endproperty
+
+	public method join, string
+	;
+	; Description:  Join the members of a list with a delimiter
+	;
+	; Arguments:
+	;
+	D_INARG delim	,a	;Delimiter ("" for none)
+	;
+	; Returns:	a string
+	;
+	record
+		obj	,@*
+		first	,boolean
+		rval	,string
+	proc
+		rval = ""
+		first = true
+		foreach obj in this
+		  if (obj != ^null)
+		    begin
+		      if (first) then
+		        begin
+		          first = false
+		          rval = obj.ToString()
+		        end
+		      else
+		        rval = rval + delim + obj.ToString()
+		    end
+		mreturn rval
+	end
+
+	public method compact$, @ls
+	;
+	; Description:  Remove null items from a list
+	;
+	; Returns:	this
+	;
+	record
+		ndx	,int
+	proc
+		for ndx from this.Count-1 thru 0 by -1
+		  while ((ndx < this.Count) &&
+		  &	 (parent[ndx] == ^null))
+		    RemoveAt(ndx)
+		mreturn this
+	end
+
+	public method compact, @ls
+	;
+	; Description:  Return a copy of the list with no null items
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		;Rather than copying the entire list and then removing nulls,
+		;  we can save some overhead here.
+		foreach obj in this
+		  if (obj != ^null)
+		    newls.add(obj)
+		mreturn newls
+	end
+
+	public method uniq$, @ls
+	;
+	; Description:  Remove duplicates from a list
+	;
+	; Arguments:  None
+	;
+	; Returns:  this
+	;
+	record
+		ndx	,int
+	proc
+		for ndx from this.Count-1 thru 1 by -1
+		  if (Indexof(parent[ndx],0,ndx) >= 0)
+		    RemoveAt(ndx)	;Remove the last occurence
+		mreturn this
+	end
+
+	public method uniq, @ls
+	;
+	; Description:  Return a copy of this list with duplicates removed
+	;
+	; Arguments:	None.
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  if (newls.IndexOf(obj) < 0)
+		    newls.Add(obj)
+		mreturn newls
+	end
+
+	public method merge$, @ls
+	;
+	; Description:  Merge another list with this one
+	;
+	; Arguments:
+	;
+	D_INARG ls2, @ArrayList		;The other list
+	D_INARG cmp, @Compare	;Comparison functor
+	;
+	; Returns:  this
+	;
+	; It's presumed that both lists are sorted.  The result is a sorted combination.
+	;
+	record
+		ndx	,int
+		cnt	,int
+		obj	,@*
+		obj2	,@*
+	proc
+		ndx = 0
+		cnt = this.Count
+		if (cnt > 0)
+		  obj = parent[0]
+		foreach obj2 in ls2
+		  begin
+		    while ((ndx < cnt) && (cmp.test(obj2, obj) > 0))	;Inserted object is greater
+		      begin
+		        incr ndx				;Find our spot
+			if (ndx < cnt)
+			  obj = parent[ndx]			;Load next
+		      end
+		    if (ndx < cnt) then
+		      begin
+		        Insert(ndx, obj2)
+			incr cnt
+			incr ndx
+			if (ndx < cnt)
+			  obj = parent[ndx]
+		      end
+		    else
+		      Add(obj2)
+		  end
+		mreturn this
+	end
+
+	public method merge, @ls
+	;
+	; Description:  Merge two lists
+	;
+	; Arguments:
+	;
+	D_INARG ls2, @Arraylist	;The other list
+	D_INARG cmp, @Compare	;Comparison functor
+	;
+	; Returns:  a new ls
+	;
+	;
+	record
+		obj	,@*
+		obj2	,@*
+		newls	,@ls
+		ndx	,int
+		cnt	,int
+	proc
+		newls = new ls()
+		cnt = ls2.Count
+		ndx = 0
+		if (cnt > 0)
+		  obj2 = ls2[0]
+		foreach obj in this
+		  begin
+		    while ((ndx < cnt) && (cmp.test(obj, obj2) > 0))
+		      begin
+		        newls.Add(obj2)
+			incr ndx
+			if (ndx < cnt)
+			  obj2 = ls2[ndx]
+		      end
+		    newls.Add(obj)
+		  end
+		while (ndx < cnt)
+		  begin
+		    newls.Add(ls2[ndx])
+		    incr ndx
+		  end
+		mreturn newls
+	end
+
+	public method mergesort, @ls
+	;
+	; Description:  Sort the list, using mergesort
+	;
+	D_INARG cmp, @Compare	;Comparison functor (see Compare.dbl)
+	;
+	proc
+	    if (this.Count <= 1)
+	      mreturn this.copy()	;Protect the original
+	    mreturn this.mergesort_internal(cmp, 0, this.Count-1)
+	end
+
+	private method mergesort_internal, @ls
+	;
+	; Description:  Sort the list, using mergesort
+	;
+	D_INARG cmp, @Compare	;Comparison functor (see Compare.dbl)
+	D_INARG first, int
+	D_INARG last, int
+	;
+	record
+	    left	,@ls
+	    right	,@ls
+	    mid		,int
+	    ndx		,int
+	proc
+	    mid = (first + last) / 2
+	    if (mid > first) then		;More than one?
+	      left = mergesort_internal(cmp, first, mid)
+	    else
+	      left = ls.of(parent[first])
+	    ndx = mid + 1
+	    if (ndx < last) then		;More than one?
+	      right = mergesort_internal(cmp, ndx, last)
+	    else
+	      right = ls.of(parent[last])
+
+	    if (cmp.test(left[mid-first], right[0]) > 0)
+	      mreturn left.merge(right, cmp)	;Merge is generally faster than merge$
+	    mreturn left.append$(right)		;Append in place for performance
+	end
+
+	public method quicksort, @ls
+	;
+	; Description:  In-place quicksort algorithm, on a copy
+	;
+	D_INARG cmp, @Compare
+
+	proc
+		mreturn this.copy().quicksort$(cmp, 0, this.Count-1)
+	end
+
+	public method quicksort$, @ls
+	;
+	; Description:  In-place quicksort
+	;
+	D_INARG cmp, @Compare
+	;
+	proc
+		mreturn quicksort$(cmp, 0, this.Count-1)
+	end
+
+	public method quicksort$, @ls
+	;
+	; Description:  in-place quicksort, specifying a range of cells
+	;
+	D_INARG cmp, @Compare
+	D_INARG first, int		;Index of first element
+	D_INARG last, int		;Index of last element
+	proc
+		if (last > first)
+		  begin
+		    data swap, @*
+		    data pivotobj, @*
+		    data pivot, int
+		    data lo, int
+		    data n, int
+
+		    n = last - first + 1	;How many items?
+
+		    if (n < 5)		;Four or fewer, do insertion sort
+		      begin
+			for pivot from first+1 thru last
+			  for lo from pivot thru first+1 by -1
+			    begin
+			      swap = parent[lo-1]
+			      if (cmp.test(parent[lo-1],parent[lo]) > 0)
+			        begin
+			          parent[lo-1] = parent[lo]
+				  parent[lo] = swap
+			        end
+			    end
+		        mreturn this
+		      end
+
+		    pivot = (last + first) / 2			;Optimal if already sorted
+
+		    ;Note: experimentation revealed no improvements from attempting to
+		    ; optimize the pivot value using a median of 3 or pseudomedian of 9.
+		    ; Hypothesis: the overhead of invoking cmp.test outweighs the advantage
+		    ; of a better pivot most of the time.
+
+		    pivotobj = parent[pivot]
+
+		    if (pivot != first)
+		      parent[pivot] = parent[first]
+
+		    ;optimization: no need to store pivotobj in parent[first], because
+		    ; we retain a reference to it in pivotobj
+
+		    lo = first
+		    pivot = last+1
+		    repeat
+		      begin
+			do
+			  incr lo
+			until ((lo >= pivot) || (cmp.test(parent[lo], pivotobj) > 0))
+			do
+			  begin
+			    decr pivot
+			    if (pivot < lo)
+			      goto done
+			  end
+			until (cmp.test(parent[pivot], pivotobj) < 0)
+			swap = parent[lo]
+			parent[lo] = parent[pivot]
+			parent[pivot] = swap
+		      end
+	done,
+		    ;This next test seems to optimize for the worst-case scenario (choosing
+		    ;  the lowest value as pivot) at the expense of others, but as each
+		    ;  segment gets smaller, the case becomes more likely.  The cost of 
+		    ;  two ArrayList indexer calls is significantly greater than an integer
+		    ;  comparison.
+		    if (pivot != first)
+		      parent[first] = parent[pivot]
+		    parent[pivot] = pivotobj
+		    quicksort$(cmp, first, pivot-1)
+		    quicksort$(cmp, pivot+1, last)
+		  end
+		mreturn this
+	end
+
+	public method sort$, @ls
+	;
+	; Description:  In-place sort
+	;
+	D_INARG cmp, @Compare	;Comparison functor
+	;
+	; Returns:  this, sorted
+	;
+	proc
+		mreturn quicksort$(cmp, 0, this.Count-1)
+	end
+
+	public method sort, @ls
+	;
+	; Description:  Sort the list, using mergesort and/or quicksort
+	;
+	D_INARG cmp, @Compare	;Comparison functor (see Compare.dbl)
+	;
+	record
+	    cnt	,int
+	proc
+	    if ((cnt = this.Count) < 100000)
+	      mreturn this.copy().quicksort$(cmp, 0, cnt-1)
+
+	    mreturn this.sort_internal(cmp, 0, cnt-1)
+	end
+
+	private method sort_internal, @ls
+	;
+	; Description:  Sort the list, using mergesort and/or quicksort
+	;
+	D_INARG cmp, @Compare	;Comparison functor (see Compare.dbl)
+	D_INARG first, int
+	D_INARG last, int
+	;
+	record
+	    left	,@ls
+	    right	,@ls
+	    mid		,int
+	    ndx		,int
+	    nl		,int
+	    nr		,int
+	proc
+	    mid = (first + last) / 2
+	    nl = mid - first
+	    using nl select
+	    (0),
+	    	left = ls.of(parent[first])	;Just one item
+	    (< 100000),
+	    	left = subseq(first,mid).quicksort$(cmp, 0, nl)
+	    (),
+	    	left = sort_internal(cmp, first, mid)
+	    endusing
+	    ndx = mid + 1
+	    nr = last - ndx
+	    using nr select
+	    (0),
+	    	right = ls.of(parent[last])
+	    (< 100000),
+	    	right = subseq(ndx,last).quicksort$(cmp, 0, nr)
+	    (),
+	    	right = sort_internal(cmp, ndx, last)
+	    endusing
+
+	    if (cmp.test(left[nl], right[0]) > 0)
+	      mreturn left.merge(right, cmp)	;Merge is generally faster than merge$
+	    mreturn left.append$(right)		;Append in place for performance
+	end
+
+	public method map$, @ls
+	;
+	; Description:  In-place mapping
+	;
+	D_INARG map, @MapObject	;Mapper functor
+	;
+	; Returns:	this, modified
+	;
+	record
+		ndx	,int
+	proc
+		for ndx from 0 thru this.Count-1
+		  parent[ndx] = map.map(parent[ndx])
+		mreturn this
+	end
+
+	public method map, @ls
+	;
+	; Description:  Map this list to a new one
+	;
+	D_INARG map, @MapObject	;Mapper functor
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  newls.add(map.map(obj))
+		mreturn newls
+	end
+
+	public method mapnonull, @ls
+	;
+	; Description:  Map this list to another one, excluding null results
+	;
+	D_INARG map, @MapObject	;Mapper functor
+	;
+	; Returns a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  begin
+		    obj = map.map(obj)
+		    if (obj != ^null)
+		      newls.add(obj)
+		  end
+		mreturn newls
+	end
+
+	public method removeif$, @ls
+	;
+	; Description:  Remove items from a list that satisfy a MapBoolean
+	;
+	D_INARG map, @MapBoolean	;Mapper functor
+	;
+	; Returns:	this, modified
+	;
+	record
+		ndx	,int
+	proc
+		for ndx from this.Count-1 thru 0 by -1
+		  if (map.test(parent[ndx]))
+		    RemoveAt(ndx)
+		mreturn this
+	end
+
+	public method removeif, @ls
+	;
+	; Description:  Remove items from a list that satisfy a MapBoolean
+	;
+	D_INARG map, @MapBoolean	;Mapper functor
+	;
+	; Returns:	a new ls
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  if (!map.test(obj))
+		    newls.add(obj)
+		mreturn newls
+	end
+
+	public method countif, int
+	;
+	; Description:  Count the number of items that satify a MapBoolean
+	;
+	D_INARG map, @MapBoolean	;Mapper functor
+	;
+	; Returns:	Number of items that match
+	;
+	record
+		obj	,@*
+		cnt	,int
+	proc
+		clear cnt
+		foreach obj in this
+		  if (map.test(obj))
+		    incr cnt
+		mreturn cnt
+	end
+
+	public method find, @*
+	;
+	; Description:  Find an object that satisfies a test
+	;
+	D_INARG map, @MapBoolean	;Mapper function
+	;
+	; Returns:  the first object for which map.test returns true
+	;
+	record
+		obj	,@*
+	proc
+		foreach obj in this
+		  if (map.test(obj))
+		    mreturn obj
+		mreturn ^null
+	end
+
+	public method findall, @ls
+	;
+	; Description:  Find all objects that satisfy a test
+	;
+	D_INARG map, @MapBoolean	;Mapper function
+	;
+	; Returns a list of all qualifying objects
+	;
+	record
+		newls	,@ls
+		obj	,@*
+	proc
+		newls = new ls()
+		foreach obj in this
+		  if (map.test(obj))
+		    newls.add(obj)
+		mreturn newls
+	end
+
+	public method reduce, @*
+	;
+	; Description:  Perform a left fold, or inject, on the list
+	;		specifying no initial value.
+	;
+	D_INARG rdc, @Reducer
+	;
+	record
+		rv	,@*
+		ndx	,int
+		cnt	,int
+	proc
+		using (cnt = this.Count) select
+		(0),
+		  mreturn ^null
+		(1),
+		  mreturn parent[0]
+		endusing
+
+		rv = parent[0]
+		for ndx from 1 thru cnt-1
+		  rv = rdc.reduce(rv, parent[ndx])
+		mreturn rv
+	end
+
+	public method reduce, @*
+	;
+	; Description:  Perform a left fold, or inject, on the list
+	;
+	D_INARG rdc, @Reducer		;Reducer functor
+	D_INARG initial, @*		;Initial value
+	;
+	record
+		rv	,@*
+		obj	,@*
+	proc
+		rv = initial
+		foreach obj in this
+		  rv = rdc.reduce(rv, obj)
+		mreturn rv
+	end
+
+	public method reduceright, @*
+	;
+	; Description:  Perform a right fold, or inject, on the list
+	;		specifying no initial value.
+	;
+	D_INARG rdc, @Reducer
+	;
+	record
+		rv	,@*
+		cnt	,int
+	proc
+		using (cnt = this.Count) select
+		(0),
+		  mreturn ^null
+		(1),
+		  mreturn parent[0]
+		endusing
+
+		rv = parent[cnt-=1]
+		while ((cnt-=1) >= 0)
+		  rv = rdc.reduce(rv, parent[cnt])
+		mreturn rv
+	end
+
+	public method reduceright, @*
+	;
+	; Description:  Perform a right fold, or inject, on the list
+	;
+	D_INARG rdc, @Reducer		;Reducer functor
+	D_INARG initial, @*		;Initial value
+	;
+	record
+		rv	,@*
+		ndx	,int
+	proc
+		rv = initial
+		for ndx from this.Count-1 thru 0 by -1
+		  rv = rdc.reduce(rv, parent[ndx])
+		mreturn rv
+	end
+
+	; Associative array support
+
+	public method keyfind, @ls
+	;
+	; Description:  Find a sublist by key
+	;
+	; Arguments:
+	;
+	D_INARG a_key	,@*	;Key to look for
+	;
+	; Returns:  the association sublist, or ^null
+	;
+	record
+		obj	,@*
+	proc
+	    foreach obj in this
+	      if (obj .is. ls)	;Must be an ls to qualify
+	        begin
+		  data l, @ls, (ls)obj	;Cast to ls
+		  if ((l.Count > 0) && (a_key.Equals(l[0])))
+		    mreturn l
+		end
+	    mreturn ^null	;Not found
+	end
+
+	public method keyset, @ls
+	;
+	; Description:  Set the value for a key
+	;
+	; Arguments:
+	;
+	D_INARG a_key	,@*	;Key
+	D_INARG a_val	,@*	;Value
+	;
+	; Returns: this
+	;
+	record
+		k	,@ls
+	proc
+		if ((k = keyfind(a_key)) == ^null) then
+		  this.Add(make_pair(a_key, a_val))
+		else
+		  begin
+		    if (k.Count > 2)
+		      k.chop$(2)
+		    if (k.Count < 2) then
+		      k.Add(a_val)
+		    else
+		      k[1] = a_val
+		  end
+		mreturn this
+	end
+
+	public method keyget, @*
+	;
+	; Description:  Get the value associated with a key
+	;
+	; Arguments:
+	;
+	D_INARG a_key	,@*	;Key to search for
+	;
+	; Returns:  the value, or ^null
+	;
+	record
+		k	,@ls
+	proc
+		if ((k = keyfind(a_key)) == ^null)
+		  mreturn ^null
+		using k.Count select
+		(1),	mreturn ^null
+		(2),	mreturn k[1]
+		endusing
+		mreturn k.cdr
+	end
+
+	public method keygetl, @ls
+	;
+	; Description:  Get the values associated with a key as an ls
+	;
+	; Arguments:
+	;
+	D_INARG a_key	,@*	;Key to search for
+	;
+	; Returns:  a list of associated values, or an empty list if none
+	;
+	record
+		k	,@ls
+	proc
+		if ((k = keyfind(a_key)) == ^null)
+		  mreturn new ls()	;Empty list
+		mreturn k.cdr		;Whatever follows the key
+	end
+
+	public method keydel, @ls
+	;
+	; Description:  Delete the key-value pair associated with a key
+	;
+	; Arguments:
+	;
+	D_INARG a_key	,@*	;Key to delete
+	;
+	; Returns: this
+	;
+	record
+		k	,@ls
+	proc
+		if ((k = keyfind(a_key)) != ^null)
+		  this.RemoveAt(IndexOf(k))
+		mreturn this
+	end
+
+	public method keyadd, @ls
+	;
+	; Description:  Add an object to a key
+	;
+	; Arguments:
+	;
+	D_INARG a_key	,@*	;Key
+	D_INARG a_val	,@*	;Value to add
+	;
+	; This method allows an associative array to be treated as a multimap.
+	; More than one value can be added to a key, and keyget will return them as an ls.
+	;
+	record
+		k	,@ls
+	proc
+		if ((k = keyfind(a_key)) == ^null) then
+		  this.Add(make_pair(a_key, a_val))
+		else
+		  k.Add(a_val)
+		mreturn this
+	end
+
+	public property Indexer, @*
+	D_INARG key, @*
+	  method get
+	  proc
+	  	mreturn keyget(key)
+	  end
+	  method set
+	  proc
+		keyset(key, value)
+	  	mreturn
+	  end
+	endproperty
+
+	public property Indexer, @*
+	D_INARG key, string
+	  method get
+	  proc
+	  	mreturn keyget(Var.Box(key))
+	  end
+	  method set
+	  proc
+	  	keyset(Var.Box(key), value)
+		mreturn
+	  end
+	endproperty
+
+	public method ToHash, @Hash
+	proc
+		mreturn ToHash(true)
+	end
+
+	public method ToHash, @Hash
+	;
+	; Create a Hash from this list
+	;
+	D_INARG a_case, boolean		;Case-sensitive?
+	record
+		h	,@Hash
+		obj	,@*
+	proc
+		h = new Hash()
+		h.CaseSensitive = a_case
+		foreach obj in this
+		  if (obj .is. ls)	;Only lists within lists
+		    begin
+		      data l, @ls, (ls)obj
+		      if (l.Count > 1)	;Must have at least one association
+		        begin
+			  data key, @*, l[0]
+			  data val, @*, l[1]
+			  if ((key != ^null) && (val != ^null))
+			    h[key.ToString()] = val
+			end
+		    end
+		mreturn h
+	end
+
+	public override method Equals, D_EQUALS_TYPE
+	D_EQUALS_PARAM(a_other)
+	record
+	    ours	,@*
+	proc
+	    if (parent.Equals(a_other))
+	      mreturn true	;Object identity
+	    if (a_other .is. ArrayList)
+	      begin
+		data ndx, int
+	        data o, @ArrayList, (ArrayList)a_other
+
+		if (o.Count != (ndx = this.Count))
+		  mreturn false
+		while ((ndx -= 1) >= 0)
+		  if ((ours = parent[ndx]) == ^null) then
+		    begin
+		      if (o[ndx] != ^null)
+		        mreturn false
+		    end
+		  else if (!(ours.Equals(o[ndx])))
+		    mreturn false
+	        mreturn true	;All members are equal
+	      end
+	    mreturn false	;Nope
+	end
+
+	public override method ToString, string
+	record
+		obj	,@*
+		rval	,string
+		first	,boolean
+	proc
+		rval = "["
+		first = true
+		foreach obj in this
+		  begin
+		    if (first) then
+		      first = false
+		    else
+		      rval = rval + ", "
+		    if (obj == ^null) then
+		      rval = rval + "^null"
+		    else
+		      rval = rval + obj.ToString()
+		  end
+		rval = rval + "]"
+		mreturn rval
+	end
+
+    ;Now include redefinitions to automatically box primitives as Vars
+    .define D_LS_VARTYPE, int
+    .include "ls"
+    .define D_LS_VARTYPE, decimal
+    .include "ls"
+    .define D_LS_VARTYPE, a
+    .include "ls"
+
+    endclass
+
+endnamespace
+
+.else		;D_LS_VARTYPE
+
+.ifndef DBLNET
+	public static method from, @ls
+	;
+	; Description:  Create an ls from an array
+	;
+	; Arguments:
+	;
+	D_INARG a_src	,[*] D_LS_VARTYPE
+	;
+	; Returns:  a new ls
+	;
+	record
+		newls	,@ls
+		ndx	,int
+	proc
+		newls = new ls()
+		for ndx from 1 thru ^argdim(1,1)
+		  newls.Add(Var.Box(a_src[ndx]))
+		mreturn newls
+	end
+.endc
+
+	public static method of, @ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+	    mreturn ls.of(Var.Box(a_obj))	;Convert to Var
+	end
+
+	public static method op_Addition, @ls
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn a_ary1.append(Var.Box(a_obj))
+	end
+
+	public static method op_Subtraction, @ls
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn a_ary1.remove(Var.Box(a_obj))
+	end
+
+	public static method op_BitwiseOr, @ls
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn a_ary1.append$(Var.Box(a_obj))
+	end
+
+	public static method op_BitwiseAnd, @ls
+	D_INARG a_ary1	,@ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn a_ary1.add$(Var.Box(a_obj))
+	end
+
+	public method append$, @ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn this.append$(Var.Box(a_obj))
+	end
+
+	public method append, @ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn this.append(Var.Box(a_obj))
+	end
+
+	public method add$, @ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn this.add$(Var.Box(a_obj))
+	end
+
+	public method remove$, @ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn this.remove$(Var.Box(a_obj))
+	end
+
+	public method remove, @ls
+	D_INARG a_obj	,D_LS_VARTYPE
+	proc
+		mreturn this.remove(Var.Box(a_obj))
+	end
+
+	public method contains, boolean
+	D_INARG obj, D_LS_VARTYPE
+	proc
+	    mreturn this.contains(Var.Box(obj))
+	end
+
+	public method union$, @ls
+	D_INARG obj, D_LS_VARTYPE
+	proc
+	    mreturn this.union$(Var.Box(obj))
+	end
+
+	public method union, @ls
+	D_INARG obj, D_LS_VARTYPE
+	proc
+	    mreturn this.union(Var.Box(obj))
+	end
+
+	public method push, @ls
+	D_INARG a_obj,	D_LS_VARTYPE
+	proc
+		mreturn this.push(Var.Box(a_obj))
+	end
+
+	public method reduce, @*
+	D_INARG rdc, @Reducer		;Reducer functor
+	D_INARG initial, D_LS_VARTYPE	;Initial value
+	proc
+		mreturn this.reduce(rdc, Var.Box(initial))
+	end
+
+	public method reduceRight, @*
+	D_INARG rdc, @Reducer		;Reducer functor
+	D_INARG initial, D_LS_VARTYPE	;Initial value
+	proc
+		mreturn this.reduceRight(rdc, Var.Box(initial))
+	end
+
+	public method IndexOf, int
+	D_INARG value, D_LS_VARTYPE
+	proc
+	    mreturn IndexOf(Var.Box(value))
+	end
+
+	public method IndexOf, int
+	D_INARG value, D_LS_VARTYPE
+	D_INARG idx, int
+	proc
+	    mreturn Indexof(Var.Box(value), idx)
+	end
+
+	public method IndexOf, int
+	D_INARG value, D_LS_VARTYPE
+	D_INARG idx, int
+	D_INARG cnt, int
+	proc
+	    mreturn IndexOf(Var.Box(value), idx, cnt)
+	end
+
+	public method LastIndexOf, int
+	D_INARG value, D_LS_VARTYPE
+	proc
+	    mreturn LastIndexOf(Var.Box(value))
+	end
+
+	public method LastIndexOf, int
+	D_INARG value, D_LS_VARTYPE
+	D_INARG idx, int
+	proc
+	    mreturn LastIndexof(Var.Box(value), idx)
+	end
+
+	public method LastIndexOf, int
+	D_INARG value, D_LS_VARTYPE
+	D_INARG idx, int
+	D_INARG cnt, int
+	proc
+	    mreturn LastIndexOf(Var.Box(value), idx, cnt)
+	end
+
+	public method keyfind, @ls
+	D_INARG a_key, D_LS_VARTYPE
+	proc
+	    mreturn keyfind(Var.Box(a_key))
+	end
+
+	public method keyset, @ls
+	D_INARG a_key, @*
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyset(a_key, Var.Box(a_val))
+	end
+
+	public method keyset, @ls
+	D_INARG a_key, a
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyset(Var.Box(a_key), Var.Box(a_val))
+	end
+
+	public method keyset, @ls
+	D_INARG a_key, decimal
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyset(Var.Box(a_key), Var.Box(a_val))
+	end
+
+	public method keyset, @ls
+	D_INARG a_key, int
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyset(Var.Box(a_key), Var.Box(a_val))
+	end
+
+	public method keyget, @*
+	D_INARG a_key, D_LS_VARTYPE
+	proc
+	    mreturn keyget(Var.Box(a_key))
+	end
+
+	public method keygetl, @ls
+	D_INARG a_key, D_LS_VARTYPE
+	proc
+	    mreturn keygetl(Var.Box(a_key))
+	end
+
+	public method keydel, @ls
+	D_INARG a_key, D_LS_VARTYPE
+	proc
+	    mreturn keydel(Var.Box(a_key))
+	end
+
+	public method keyadd, @ls
+	D_INARG a_key, @*
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyadd(a_key, Var.Box(a_val))
+	end
+
+	public method keyadd, @ls
+	D_INARG a_key, a
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyadd(Var.Box(a_key), Var.Box(a_val))
+	end
+
+	public method keyadd, @ls
+	D_INARG a_key, decimal
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyadd(Var.Box(a_key), Var.Box(a_val))
+	end
+
+	public method keyadd, @ls
+	D_INARG a_key, int
+	D_INARG a_val, D_LS_VARTYPE
+	proc
+	    mreturn keyadd(Var.Box(a_key), Var.Box(a_val))
+	end
+
+.undefine D_LS_VARTYPE
+.endc

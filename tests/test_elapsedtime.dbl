@@ -1,0 +1,18 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	et	,@ElapsedTime
+	et2	,@ElapsedTime
+proc
+	et = new ElapsedTime()
+	sleep 1
+	assert(%datetime > et.StartTime)
+	assert(et.nSeconds > 0)
+	et2 = new ElapsedTime()
+	et2.Overhead = -(24 * 60 * 60 + 1)
+	assert(instr(1,et2.ToString(),"1 day "))
+	et2.Overhead = et2.Overhead - (24 * 60 * 60)
+	assert(instr(1,et2.ToString(),"2 days "))
+	pass("in " + et.ToString() + " seconds")
+end

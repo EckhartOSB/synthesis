@@ -1,0 +1,60 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+proc
+	call do_tests
+	pass("without Toolkit")
+	GotToolkit(D_START_ANYWAY)	;Force Toolkit in
+	call do_tests
+	pass("with Toolkit")
+	stop
+
+;
+do_tests,
+	Console.Display("Testing Display...")
+	Console.WriteLine("and WriteLine")
+	begin
+	  data f, @File, File.Open("test_file.tmp", "o")
+	  assert_not_equal(0, f.channel)
+	  assert_equal("test_file.tmp", f.name)
+	  assert_equal("o", f.mode)
+	  f.writeline("hello")
+	  f.writeline(integer(1))
+	  f.writeline(2)
+	  f.writeline(ls.of('a') & 'b')
+	  f.writeline("")
+	  f.Close()			;Required by .NET
+	end
+
+	begin
+	  data f, @File, new file("test_file.tmp")
+	  assert_equal("hello", f.readline())
+	  assert_equal("1", f.readline())
+	  assert_equal("2", f.readline())
+	  assert_equal("a", f.readline())
+	  assert_equal("b", f.readline())
+	  assert(f.readline() .eqs. "")
+	  assert_null(f.readline())
+	  f.Close()
+	  f.Close()			;Make sure this is benign
+	end
+
+	begin
+	  data f, @File, File.Open("test_file.tmp")
+	  data l, @ls, f.ReadLines()
+	  assert(l.Equals(ls.of("hello") & "1" & "2" & "a" & "b" & ""))
+.ifdef DBLNET				;Exercise destructor for non-.NET
+	  f.Close()
+.endc
+	end
+
+	assert_throws(Synergex.SynergyDE.NoFileFoundException, "test_file_open_error")
+
+	return
+end
+
+subroutine test_file_open_error
+proc
+	File.Open("i_dont_exist")
+	xreturn
+end

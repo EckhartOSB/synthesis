@@ -1,0 +1,54 @@
+<html>
+<head>
+<title>GotToolkit function reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Function GotToolkit</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This function allows you to determine whether the Synergy/DE UI Toolkit
+was linked or opened by this application, as well as whether it has been started.
+It also provides the ability to attach to the UI Toolkit if it isn't attached, and
+to start it if it isn't started.</p>
+</div>
+<div class="ref">
+<h2>Syntax</h2>
+<pre><code>
+	<em>result</em> = GotToolkit([<em>option</em>])
+</code></pre> 
+<p>where:</p>
+<ul>
+  <li><em>result</em> is a flag indicating the state of the Toolkit following this call (^val).
+      Values are defined in synthesis.def:
+    <ul>
+      <li>D_NO_TOOLKIT - The Toolkit is not attached to this application.</li>
+      <li>D_TOOLKIT_AVAILABLE - The Toolkit is attached, but not started.</li>
+      <li>D_TOOLKIT_STARTED - The Toolkit has been started.</li>
+    </ul>
+  </li>
+  <li><em>option</em> is an optional flag indicating what action to take (n).  Values are defined
+      in synthesis.def:
+      <ul>
+        <li>D_NO_START (or not passed) - Don't change anything.</li>
+	<li>D_START - Start the Toolkit if it is already attached.</li>
+	<li>D_START_ANYWAY - Start the Toolkit, attaching to it first if needed.</li>
+      </ul>
+  </li>
+</ul>
+</div>
+<div class="ref">
+<h2>Discussion</h2>
+<p>
+If instructed to attach to the Toolkit, GotToolkit uses OPENELB and assumes that the Toolkit
+library is "WND:tklib.elb" on all platforms except OpenVMS, where it expects the symbol
+"TKLIB_SH" to point to it instead.  If instructed to start the UI Toolkit, GotToolkit calls
+U_START with no parameters.  Calling U_START has a number of side-effects, such as closing all
+channels.  Also, since GotToolkit must use xsubr to call U_START, it's possible to inject
+an overloaded version of U_START by giving another library priority over tklib.elb.
+</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,766 @@
+;------------------------------------------------------------------------------
+;
+; json.dbl	Support for JSON in Synergy/DE
+;
+; Chip Camden	March, 2010
+;
+;------------------------------------------------------------------------------
+;
+.include "SYNTHESIS:synthesis.def"
+import System.Collections	;for ArrayList
+
+namespace Synthesis
+
+    public class json
+
+	public method json
+	D_INARG a_mapper, @Mapper
+	proc
+	    m_mapper = a_mapper
+	    m_mapper.Next = DefaultMapper.instance
+	end
+
+	public method json
+	proc
+	    m_mapper = DefaultMapper.instance
+	end
+
+	public static property Default, @json
+	  method get
+	  proc
+	    if (s_default == ^null)
+	      s_default = new json()
+	    mreturn s_default
+	  end
+	endproperty
+
+	public method AddMapper, void
+	D_INARG a_mapper, @Mapper
+	proc
+	    a_mapper.Next = m_mapper
+	    m_mapper = a_mapper
+	end
+
+        public method parse, @*
+	;
+	; Parse a string as JSON and return an object
+	;
+	D_INARG a_str, a		;String to parse
+	;
+	; Returns an object that represents the JSON string
+	;
+	proc
+	    m_str = a_str
+	    m_len = m_str.Length
+	    m_next = 1
+	    m_curr = ""
+	    mreturn parse_value(next())
+	end
+
+	public method emit, string
+	; (^null if string is empty)
+	;
+	; Emit JSON as a string
+	;
+	D_INARG a_obj, @*		;Object from which to emit
+	;
+	; Returns a string representation of the object in JSON.
+	;
+	proc
+	    mreturn m_mapper.emit(this, a_obj)	;Let the mapper do it
+	end
+
+	public static method escape, string
+	;
+	; Escape special characters in a JSON string
+	;
+	D_INARG a_str, a
+	;
+	; Returns escaped string
+	;
+	record
+	    str, string
+	    ndx, int
+	    c, a1
+	    ic, i1 @c
+
+	proc
+	    str = ""
+	    for ndx from 1 thru ^size(a_str)
+	      using (c = a_str(ndx:1)) select
+	      ('"', '\', '/'),
+	        str = str + '\' + c
+	      (char(8)),
+	        str = str + '\b'
+	      (char(9)),
+	        str = str + '\t'
+	      (char(10)),
+	        str = str + '\n'
+	      (char(12)),
+	        str = str + '\f'
+	      (char(13)),
+	        str = str + '\r'
+	      (char(127), < char(32)),
+	        str = str + '\u' + hex(ic,2)	;four-digit hex
+	      (),
+	      	str = str + c
+	      endusing
+	    mreturn str
+	end
+
+	public static method unescape, string
+	D_INARG a_str, a
+	;
+	; Returns the unescaped string
+	;
+	; Note:  will have problems with Unicode characters above 127
+	;
+	record
+	    str		,string
+	    ndx		,int
+	    beg		,int
+
+	proc
+	    beg = 1
+	    ndx = 1
+	    str = ""
+	    while (ndx = instr(ndx, a_str, '\'))
+	      begin
+		if (ndx > beg)
+		  str = str + a_str(beg,ndx-1)
+	        incr ndx
+		if (ndx > ^size(a_str))
+		  throw new ParserException('Unescaped \ at end of string')
+		using a_str(ndx:1) select
+		('"'),
+		  str = str + '"'
+		('\'),
+		  str = str + '\'
+		('/'),
+		  str = str + '/'
+		('b'),
+		  str = str + char(8)
+		('f'),
+		  str = str + char(12)
+		('n'),
+		  str = str + char(10)
+		('r'),
+		  str = str + char(13)
+		('t'),
+		  str = str + char(9)
+		('u'),
+		  begin
+		    incr ndx
+		    if (ndx > ^size(a_str)-3)
+		      throw new ParserException('Four digits required for Unicode escape')
+		    try
+		      str = str + char(%x(a_str(ndx:4)))
+		    catch (e, @System.Exception)
+		      throw new ParserException('Unrecognized hex unicode value')
+		    endtry
+		    ndx = ndx + 3
+		  end
+		endusing
+		incr ndx
+	        beg = ndx
+	      end
+	    if (beg <= ^size(a_str))
+	      str = str + a_str(beg,^size(a_str))
+	    mreturn str
+	end
+
+	public static method applyExponent, decimal
+	;
+	; Convert a number from value/exponent to true value
+	;
+	D_INARG number, decimal		;Base number portion
+	D_INARG exp, int		;Power of 10 (0 = no exponent)
+	;
+	record
+		e	,int
+		val	,decimal
+	proc
+		val = number
+		e = exp
+
+		if (e > 0) then
+		  do
+		    begin
+		      try
+		        val = val * 10
+		      catch (ex, @System.OverflowException)
+		        val = 0	;Emulate STD behavior on .NET
+		      endtry
+		      decr e
+		    end
+		  until ((e == 0) || (val == 0))
+		else
+		  while ((e < 0) && (val != 0))
+		    begin
+		      val = val / 10
+		      incr e
+		    end
+
+		mreturn val
+	end
+
+	private static s_default, @json
+
+	private m_mapper, @Mapper
+	private m_next, int		;Position of next token
+	private m_str, string
+	private m_len, int
+	private m_curr, string		;Current token
+
+	private method parse_value, @*
+	D_INARG token, a
+	;
+	; token must have at least one character
+	;
+	proc
+	    using (token) select
+	    ('{'),
+	      mreturn parse_object()
+	    ('['),
+	      mreturn parse_array()
+	    ('"'),
+	      mreturn m_mapper.stringValue(parse_string(token))
+	    ("null"),
+	      mreturn m_mapper.nullValue()
+	    ("true"),
+	      mreturn m_mapper.booleanValue(true)
+	    ("false"),
+	      mreturn m_mapper.booleanValue(false)
+	    ('0' thru '9', '-'),
+	      mreturn parse_number(token)
+	    endusing
+	    throw new ParserException("Unrecognized value: " + token)
+	end
+
+	private method parse_object, @*
+	;
+	; Assumes m_curr is "{"
+	;
+	record
+	    rv	,@*
+	    key	,string
+	proc
+	    rv = m_mapper.createObject()
+	    next()
+	    while (m_curr != "}")
+	      begin
+		key = parse_string(m_curr)
+		if (next() != ':')
+		  throw new ParserException("colon expected")
+		m_mapper.addPair(rv, key, parse_value(next()))
+		if (next() == ',')
+		  next()
+	      end
+	    mreturn rv
+	end
+
+	private method parse_array, @*
+	;
+	; Assumes m_curr is "["
+	;
+	record
+	    rv	,@*
+	proc
+	    rv = m_mapper.createArray()
+	    next()
+	    while (m_curr != ']')
+	      begin
+		m_mapper.addElement(rv, parse_value(m_curr))
+		if (next() == ',')
+		  next()
+	      end
+	    mreturn rv
+	end
+
+	private method parse_string, string
+	D_INARG token, a		;The entire quoted string
+	record
+	    len	,int
+	proc
+	    if (token(1:1) != '"')
+	      throw new ParserException('string must begin with "')
+	    len = ^size(token)
+	    if (token(len:1) == '"')
+	      decr len
+	    if (len < 2)
+	      mreturn ""
+	    mreturn unescape(token(2,len))
+	end
+
+	private method parse_number, @*
+	D_INARG token, a		;The entire number
+	record
+	    rv	,@*
+	    num	,decimal
+	    exp	,int
+	    e	,int
+	proc
+	    try
+	      if ((e = instr(2,token,'e')) || (e = instr(2,token,'E'))) then
+		begin
+		  num = token(1,e-1)
+		  if (e == ^size(token))
+		    throw new ParserException("Exponent expected: " + token)
+		  incr e
+		  exp = token(e,^size(token))	;May include +/-
+		end
+	      else
+		begin
+		  num = token
+		  clear exp
+		end
+	    catch (ex, @System.Exception)
+	      throw new ParserException("Invalid numeric format: " + token)
+	    endtry
+	    mreturn m_mapper.numberValue(num, exp)
+	end
+
+	private method next, string
+	record
+	    rv	,string
+	literal delim
+		, a*, ',]}'
+	      ws, a*, ' '+char(9)+char(10)+char(11)+char(12)+char(13)
+	proc
+	   while ((m_next <= m_len) && (instr(1,ws,m_str(m_next:1))))
+	     incr m_next		;Skip white space
+	  if (m_next > m_len)
+	    throw new ParserException("Unexpected end of string")
+	  using (m_str(m_next:1)) select
+	  ('{','[',']','}',':', ','),
+	    begin
+	      m_curr = m_str(m_next:1)
+	      incr m_next
+	    end
+	  ('"'),
+	    begin
+	      data esc, boolean
+	      data beg, int
+
+	      esc = false
+	      beg = m_next
+	      while (((m_next +=1) <= m_len) && (esc || (m_str(m_next:1) != '"')))
+		begin
+		  if (m_str(m_next:1) == '\') then
+		    esc = true
+		  else
+		    esc = false
+		end
+	      if (m_next > m_len) then
+		m_curr = m_str(beg,m_len)
+	      else
+		begin
+		  m_curr = m_str(beg,m_next)
+		  incr m_next
+		end
+	    end
+	  (),
+	    begin
+	      data beg, int
+
+	      beg = m_next
+	      ;We already ruled out the first character from being a delimiter above
+	      while (((m_next += 1) <= m_len) && !instr(1,delim,m_str(m_next:1)))
+		nop
+	      m_curr = m_str(beg,m_next-1)
+	    end
+	  endusing
+	  mreturn m_curr
+	end
+
+	public abstract class Mapper
+	;
+	; Class to map JSON to/from objects
+	;
+	    public Next, @Mapper	;Next mapper in chain
+
+	    public virtual method emit, string
+	    ;
+	    ; Emit a JSON string representing an object
+	    ;
+	    D_INARG a_json, @json	;Requesting json object
+	    D_INARG a_obj, @*		;Object to convert
+	    ;
+	    proc
+	    	mreturn Next.emit(a_json, a_obj)
+	    end
+
+	    public virtual method createObject, @*
+	    ;
+	    ; Return an object that represents a JSON object {}
+	    ;
+	    proc
+	    	mreturn Next.createObject()
+	    end
+
+	    public virtual method addPair, void
+	    ;
+	    ; Add a name/value pair to an object
+	    ;
+	    D_INARG obj, @*	;Object previously returned by createObject
+	    D_INARG name, a	;Name for a pair
+	    D_INARG val, @*	;Value for a pair
+	    ;
+	    proc
+	    	Next.addPair(obj, name, val)
+	    end
+
+	    public virtual method createArray, @*
+	    ;
+	    ; Return an object that represents a JSON array []
+	    ;
+	    proc
+	    	mreturn Next.createArray()
+	    end
+
+	    public virtual method addElement, void
+	    ;
+	    ; Add an element to an array
+	    ;
+	    D_INARG array, @*	;Array previously returned by createArray
+	    D_INARG elem, @*	;An element
+	    ;
+	    proc
+	    	Next.addElement(array, elem)
+	    end
+
+	    public Virtual method stringValue, @*
+	    ;
+	    ; Return an object representing a JSON string value
+	    ;
+	    D_INARG str, a	;Unquoted, unescaped string value
+	    ;
+	    proc
+	    	mreturn Next.stringValue(str)
+	    end
+
+	    public virtual method numberValue, @*
+	    ;
+	    ; Return an object representing a JSON number
+	    ;
+	    D_INARG number, decimal	;Numeric value
+	    D_INARG exp, int		;Power of 10 (0 = no exponent)
+	    ;
+	    proc
+	    	mreturn Next.numberValue(number, exp)
+	    end
+
+	    public virtual method booleanValue, @*
+	    ;
+	    ; Return an object representing true or false
+	    ;
+	    D_INARG val, boolean	;True or false
+	    ;
+	    proc
+	    	mreturn Next.booleanValue(val)
+	    end
+
+	    public virtual method nullValue, @*
+	    ;
+	    ; Return an object representing null
+	    ;
+	    proc
+	    	mreturn Next.nullValue()
+	    end
+
+	endclass
+
+	public class DefaultMapper extends Mapper
+	;
+	; Provides default JSON<->object mapping
+	;
+
+	    .define SINGLETON_CLASS, DefaultMapper
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    	Next = ^null
+	    end
+
+	    public override method emit, string
+	    ;
+	    ; Emit a JSON string representing an object
+	    ;
+	    D_INARG a_json, @json
+	    D_INARG a_obj, @*
+	    ;
+	    ; The default conversion proceeds as follows:
+	    ;
+	    ; @json.Null, ^null => null
+	    ; @Hash => object, emitting all members as pairs (maximum name length is 1024)
+	    ; @ArrayList (includes ls) => array, emitting all members as values
+	    ; @json.Bool, @boolean => true/false
+	    ; @VarDec, @VarInt, @d, @i, @decimal, @int, @long, @short, @byte, @sbyte => number
+	    ; Anything else => string, using object.ToString()
+	    ;
+	    proc
+	      if ((a_obj == ^null) || (a_obj .is. Null))
+		mreturn "null"
+
+	      if (a_obj .is. Hash)
+		begin
+		  data rv, string
+		  data iter, @Hash.Iterator
+		  data o, @*
+		  data key, a1024	;Note maximum name length 1024
+
+		  rv = '{'
+		  iter = new Hash.Iterator((Hash)a_obj)
+		  if ((o = iter.First(key)) != ^null)
+		    begin
+		      rv = rv + '"' + json.escape(atrim(key)) + '":' + a_json.emit(o)
+		      while ((o = iter.Next(key)) != ^null)
+			rv = rv + ',"' + json.escape(atrim(key)) + '":' + a_json.emit(o)
+		    end
+
+		  mreturn rv + '}'
+		end
+
+	      if (a_obj .is. ArrayList)
+		begin
+		  data rv, string
+		  data o, @*
+		  data first, boolean
+
+		  first = true
+		  rv = '['
+		  foreach o in ((ArrayList)a_obj)
+		    begin
+		      if (first) then
+			begin
+			  clear first
+			  rv = rv + a_json.emit(o)
+			end
+		      else
+			begin
+			  rv = rv + ',' + a_json.emit(o)
+			end
+		    end
+		  mreturn rv + ']'
+		end
+
+	      if ((a_obj .is. Bool) ||
+	      &   (a_obj .is. VarDec) ||
+	      &   (a_obj .is. VarInt))
+		mreturn a_obj.ToString()
+
+  .ifndef DBLNET
+	      if ((a_obj .is. @d) ||
+	      &	(a_obj .is. @i) ||
+	      &	(a_obj .is. @decimal) ||
+	      &	(a_obj .is. @int) ||
+	      &	(a_obj .is. @long) ||
+	      &	(a_obj .is. @short) ||
+	      &	(a_obj .is. @byte) ||
+	      &	(a_obj .is. @sbyte))
+		mreturn a_obj.ToString()
+
+	      if (a_obj .is. @boolean)
+		begin
+		  if ((boolean)a_obj) then
+		    mreturn "true"
+		  else
+		    mreturn "false"
+		end
+  .endc
+
+	      mreturn '"' + json.escape(a_obj.ToString()) + '"'
+	    end
+
+	    public override method createObject, @*
+	    ;
+	    ; Return an object that represents a JSON object {}
+	    ;
+	    ; We'll map JSON objects to Hashes
+	    ;
+	    record
+	    	h	,@Hash
+	    proc
+	    	h = new Hash()
+		h.CaseSensitive = true
+		mreturn h
+	    end
+
+	    public override method addPair, void
+	    ;
+	    ; Add a name/value pair to an object
+	    ;
+	    D_INARG obj, @*	;Object previously returned by createObject
+	    D_INARG name, a	;Name for a pair
+	    D_INARG val, @*	;Value for a pair
+	    ;
+	    record
+	    	h	,@Hash
+	    proc
+	    	h = (Hash)obj
+		h[name] = val
+	    end
+
+	    public override method createArray, @*
+	    ;
+	    ; Return an object that represents a JSON array []
+	    ;
+	    ; We'll use an ls
+	    ;
+	    proc
+	    	mreturn new ls()
+	    end
+
+	    public override method addElement, void
+	    ;
+	    ; Add an element to an array
+	    ;
+	    D_INARG array, @*	;Array previously returned by createArray
+	    D_INARG elem, @*	;An element
+	    ;
+	    proc
+	    	((ls)array).add(elem)
+	    end
+
+	    public override method stringValue, @*
+	    ;
+	    ; Return an object representing a JSON string value
+	    ;
+	    D_INARG str, a	;Unquoted, unescaped string value
+	    ;
+	    ; We'll use VarAlpha
+	    ;
+	    proc
+	    	mreturn new VarAlpha(str)
+	    end
+
+	    public override method numberValue, @*
+	    ;
+	    ; Return an object representing a JSON number
+	    ;
+	    D_INARG number, decimal	;Numeric value
+	    D_INARG exp, int		;Power of 10 (0 = no exponent)
+	    ;
+	    ; We'll use VarDec
+	    ;
+	    proc
+		mreturn new VarDec(json.applyExponent(number, exp))
+	    end
+
+	    public override method booleanValue, @*
+	    ;
+	    ; Return an object representing true or false
+	    ;
+	    D_INARG val, boolean	;True or false
+	    ;
+	    proc
+	    	mreturn new Bool(val)
+	    end
+
+	    public override method nullValue, @*
+	    ;
+	    ; Return an object representing null
+	    ;
+	    proc
+	        mreturn Null.instance
+	    end
+
+	endclass
+
+	public class Null
+	;
+	; A singleton representing null, because ^null in a Hash is the same as
+	; "not defined"
+	;
+	    .define SINGLETON_CLASS, Null
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	endclass
+
+	public class Bool
+	;
+	; A class representing a true or false value, because boolean is the same
+	; as integer in Synergy/DE, and on .NET we cannot (yet) interrogate a boxed
+	; boolean for its type.
+	;
+	    public method Bool
+	    D_INARG val, boolean
+	    proc
+		m_val = val
+	    end
+
+	    .define BOOLEAN_CLASS, Bool
+	    .include "MIXINS:boolean"
+	    public method truth, boolean
+	    proc
+		mreturn m_val
+	    end
+
+	    .define COMPARE_CLASS, Bool
+	    .include "MIXINS:comparable"
+	    public static method compare, i
+	    D_INARG obj1, @Bool
+	    D_INARG obj2, @Bool
+	    proc
+		mreturn compare(obj1, obj2.m_val)
+	    end
+
+	    .define COMPARE_TYPE2, boolean
+	    .include "MIXINS:comparable"
+	    public static method compare, i
+	    D_INARG obj1, @Bool
+	    D_INARG obj2, boolean
+	    proc
+		if (obj1.m_val == obj2)
+		  mreturn 0
+		if (obj1.m_val > obj2)
+		  mreturn 1
+		mreturn -1
+	    end
+
+	    public override method ToString, string
+	    proc
+		if (m_val)
+		  mreturn "true"
+		mreturn "false"
+	    end
+
+	    public override method Equals, boolean
+	    D_INARG other, @*
+	    record
+		val		,boolean
+	    proc
+		if (other == ^null)
+		  mreturn false
+
+		if (other .is. Bool) then
+		  val = ((Bool)other).truth()
+		else if (other .is. Var) then
+		  val = ((Var)other).truth()
+    .ifndef DBLNET
+		else if (other .is. @boolean) then
+		  val = (boolean)other
+    .endc
+		else
+		  mreturn false
+		mreturn (m_val == val)
+	    end
+
+	    private m_val, boolean
+
+	endclass
+
+	public class ParserException extends Synergex.SynergyDE.SynException
+	    public method ParserException
+	    D_INARG msg, a
+	      parent("JSON Parsing error: " + msg)
+	    proc
+	    end
+	endclass
+
+    endclass
+
+endnamespace

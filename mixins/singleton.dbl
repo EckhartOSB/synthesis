@@ -1,0 +1,54 @@
+; Singleton -- include module to make a class into a singleton
+;
+; Chip Camden		September, 2009
+;
+; Note:  include this file within your class definition to make
+;	 it a Singleton class as follows:
+;
+;  .define SINGLETON_CLASS myclass   ;where myclass is the name of your class
+;  .include "Singleton"
+;  method initialize, void
+;  proc
+;      (add your instance initialization logic here)
+;  end
+;
+; This makes the constructor private, so don't try to provide one of your
+; own.  Place any instance initialization logic in a method (private or public)
+; named 'initialize' (which is required).  That method will be called within the
+; constructor.
+;
+; To access the single instance of the class, use myclass.instance
+;
+.ifdef SINGLETON_CLASS
+
+private static singleton_instance_, @SINGLETON_CLASS
+
+private method SINGLETON_CLASS
+proc
+  this.initialize()
+end
+
+public static property instance, @SINGLETON_CLASS
+  method get
+  proc
+      if (singleton_instance_ == ^null)
+          singleton_instance_ = new SINGLETON_CLASS()
+      mreturn singleton_instance_
+  end
+endproperty
+
+.ifndef DBLNET
+.ifdef DBLV93
+protected override method MemberwiseClone, @*
+.else
+public override method MemberwiseClone, @*
+.endc
+proc
+  throw new System.InvalidOperationException("Cannot clone a Singleton")
+end
+.endc
+
+.undefine SINGLETON_CLASS
+.else
+.error SINGLETON_CLASS not defined
+.endc

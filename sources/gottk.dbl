@@ -1,0 +1,56 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+function GotToolkit, ^val
+;
+; Description:  Determine whether the Toolkit is available
+;
+; Arguments:
+;
+in opt a_start	,n	;Should we try to start it?
+;
+record
+	u_start	,D_ADDR	;Address of U_START
+	started	,boolean
+proc
+	u_start = xaddr("U_START",, 1)	;Is it linked?
+	if (u_start) then
+	  started = GetToolkit()	;Find out if it's started
+	else
+	  started = false
+	
+	if (^passed(a_start) && a_start && !started)
+	  begin
+	    if (!u_start && (a_start == D_START_ANYWAY))
+	      begin
+		openelb(D_TKLIB)
+	        u_start = xaddr("U_START",, 1)
+	      end
+	    if (u_start)
+	      begin
+	        xsubr(u_start)	;Start me up!
+	        started = true
+	      end
+	  end
+
+	if (started)
+	  freturn D_TOOLKIT_STARTED
+
+	if (u_start)
+	  freturn D_TOOLKIT_AVAILABLE
+
+	freturn D_NO_TOOLKIT
+end
+
+function GetToolkit, ^val
+;
+; Description:  Determine whether the Toolkit is started
+;
+.define D_DEFINES_ONLY
+.include "WND:tools.def"
+proc
+	freturn (xsubr("e_info", D_ENV_LEVEL) > 0)
+end
+
+endnamespace

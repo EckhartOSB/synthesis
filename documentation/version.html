@@ -1,0 +1,189 @@
+<html>
+<head>
+<title>Version class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Version</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides methods for dealing with version numbers, as well as
+static members for what versions of Synthesis, Synergy/DE, and the Synergy/DE
+UI Toolkit are in use.
+</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-comparable">comparison operators</a> - compare versions</li>
+    <li><a href="#ref-ctor">constructors, explicit cast</a> - create a version number</li>
+    <li><a href="#ref-letter">Letter</a> - the version letter</li>
+    <li><a href="#ref-major">Major</a> - the major revision number</li>
+    <li><a href="#ref-makewhat">make_what</a> - construct a Unix what string</li>
+    <li><a href="#ref-minor">Minor</a> - the minor revision number</li>
+    <li><a href="#ref-primary">Primary</a> - the primary version number</li>
+    <li><a href="#ref-synergyde">SynergyDE</a> - version of Synergy/DE in use</li>
+    <li><a href="#ref-synthesis">Synthesis</a> - version of Synthesis library in use</li>
+    <li><a href="#ref-toolkit">Toolkit</a> - version of the Synergy/DE UI Toolkit in use</li>
+    <li><a href="#ref-tostring">ToString, explicit cast</a> - string representation of a version</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-comparable" class="ref">
+    <h3>comparison operators</h3>
+    <code>
+      <em>version</em> <em>operator</em> <em>version</em> =&gt; <em>boolean</em><br/>
+      <em>version</em> <em>operator</em> <em>a</em> =&gt; <em>boolean</em><br/>
+      <em>a</em> <em>operator</em> <em>version</em> =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Version includes the <a href="comparable.html">comparable</a> mixin to provide comparison operators
+      both between Version objects and between Versions and alphanumeric values.  Supported operators
+      therefore include .eq., ==, .ne., !=, .gt., &gt;, .lt., &lt;, .ge., &gt;=, .le., &lt;=.
+      When one operand is alphanumeric, it is first converted to a Version before comparing.  When comparing
+      versions, the Primary version is most significant, and the Letter version is least significant.
+    </div>
+  </div>
+  <div id="ref-ctor" class="ref">
+    <h3>constructors, explicit cast</h3>
+    <code>
+      new Version(<em>int</em>, <em>int</em>, <em>int</em>, <em>a</em>) =&gt; <em>version</em><br/>
+      new Version(<em>a</em>) =&gt; <em>version</em><br/>
+      (Version)<em>a</em> =&gt; <em>version</em>
+    </code>
+    <div class="description">
+      <p>Creates a new Version.  In the first form, the integer arguments map to <a href="#ref-primary">Primary</a>,
+      <a href="#ref-major">Major</a>, <a href="#ref-minor">Minor</a>, and <a href="#ref-letter">Letter</a>, in that
+      order.  To omit one of these, pass 0 for the integers and "" for the alphanumeric argument.</p>
+      <p>
+      In the second and third forms, <em>a</em> must contain a version number in the form d+[.d+[.d+]][a+], where each
+      d+ maps to an integer component (Primary, Major, Minor), and a+ maps to Letter.  Extra text outside this pattern
+      is ignored.  Note that a+ can contain any characters other than whitespace or a digit.
+    </div>
+  </div>
+  <div id="ref-letter" class="ref">
+    <h3>Letter</h3>
+    <code>
+      <em>version</em>.Letter =&gt; <em>a</em><br/>
+      <em>version</em>.Letter = <em>a</em>
+    </code>
+    <div class="description">
+      This public field represents the final component of a version number.  Normally used for a patch letter
+      revision, it can contain any characters.  When parsed from a version string, however, only non-numeric and
+      non-space characters immediately following the last numeric component will be used.
+    </div>
+  </div>
+  <div id="ref-major" class="ref">
+    <h3>Major</h3>
+    <code>
+      <em>version</em>.Major =&gt; <em>int</em><br/>
+      <em>version</em>.Major = <em>int</em>
+    </code>
+    <div class="description">
+      This public field represents the second number (major revision) in a version number.
+    </div>
+  </div>
+  <div id="ref-makewhat" class="ref">
+    <h3>Macro make_what</h3>
+    <code>
+      make_what(<em>a</em>, <em>a2</em>) =&gt; <em>a3</em>
+    </code>
+    <div class="description">
+      <p>
+      This macro expands into a Unix-style what string.  The Unix utility 'what' reports this string when run against
+      an ELB or DBR that contains it.  The first argument should be the product or component name, and the second
+      argument should be an alphanumeric form of the version number.  The resulting string has the format "<em>a</em>
+      Version <em>a2</em>", with appropriate punctuation for the what utility.
+      </p>
+      <p>Example:</p>
+      <pre><code>
+	const myversion, a*, "2.1.1"
+        const whatstr, a*, make_what("widgets R us", myversion)
+      </code></pre>
+    </div>
+  </div>
+  <div id="ref-minor" class="ref">
+    <h3>Minor</h3>
+    <code>
+      <em>version</em>.Minor =&gt; <em>int</em><br/>
+      <em>version</em>.Minor = <em>int</em>
+    </code>
+    <div class="description">
+      This public field represents the third number (minor revision) in a version number.
+    </div>
+  </div>
+  <div id="ref-primary" class="ref">
+    <h3>Primary</h3>
+    <code>
+      <em>version</em>.Primary =&gt; <em>int</em><br/>
+      <em>version</em>.Primary = <em>int</em>
+    </code>
+    <div class="description">
+      This public field represents the first number in a version number.
+    </div>
+  </div>
+  <div id="ref-synergyde" class="ref">
+    <h3>static property SynergyDE</h3>
+    <code>
+      Version.SynergyDE =&gt; <em>version</em>
+    </code>
+    <div class="description">
+      This read-only property provides the Version of the Synergy/DE runtime in use.
+    </div>
+  </div>
+  <div id="ref-synthesis" class="ref">
+    <h3>static property Synthesis</h3>
+    <code>
+      Version.Synthesis =&gt; <em>version</em>
+    </code>
+    <div class="description">
+      This read-only property provides the Version of the Synthesis library itself.
+    </div>
+  </div>
+  <div id="ref-toolkit" class="ref">
+    <h3>static property Toolkit</h3>
+    <code>
+      Version.Toolkit =&gt; <em>version</em>
+    </code>
+    <div class="description">
+      This read-only property provides the Version of the Synergy/DE UI Toolkit library in use.  If the
+      UI Toolkit has not been started, ^null is returned.  See <a href="gottk.html">GotToolkit</a>.
+    </div>
+  </div>
+  <div id="ref-tostring" class="ref">
+    <h3>override method ToString, explicit cast</h3>
+    <code>
+      <em>version</em>.ToString() =&gt; <em>string</em><br/>
+      (a)<em>version</em> =&gt; <em>a</em>
+    </code>
+    <div class="description">
+      Converts a version to its alphamumeric form, which is <a href="#ref-primary">Primary</a> followed
+      by '.', then <a href="#ref-major">Major</a>, '.', <a href="#ref-minor">Minor</a>, and finally
+      <a href="#ref-letter">Letter</a>.
+    </div>
+  </div>
+</div>
+</body>
+</html>

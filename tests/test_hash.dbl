@@ -1,0 +1,103 @@
+.include "SYNTHESIS:synthesis.def"
+
+main test_hash
+	
+record
+	dict	,@Hash
+	sub	,@Hash
+	iter	,@Hash.Iterator
+	obj	,@*
+	key	,a30
+proc
+	open(1,o,"TT:")
+	dict = new Hash()
+	dict.CaseSensitive = true
+	assert(dict.CaseSensitive)
+	dict['number'] = (object)789
+	dict['hash'] =  new Hash()
+	dict['null'] = ^null
+	obj = (object)"hashes are cool"
+	dict['string'] = obj
+	assert_equal(789, (d)dict['number'])
+	assert_kind_of(Hash, dict['hash'])
+	assert_equal("hashes are cool", (a)dict['string'])
+	assert_null(dict['null'])
+	assert_null(dict["don't have this one"])
+	sub = (Hash)dict['hash']	   ;Too bad dict['hash']['subhash'] doesn't compile
+	sub.CaseSensitive = false
+	assert(!sub.CaseSensitive)
+	sub['subhash'] = (object)'nesting' ;  even if cast ((Hash)dict['hash'])['subhash']
+	assert_equal('nesting', (a)sub['subhash'])
+	assert_equal(3, dict.Count)
+	dict['number'] = ^null
+	assert_null(dict['number'])
+	assert_equal(2, dict.Count)
+	dict['a'] = (var)'b'
+	iter = new Hash.Iterator(dict, false)
+	obj = iter.First(key)
+	assert_equal('hash', key)
+	assert_kind_of(Hash, obj)
+	obj = iter.Next(key)
+	assert_equal('string', key)
+	assert_equal('hashes are cool', obj.ToString())
+	obj = iter.Next(key)
+	assert_equal('a', key)
+	assert_kind_of(Var, obj)
+	assert_equal('b', obj.ToString())
+	obj = iter.Next(key)
+	assert_null(obj)
+	obj = iter.Last(key)
+	assert_equal('a', key)
+	assert_kind_of(Var, obj)
+	assert_equal('b', obj.ToString())
+	obj = iter.Prev(key)
+	assert_equal('string', key)
+	obj = iter.Prev(key)
+	assert_equal('hash', key)
+	obj = iter.Prev(key)
+	assert_null(obj)
+
+	;Now sort them
+	assert(!iter.sorted)
+	iter.Sorted = true
+	assert(iter.Sorted)
+	obj = iter.First(key)
+	assert_equal('a', key)
+	assert_kind_of(Var, obj)
+	assert_equal('b', obj.ToString())
+	obj = iter.Next(key)
+	assert_equal('hash', key)
+	assert_kind_of(Hash, obj)
+	obj = iter.Next(key)
+	assert_equal('string', key)
+	assert_equal('hashes are cool', obj.ToString())
+	obj = iter.Next(key)
+	assert_null(obj)
+	dict['number'] = (object)123	;replace null with non-null
+	assert_equal(123, (d)dict['number'])
+
+	dict.Dispose()
+
+	dict = new Hash()		;Empty hash
+	iter = new Hash.Iterator(dict)
+	assert(!iter.sorted)
+	assert_null(iter.Next(key))
+	assert_equal("    ", key)
+
+	assert_fails_with("hash_death", "Cannot change case-sensitivity after adding items")
+
+	dict = new Hash()
+	dict["a"] = (object)"b"
+
+	pass()
+end
+
+subroutine hash_death
+record
+	h	,@Hash
+proc
+	h = new Hash()
+	h['a'] = (object)'a'
+	h.CaseSensitive = true
+	xreturn
+end

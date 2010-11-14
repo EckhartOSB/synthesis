@@ -1,0 +1,100 @@
+;-------------------------------------------------------------------------------
+;
+; assertions.dbl - assertions in Synergy/DE
+;
+; Chip Camden		July, 2008
+;
+;-------------------------------------------------------------------------------
+
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+	class AssertionFailedError extends System.ApplicationException
+	    public method AssertionFailedError
+		in opt msg, a
+		parent("Assertion failed" + append_optional(msg))
+	    proc
+	    endmethod
+	endclass
+	
+	class Assertion
+	    public static method catch_exception, @Exception
+		D_INARG routine, a
+		record
+		    rv	,@Exception
+	    proc
+		rv = ^null
+		try 
+		  xsubr(routine)
+.ifdef DBLNET
+		catch (excp, @System.Reflection.TargetInvocationException)
+		  rv = excp.innerException
+.endc
+		catch (excp, @Exception)
+		  rv = excp
+		endtry
+		mreturn rv
+	    endmethod
+	endclass
+
+	subroutine pass
+	;
+	; We passed!
+	;
+	in opt what, a
+	;
+	record
+	    module	,a30
+	proc
+	    xcall flags(1000000, 1)	;No STOP message
+	    xcall modname(1, module)
+	    Console.WriteLine(atrim(module) + " passed" + append_optional(what))
+	    xreturn
+	end
+	
+	function build_message, a, varargs
+	    in opt msg, a	;User-supplied message
+	    in opt dflt, a	;Default message
+	    in opt mismatch s1, n
+	    in opt mismatch s2, n
+	    in opt mismatch s3, n
+	    record
+		len	,int
+		out	,a256
+	proc
+	    if (^passed(msg) || ^passed(dflt))
+	      begin
+		if (^passed(msg)) then
+	          xcall s_bld(out, len, msg,
+		  &	opt_a(s1), opt_a(s2), opt_a(s3))
+		else
+	          xcall s_bld(out, len, dflt,
+		  &	opt_a(s1), opt_a(s2), opt_a(s3))
+		if (len)
+		  freturn out(1:len)
+	      end
+	    freturn ""
+	end
+
+	function append_optional, a
+	    in opt arg, a
+	proc
+	    if (^passed(arg) && (trimz(arg) > 0))
+	      freturn ": " + arg
+	    freturn ""
+	end
+
+	function opt_a, a
+	in mismatch opt arg, n
+	proc
+	    if (^passed(arg))
+	      begin
+	        if (^argtype(arg) == D_TYPE_A)
+		  freturn ^a(arg)
+		freturn string(arg)
+	      end
+	    freturn ""
+	end
+
+	
+endnamespace

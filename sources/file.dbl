@@ -1,0 +1,171 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+    public class File
+
+	public method File
+	D_INARG name, a
+	    this(name, "I")	;Read-only, sequential
+	proc
+	end
+
+	public method File
+	D_INARG name, a
+	D_INARG mode, a
+	proc
+	    m_name = name
+	    m_mode = mode
+	    if (GotToolkit()) then
+	      begin
+		data err, int, 0
+
+		if (!s_uopen)
+		  s_uopen = xaddr("u_open")
+	        xsubr(s_uopen, m_channel, mode, name,,, err)
+		if (err)
+		  exite(err)	;Throw an exception instead of U_ABORT
+		if (!s_ugblchn)
+		  s_ugblchn = xaddr("u_gblchn")
+		xsubr(s_ugblchn, m_channel)	;We'll control scope
+		m_toolkit = true
+	      end
+	    else
+	      begin
+	        m_channel = %syn_freechn(256)	;Get out of the Toolkit's range
+		open(m_channel, m_mode, m_name)
+		m_toolkit = false
+	    end
+	end
+
+	method ~File
+	proc
+	    if (m_channel)
+	      this.Close()
+	end
+
+	public static method Open, @File
+	D_INARG name, a
+	proc
+	    mreturn new File(name)
+	end
+
+	public static method Open, @File
+	D_INARG name, a
+	D_INARG mode, a
+	proc
+	    mreturn new File(name, mode)
+	end
+
+	public method Close, void
+	proc
+	    if (!m_channel)
+	      mreturn
+
+	    if (m_toolkit) then
+	      begin
+	        if (!s_uclose)
+		  s_uclose = xaddr("u_close")
+		xsubr(s_uclose, m_channel)
+	      end
+	    else
+	      begin
+	        close m_channel
+	      end
+	    m_channel = 0
+	end
+
+	private m_toolkit, boolean
+        private m_channel, int
+	private m_name, string
+	private m_mode, string
+	private static s_uopen, D_ADDR
+	private static s_ugblchn, D_ADDR
+	private static s_uclose, D_ADDR
+
+	public property channel, int
+	  method get
+	  proc
+	      mreturn m_channel
+	  end
+	endproperty
+
+	public property name, a
+	  method get
+	  proc
+	      mreturn m_name
+	  end
+	endproperty
+
+	public property mode, a
+	  method get
+	  proc
+	      mreturn m_mode
+	  end
+	endproperty
+
+	public method Display, void
+	D_INARG text, a
+	proc
+	    display(m_channel, text)
+	end
+
+	public method WriteLine, void
+	D_INARG line, a
+	proc
+	    writes(m_channel, line)
+	end
+
+	public method WriteLine, void
+	D_INARG ary, @System.Collections.ArrayList
+	record
+	    obj	,@*
+	proc
+	    foreach obj in ary
+	      WriteLine(obj)
+	end
+
+	public method WriteLine, void
+	D_INARG val, int
+	proc
+	    WriteLine(string(val))
+	end
+
+	public method WriteLine, void
+	D_INARG val, decimal
+	proc
+	    WriteLine(string(val))
+	end
+
+	public method WriteLine, void
+	D_INARG obj, @*
+	proc
+	    WriteLine(obj.ToString())
+	end
+
+	public method ReadLine, string
+	record
+	    line	,a65535
+	    len		,int
+	proc
+	    reads(m_channel, line, eof)
+	    if (len = %rdlen)
+	      mreturn(line(1:len))
+	    mreturn ""
+	eof,mreturn ^null	;Must test for null for EOF
+	end
+
+	public method ReadLines, @ls
+	record
+	    newls	,@ls
+	    str		,string
+	proc
+	    newls = new ls()
+	    while ((str = ReadLine()) != ^null)
+	      newls.add$(str)	;Boxes as Var
+	    mreturn newls
+	end
+
+    endclass
+
+endnamespace

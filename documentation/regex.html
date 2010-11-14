@@ -1,0 +1,907 @@
+<html>
+<head>
+<title>Regex class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+<style>
+tr.cc > td {
+    background-color: #ccddff;
+}
+tr.ncc > td {
+    background-color: #ffffcc;
+}
+</style>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Regex</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides Regular Expression matching and substitution for Synergy/DE.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-continue">Continue</a> - don't reset ContinueFrom on a failed match</li>
+    <li><a href="#ref-continuefrom">ContinueFrom</a> - position of end of last match for \G</li>
+    <li><a href="#ref-dotmatchesnewline">DotMatchesNewline</a> - dot matches newline option</li>
+    <li><a href="#ref-escape">escape</a> - escape special characters in a string</li>
+    <li><a href="#ref-explicitcapture">ExplicitCapture</a> - explicit capture option</li>
+    <li><a href="#ref-extended">Extended</a> - extended syntax option</li>
+    <li><a href="#ref-from">from</a> - create a Regex</li>
+    <li><a href="#ref-globalsearch">GlobalSearch</a> - global search option</li>
+    <li><a href="#ref-ignorecase">IgnoreCase</a> - ignore case on characters</li>
+    <li><a href="#ref-lastmatch">LastMatch</a> - result of the last match performed</li>
+    <li><a href="#ref-match">match</a> - match a string</li>
+    <li><a href="#ref-multiline">Multiline</a> - multi-line search option</li>
+    <li><a href="#ref-replace">replace</a> - perform substitution</li>
+    <li><a href="#ref-split">split</a> - split a string at an expression</li>
+    <li><a href="#ref-tostring">ToString</a> - a string representation of the Regex</li>
+  </ol>
+<li><a href="#classes">Supporting classes</a>
+  <ol>
+    <li><a href="#cls-MatchData">MatchData</a> - result of calling Regex's match method</li>
+    <li><a href="#cls-RegexException">RegexException</a> - thrown on a syntax error</li>
+  </ol>
+</li>
+<li><a href="#syntax">Syntax for Regular Expressions</a>
+  <ol>
+    <li><a href="#syn-options">Options</a></li>
+    <li><a href="#syn-pattern">Pattern characters</a>
+      <ol>
+        <li><a href="#syn-dollar">$ - anchor to end of line</a></li>
+	<li><a href="#syn-subexpr">( ) - group sub-expressions</a></li>
+	<li><a href="#syn-comment">(?# ) - comment</a></li>
+	<li><a href="#syn-condition">(?() ) - conditional group</a></li>
+	<li><a href="#syn-noback">(?: ) - group sub-expressions without back-reference</a></li>
+	<li><a href="#syn-netgroup">(?&lt; &gt;), (?' ' ) - named group sub-expression (.NET syntax)</a></li>
+	<li><a href="#syn-lookbehind">(?&lt;= ), (?&lt;! ) - look-behind</a></li>
+	<li><a href="#syn-lookahead">(?= ), (?! ) - look-ahead</a></li>
+	<li><a href="#syn-dynopts">(?imnsx) - dynamically set options</a></li>
+	<li><a href="#syn-group">(?P&lt; &gt;) - named group sub-expression (Python syntax)</a></li>
+	<li><a href="#syn-groupref">(?P= ) - named group back-reference</a></li>
+	<li><a href="#syn-kleene">* - zero or more</a></li>
+	<li><a href="#syn-plus">+ - one or more</a></li>
+	<li><a href="#syn-dot">. - any single character</a></li>
+	<li><a href="#syn-question">? - zero or one</a></li>
+	<li><a href="#syn-nongreedy">? - non-greedy match</a></li>
+	<li><a href="#syn-charclass">[ ] - character class</a></li>
+	<li><a href="#syn-escape">\ - escape a special character</a></li>
+	<li><a href="#syn-hat">^ - anchor to beginning of line</a></li>
+	<li><a href="#syn-nm">{ } - minimum/maximum repetitions</a></li>
+	<li><a href="#syn-union">| - union (or)</a></li>
+      </ol>
+    </li>
+    <li><a href="#syn-posixclass">POSIX character classes</a></li>
+  </ol>
+</li>
+<li><a href="#notyet">Features not yet implemented</a></li>
+<li><a href="#never">Features that will never be implemented, and why</a></li>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-continue" class="ref">
+    <h3>Continue</h3>
+    <code>
+      <em>Regex</em>.Continue =&gt; <em>boolean</em><br/>
+      <em>Regex</em>.Continue = <em>boolean</em>
+    </code>
+    <div class="description">
+      <p>This option controls how <a href="#ref-continuefrom">ContinueFrom</a> is set when
+      a match fails.  If true, ContinueFrom is not modified by a failure, otherwise it is
+      set to 0 (the beginning of the string).  This affects the operation of \G after a failed
+      match.  It may be set to true initially via the "c" option on the expression, or you
+      may alter it directly.</p>
+    </div>
+  </div>
+  <div id="ref-continuefrom" class="ref">
+    <h3>ContinueFrom</h3>
+    <code>
+      <em>Regex</em>.ContinueFrom =&gt; <em>int</em><br/>
+      <em>Regex</em>.ContinueFrom = <em>int</em>
+    </code>
+    <div class="description">
+      <p>This value is used to anchor the \G special character.  It is set to 0 initially,
+      which means that \G will anchor to the beginning of the string.  After a successful
+      match, ContinueFrom is set to the end of the match.  On a failed match, it is reset to
+      0, unless the <a href="#ref-continue">Continue</a> option is true.
+    </div>
+  </div>
+  <div id="ref-dotmatchesnewline" class="ref">
+    <h3>DotMatchesNewline</h3>
+    <code>
+      <em>Regex</em>.DotMatchesNewline =&gt; <em>boolean</em><br/>
+      <em>Regex</em>.DotMatchesNewline = <em>boolean</em>
+    </code>
+    <div class="description">
+      <p>DotMatchesNewline controls how a <a href="#syn-dot">period</a> matches the newline character (char(10)).
+      It may be set initially to true via the "s" option on the expression, or you may alter it here.</p>
+      <p>When this option is enabled, period matches newline -- otherwise it does not.</p>
+    </div>
+  </div>
+  <div id="ref-escape" class="ref">
+    <h3>static method escape</h3>
+    <code>
+      Regex.escape(<em>a</em>) =&gt; <em>string</em><br/>
+      Regex.escape(<em>a</em>, <em>a2</em>) =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      <p>
+      This method returns <em>string</em> as a copy of <em>a</em> with all special
+      characters preceeded by a '\'.  If <em>a2</em> is passed, then its first character is
+      treated as the expression delimiter (which is also escaped in the result).  Otherwise,
+      '/' is assumed.
+      </p>
+      <p>Example:</p>
+      <code>assert_equal('a\+b\/', Regex.escape('a+b/'))</code>
+    </div>
+  </div>
+  <div id="ref-explicitcapture" class="ref">
+    <h3>ExplicitCapture</h3>
+    <code>
+      <em>Regex</em>.ExplicitCapture =&gt; <em>boolean</em><br/>
+    </code>
+    <div class="description">
+      <p>
+      This option controls how group capture back-references are numbered.  When true,
+      plain parentheses do not allocate a back-reference -- only named groups get numbered.
+      This option is false by default, but may be initially set to true by the 'n' option
+      in the expression.  Altering the value of ExplicitCapture after a Regex has
+      been instantiated has no effect, because the option only affects compilation.
+      </p>
+    </div>
+  </div>
+  <div id="ref-extended" class="ref">
+    <h3>Extended</h3>
+    <code>
+      <em>Regex</em>.Extended =&gt; <em>boolean</em><br/>
+    </code>
+    <div class="description">
+      <p>
+      Extended syntax mode causes the parser to ignore white space and end-of-line delimiters
+      within the pattern or options.  Additionally, anything between a '#' and an end-of-line
+      delimiter will be ignored as a comment.  This option is false by default, but may be set
+      by the 'x' option in the expression.  Altering the value of Extended after a Regex has
+      been instantiated has no effect, because the option only affects compilation.
+      </p>
+      <p>Restrictions: a comment in the options section may only occur after the 'x' option,
+      and may not include the pattern delimiter.
+      </p>
+      <p>Comments in an expression are not very useful in Synergy/DE, because you can always
+      continue a literal in Synergy/DE with a comment in between in the code.  For example:</p>
+      <pre><code>
+        expr = R$('/^'        ;beginning of line
+	&amp;         'abc|123'   ;Jackson five
+	&amp;         '/x')       ;extended mode
+      </code></pre>
+      <p>The above example doesn't even need extended mode, because the concatenation of the
+      continued lines doesn't contain any white space or comments.  I have implemented support
+      for comments in extended mode only for thoroughness and compatibility with expressions that
+      might be imported from another language or a text file.  Note that 'end of line' for 
+      a comment within an expression means the next line-feed, vertical-tab, form-feed, 
+      carriage-return, or the end of the expression -- not the end of the Synergy/DE source line.</p>
+    </div>
+  </div>
+  <div id="ref-from" class="ref">
+    <h3>static method from, macro R$, constructor</h3>
+    <code>
+      Regex.from(<em>object</em>) =&gt; <em>regex</em><br/>
+      R$(<em>object</em>) =&gt; <em>regex</em><br/>
+      new Regex(<em>object</em>) =&gt; <em>regex</em>
+    </code>
+    <div class="description">
+      <p>Creates a new Regex from the string representation of <em>object</em>, which
+      may be an alpha expression or any class of object.  The resulting string will
+      be compiled immediately, which may throw a
+      <a href="#cls-RegexException">RegexException</a> if the <a href="#syntax">syntax</a>
+      is incorrect.</p>
+      <p>If you .include "synthesis.def", then you may use R$ as a syntactic shortcut
+      for Regex.from.</p>
+    </div>
+  </div>
+  <div id="ref-globalsearch" class="ref">
+    <h3>GlobalSearch</h3>
+    <code>
+      <em>Regex</em>.GlobalSearch =&gt; <em>boolean</em><br/>
+      <em>Regex</em>.GlobalSearch = <em>boolean</em>
+    </code>
+    <div class="description">
+      GlobalSearch controls whether the <a href="#ref-replace">replace</a> method
+      will continue to replace text until a match is no longer found.  It can
+      be set to true initially with the "g" option in the expression, but you
+      may alter it afterwards here.
+    </div>
+  </div>
+  <div id="ref-ignorecase" class="ref">
+    <h3>IgnoreCase</h3>
+    <code>
+      <em>Regex</em>.IgnoreCase =&gt; <em>boolean</em><br/>
+      <em>Regex</em>.IgnoreCase = <em>boolean</em>
+    </code>
+    <div class="description">
+      IgnoreCase controls case-sensitivity on matches.  The "i" option in the
+      expression can be used to set this value to true initially, but you may change it
+      afterwards by altering this member.
+    </div>
+  </div>
+  <div id="ref-lastmatch" class="ref">
+    <h3>LastMatch</h3>
+    <code>
+      <em>Regex</em>.LastMatch =&gt; <em>MatchData</em>
+    </code>
+    <div class="description">
+      LastMatch contains the <a href="#cls-MatchData">MatchData</a> object
+      returned by the last call to <a href="#ref-match">match</a>.  Note that
+      match is also called by <a href="#ref-replace">replace</a>, and if the
+      <a href="#ref-globalsearch">GlobalSearch</a> option was enabled, the
+      last result within replace will be unsuccessful.
+    </div>
+  </div>
+  <div id="ref-match" class="ref">
+    <h3>method match</h3>
+    <code>
+      <em>Regex</em>.match(<em>a</em>) =&gt; <em>MatchData</em><br/>
+      <em>Regex</em>.match(<em>a</em>, <em>int</em>) =&gt; <em>MatchData</em>
+    </code>
+    <div class="description">
+      Matches the regular expression against <em>a</em>, returning a
+      <a href="#cls-MatchData">MatchData</a> object describing the match (or lack thereof).
+      If no match occurred, <em>MatchData</em>'s start member is 0.  In the second form
+      above, <em>int</em> specifies the beginning position within <em>a</em>
+      for consideration of matches -- but in any case, <em>MatchData</em>'s members
+      (start, end, before, etc.) refer to the entire string.
+    </div>
+  </div>
+  <div id="ref-multiline" class="ref">
+    <h3>Multiline</h3>
+    <code>
+      <em>Regex</em>.Multiline =&gt; <em>boolean</em><br/>
+      <em>Regex</em>.Multiline = <em>boolean</em>
+    </code>
+    <div class="description">
+      <p>Multiline controls how <a href="#ref-match">match</a> (and consequently,
+      <a href="#ref-replace">replace</a> as well) treat a newline character (char(10))
+      embedded in the string being searched.  It may be set initially to true via
+      the "m" option on the expression, or you may alter it here.</p>
+      <p>When Multiline is true, a newline character marks an end of line
+      and a beginning of line, so $ matches its position, and ^ matches the position
+      following.  The newline itself can still be matched as a character, but see
+      the <a href="#ref-dotmatchesnewline">DotMatchesNewline</a> option for matching it with a period.</p>
+      <p>Note that even when Multiline is enabled, you can anchor to the absolute
+      beginning or end of the string without regard to newlines by using \A and \Z,
+      respectively.</p>
+    </div>
+  </div>
+  <div id="ref-replace" class="ref">
+    <h3>method replace</h3>
+    <code>
+      <em>Regex</em>.replace(<em>a</em>, <em>a2</em>) =&gt; <em>string</em><br/>
+      <em>Regex</em>.replace(<em>a</em>, <em>a2</em>, <em>int</em>) =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      <p>Replaces the substring of <em>a</em> that matches the regular expression with
+      <em>a2</em>.  If the <a href="#ref-globalsearch">GlobalSearch</a> option is enabled
+      (the 'g' option on the expression), then all matches will be replaced -- otherwise
+      only the first one will be.</p>
+      <p>In the second form, <em>int</em> specifies the beginning position within
+      <em>a</em> at which substitutions may occur.</p>
+      <p>If <em>a2</em> contains any '\' or '$' characters, the following special
+      substitutions will be performed, left to right:</p>
+      <table>
+	<tr><th>Escape</th><th>Translation</th></tr>
+	<tr><td>\0, $0 or ${0}</td><td>the text matching the entire expression.</td></tr>
+        <tr><td>\1 thru \9, or<br/>$1 thru $9, or<br/>${1} thru ${2147483647}</td><td>the text matching the corresponding parenthesized sub-expression.</td></tr>
+	<tr><td>\&amp; or $&amp;</td><td>the text matching the entire expression.</td></tr>
+	<tr><td>\` or $`</td><td>the text before the match.</td></tr>
+	<tr><td>\' or $'</td><td>the text after the match.</td></tr>
+	<tr><td>\+ or $+</td><td>the text matching the highest-numbered matched sub-expression.</td></tr>
+	<tr><td>\g&lt;<em>group</em>&gt; or<br/>${<em>group</em>}</td><td>the text captured in named group <em>group</em>.</td></tr>
+	<tr><td>\x00 thru \xFF</td><td>the corresponding ASCII character</td></tr>
+	<tr><td>\ followed by any other character</td><td>that character (including \ or $).</td></tr>
+	<tr><td>$$</td><td>$</td></tr>
+	<tr><td>$ followed by any other character</td><td>$ followed by that character</td></tr>
+      </table>
+    </div>
+  </div>
+  <div id="ref-split" class="ref">
+    <h3>method split</h3>
+    <code>
+      <em>Regex</em>.split(<em>a</em>) =&gt; <em>ls</em><br/>
+      <em>Regex</em>.split(<em>a</em>, <em>boolean</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      <p>
+      This method searches for a match of the regex within <em>a</em>, and returns
+      a list of the portions of the string that occur before and after that expression.
+      If the <a href="#ref-globalsearch">GlobalSearch</a> option is enabled, then <em>a</em>
+      will be split at every occurence of the expression, otherwise only at the first
+      occurence.
+      </p></p>
+      If the expression contains any capturing groups, the contents of those groups will
+      also be returned in <em>ls</em>, wherever they occurred.
+      <p></p>
+      If <em>boolean</em> is passed and false, then no empty strings ('') will be returned.
+      The default is to return empty strings.  For example, <code>r$('/x/').split('xy')</code>
+      returns a list containing '' and 'y', whereas <code>r$('/x/').split('xy',false)</code>
+      returns a list containing only 'y'.  This also applies to empty strings within captured
+      groups.
+      </p>
+    </div>
+  </div>
+  <div id="ref-tostring" class="ref">
+    <h3>override method ToString, explicit alpha cast</h3>
+    <code>
+      <em>Regex</em>.ToString() =&gt; <em>string</em><br/>
+      (a)<em>Regex</em> =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      Returns the original string used to construct the Regex, regardless of any
+      changes to options after construction.
+    </div>
+  </div>
+</div>
+<div id="classes">
+<h2>Supporting classes</h2>
+  <div id="cls-MatchData" class="ref">
+    <h3>Class MatchData</h3>
+    <div class="description">
+      <p>A member of this class is returned by the <a href="#ref-match">match</a> method,
+      and is also available in the public member <a href="#ref-lastmatch">LastMatch</a>.
+      It describes a regular expression match, or lack thereof.</p>
+      <p>Public members:</p>
+      <ul>
+	<li><strong>[<em>int</em>]</strong> =&gt; <em>MatchData</em> - (Indexer)
+	    subexpression matches ([0] = this, [1] = \1, etc.).
+	    If no match exists for a selected sub-expression, the returned MatchData
+	    object will have start and length set to 0 and matched will return "".</li>
+	<li><strong>[<em>a</em>]</strong> =&gt; <em>MatchData</em> - (Indexer)
+	    named group matches.  If no such named group was captured, the returned
+	    MatchData object will have start and length set to 0 and matched will return "".</li>
+	<li><strong>after</strong> =&gt; <em>string</em> - the portion of source following the
+	    matching substring, or "" if nothing follows or no match occurred.</li>
+	<li><strong>before</strong> =&gt; <em>string</em> - the portion of source before
+	    the matching substring, or "" if nothing preceded or no match occurred.</li>
+	<li><strong>Count</strong> =&gt; <em>int</em> - the number of elements accessible
+	    through the Indexer.  I.e., the highest matched sub-expression plus one.</li>
+	<li><strong>end</strong> =&gt; <em>int</em> - the index of the last character of
+	    the match within source.</li>
+	<li><strong>length</strong> =&gt; <em>int</em> - the length of the matching
+	    substring. Zero if no match occurred, or the empty string matched.</li>
+	<li><strong>matched</strong> =&gt; <em>string</em> - the matching portion of
+	    source, or "".</li>
+	<li><strong>replace</strong>(<em>string</em>) =&gt; <em>string</em> -
+	    replace \1..\9, etc. with sub-matches. This is called automatically by Regex's
+	    <a href="#ref-replace">replace</a> method.</li>
+	<li><strong>source</strong> =&gt; <em>string</em> - the entire original string
+	    searched.</li>
+        <li><strong>start</strong> =&gt; <em>int</em> - the starting index of the match
+	    within source, or 0 if no match occurred.</li>
+	<li><strong>ToString</strong>() =&gt; <em>string</em> - a string representation
+	    of the match information.</li>
+      </ul>
+    </div>
+  </div>
+  <div id="cls-RegexException" class="ref">
+    <h3>Class RegexException extends Synergex.SynergyDE.SynException</h3>
+    <div class="description">
+      This exception will be thrown upon construction of a Regex if the expression
+      contains any <a href="#syntax">syntax</a> errors.  Its Message member contains
+      the message "Error parsing regular expression: " followed by the text of the
+      expression (or a portion thereof), followed by a more detailed description of
+      the problem:
+      <ul>
+        <li>"Empty expression not allowed" - only an initial delimiter was supplied.</li>
+	<li>"Unknown option" - one of the options was not g, i, m, n, s, or x.</li>
+	<li>"Missing operand" - an operator didn't have an operand (e.g. '/*/')</li>
+	<li>"Final \ encountered" - the expression ended with '\'</li>
+	<li>"\c expects a letter" - the character after '\c' was something else.</li>
+	<li>"\x expects two hex digits" - we didn't get them.</li>
+	<li>"Empty [] not allowed" - an empty character class was encountered.</li>
+	<li>"Missing ]" - a character class wasn't terminated.</li>
+	<li>"Character range requires two characters" - [-], [A-], or [-B].</li>
+	<li>"Invalid character range" - [\s-\d] or [Z-A], for instance.</li>
+	<li>"Unmatched )" - at least one too many close parentheses.</li>
+	<li>"Missing ? sub-operator" - encountered "(?" at the end of the pattern.</li>
+	<li>"Unknown ? sub-operator" - encountered "(?" followed by an unrecognized sub-operator.</li>
+	<li>"Missing ?P sub-operator - encountered "(?P" at the end of the pattern.</li>
+	<li>"Unknown ?P sub-operator" - encountered "(?P" followed by an unrecognized sub-operator.</li>
+	<li>"Malformed named group" - "(?P&lt;" was not followed by at least one character and a "&gt;".</li>
+	<li>"Malformed named group reference" - "(?P=" was not followed by at least one character and a ")".</li>
+	<li>"Malformed {n,m} specification" - "{" was not followed a "}".</li>
+	<li>"Number expected" - "{ }" contained something other than digits or a comma.</li>
+	<li>"Malformed conditional" - the inner parentheses of a conditional group were empty or unmatched.</li>
+	<li>"Unrecognized ?&lt; sub-operator" - "(?&lt;" was followed by something other than "=" or "!".</li>
+	<li>"Unrecognized POSIX character class" - the name specified does not match a known class</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div id="syntax">
+<h2>Regular Expression syntax</h2>
+<p>The string from which a regular expression may be constructed must have the
+general form:</p>
+<code>&lt;<em>delimiter</em>&gt;&lt;<em>pattern</em>&gt;&lt;<em>delimiter</em>&gt;&lt;<em>options</em>&gt;</code>
+<p>where:</p>
+&lt;<em>delimiter</em>&gt; is any single character except '\'.  Both delimiters must match.<br/>
+&lt;<em>pattern</em>&gt; is the regular expression pattern specifying the match.<br/>
+&lt;<em>options</em>&gt; is zero or more of the following single-character search options:<br/>
+<div id="syn-options" class="description">
+<ul>
+<li>c - sets <a href="#ref-continue">Continue</a> to true.</li>
+<li>g - sets <a href="#ref-globalsearch">GlobalSearch</a> to true.</li>
+<li>i - sets <a href="#ref-ignorecase">IgnoreCase</a> to true.</li>
+<li>m - sets <a href="#ref-multiline">Multiline</a> to true.</li>
+<li>n - sets <a href="#ref-explicitcapture">ExplicitCapture</a> to true.</li>
+<li>s - sets <a href="#ref-dotmatchesnewline">DotMatchesNewline</a> to true.</li>
+<li>x - sets <a href="#ref-extended">Extended</a> to true.</li>
+</ul>
+</div>
+<div id="syn-pattern">
+<h2>Pattern characters</h2>
+<p>Most characters contained within &lt;<em>pattern</em>&gt; must follow one another immediately
+in the target string in order to match.
+For instance, <code>R$('/xyz/')</code> matches 'abcdefghijklmnopqrstuvwxyz' at position 24, but it does
+not match 'xzy' or 'x y z'.</p>
+<p>Some characters, however, have special meaning within a regular expression.  If you want
+to include those characters literally, you must escape them with a preceding '\'.  You can
+also include your delimiter in the same way -- e.g., <code>R$('/\//')</code> matches a '/'.  Following
+is a list of all special characters supported by this implementation, and their meanings.</p>
+  <div id="syn-dollar" class="description">
+    <h3>$ - anchor to end of line</h3>
+    <p>The match must end at the last character of a line of text in order to be accepted.
+    If <a href="#ref-multiline">Multiline</a> is true, then an embedded newline character
+    qualifies as marking the end of a line, but the end of the string always qualifies.</p>
+    <p>Example: <code>R$('/end$/')</code> matches 'friend', but not 'friends'.</p>
+  </div>
+  <div id="syn-subexpr" class="description">
+    <h3>( ) - group sub-expressions</h3>
+    <p>Parentheses can be used to override the usual operator precedence by grouping
+    operations together.  Additionally, parenthesized sub-expressions are counted from
+    left to right (by their open parenthesis) to number them from 1 to the number of
+    sub-expressions encountered, unless the <a href="#ref-explicitcapture">ExplicitCapture</a>
+    option is enabled.  The text that matched each sub-expression can be
+    accessed later on within the pattern by using \1 through \9, or from the
+    <a href="#cls-MatchData">MatchData</a> object returned from
+    the method <a href="#ref-match">match</a> by indexing it.  Thus for example,
+    <p><code>match = R$('/.*(c)/').match("abcd")<br/>assert(match[1].start == 3)<br/>
+    assert(match[1].length == 1)</code></p>
+    <p>Additionally, in the <a href="#ref-replace">replace</a> method, the replacement
+    string may contain escaped references to these sub-expressions.</p>
+    <p>If a sub-expression is completed more than once within a match, the last one
+    wins.</p>
+  </div>
+  <div id="syn-comment" class="description">
+    <h3>(?# ) - comment</h3>
+    <p> If a parenthesized group begins with "?#", then everything up to the next close
+    parenthesis is taken as a comment and ignored.  Note that this is the <em>next</em>
+    parenthesis, not the matching one.  You cannot include a close parenthesis in this
+    type of comment (but see <a href="#ref-extended">the x option</a>).</p>
+    <p>
+    This class of comment, although matching no input, is taken to be an operand.  Thus,
+    it cannot separate an operand and its intended operator.  For example:
+    </p>
+    <p><code>R$('/a(?# a comment)*/').match('aa')</code></p>
+    <p>will have a length of 1, because the '*' repeats the comment, not the 'a'.  However,</p>
+    <p><code>R$('/a(?# a comment)b/').match('ab')</code></p>
+    <p>does match, because the comment matches zero-length text.</p>
+  </div>
+  <div id="syn-condition" class="description">
+    <h3>(?() ) - conditional group</h3>
+    <p>
+      If the condition within the inner parentheses is true, then the expression that follows
+      up until the final parenthesis applies.  If that expression contains a union (|), then
+      the left side of the union will be treated as the 'then' section (applied if the
+      condition is true), and the right side will be treated as 'else' (applied if the
+      condition is false).  To force a union to remain a union, enclose it within another level
+      of parentheses.
+    </p>
+    <p>A conditional group does not consume a numbered back-reference.</p>
+    <p>The condition can have one of three forms:</p>
+    <ol>
+      <li>Numbered group reference - if all of the characters in the condition are numeric,
+      then the corresponding captured group will be tested for membership (as in a \1..\9 back-reference).
+      If that group has been captured, the condition is true, otherwise it is false.  Note that a
+      zero-length group is counted as captured.</li>
+      <li>If the condition begins with "?", then it must be a <a href="#syn-lookahead">look-ahead</a>
+      or <a href="#syn-lookbehind">look-behind</a> test.  If that test passes, then the condition
+      is true, otherwise false.</li>
+      <li>If neither of the above, then the condition is taken as the name of a captured
+      <a href="#syn-group">named group</a>.  If that group has been captured, the condition is true,
+      otherwise false.</li>
+    </ol>
+    <p>Examples:</p>
+    <p><code>R$('/(John )?\bSmith(?(1)son)\b/')</code> - matches 'Smith' alone, but if preceeded by 'John '
+    then it must be 'Smithson'.</p>
+    <p><code>R$('/((?(dot)\.)(?P&lt;dot&gt;\d{1,3})){4}/')</code> - matches an IP address, because the \.
+    is not applied until a numeric group has been captured.</p>
+    <p><code>R$('/(?:(x)|y) = (?(1)0|-1)/')</code> - matches "x = 0" or "y = -1", but no other combinations.</p>
+    <p><code>R$('/\d+(?(?=.*\boverdrawn\b)\*)/i')</code> - matches a number, which must include a trailing '*' if the word "overdrawn"
+    occurs later on in the string.</li>
+    <p><code>R$('/\d(?(?&lt;=[0-5])A|B)/')</code> - matches "0A", "1A", "2A", "3A", "4A", "5A", "6B", "7B", "8B", and "9B"</p>
+  </div>
+  <div id="syn-noback" class="description">
+    <h3>(?: ) - group sub-expressions without back-reference</h3>
+    <p>
+      If a parenthesized group begins with "?:", then it operates exactly like a
+      normal sub-expression, except that it can't be subsequently referenced by
+      a sub-expression number.  That means that the <a href="#cls-MatchData">MatchData</a>
+      object returned by <a href="#ref-match">match</a> does not include that sub-expression
+      in its indexer, nor can it be referenced later in the pattern via \1..\9, nor accessed
+      within the <em>a2</em> argument to <a href="#ref-replace">replace</a>.  The sub-expression
+      is not included in the count of sub-expressions, so the next counted sub-expression will
+      have the index following the previous one.
+    </p>
+    <p>Example:</p>
+    <p><code>match = R$('/(?:a|l)*(.*)tor/').match('alligator')<br/>assert(match[1].start == 4)<br/>
+    assert(match[1].length == 3)</code></p>
+    <p>
+    To make this behavior the default for unadorned parentheses, see the <a href="#ref-explicitcapture">ExplicitCapture</a> option.
+    </p>
+  </div>
+  <div id="syn-netgroup" class="description">
+    <h3>(?&lt;<em>group</em>&gt; ), (?'<em>group</em>' ) - named group sub-expression (.NET syntax)</h3>
+    <p>For compatibility with .NET named group capture, I've included support for the .NET
+    syntax.  .NET named groups differ from the <a href="#syn-group">Python style named groups</a>
+    not only in syntax, but also in the assignment of numbered back-references.  While Python
+    groups are numbered along with unnumbered groups, .NET groups are numbered after all
+    other groups -- unless they duplicate a Python group name, in which case they get the
+    number of the group they duplicate.  As implied by that exception, .NET group names share
+    the same namespace as Python named groups.  They can be used interchangeably, and you can
+    use either syntax for back-references and text-replacement.</p>
+    <p>Examples:</p>
+    <code>
+    match = r$("/(?'first'a)(b)(?&lt;second&gt;c)/").match('abc')<br/>
+    assert_equal('a', match['first'].matched)<br/>
+    assert_equal('c', match['second'].matched)<br/>
+    assert_equal('b', match[1].matched)   ;Unnamed groups first<br/>
+    assert_equal('a', match[2].matched)   ;But .NET groups get numbered after<br/>
+    assert_equal('c', match[3].matched)
+    </code>
+  </div>
+  <div id="syn-lookbehind" class="description">
+    <h3>(?&lt;= ), (?&lt;! ) - look-behind</h3>
+    <p>If a parenthesized group begins with "?&lt;=" or "?&lt;!", then the remainder of the group is matched
+    against the part of the string that has already been consumed.  If a match can be found that ends at the
+    current location, then the outer match proceeds as if the group were not there.  Otherwise, it doesn't match.</p>
+    <p>You can use any regular expression syntax within a look-behind, including group capture and anchors.</p>
+    <p>You can also use a look-behind as the condition in a <a href="#syn-condition">conditional</a>.</p>
+    <p>Examples:</p>
+    <p><code>R$('/(?&lt;=(\w+)\s+)Smith/')</code> - matches "Smith" when it is preceded by another word, and captures
+    that word as sub-expression 1.</p>
+    <p><code>R$('/\b\w+\b(?&lt;!s)/')</code> - matches words that don't end with 's'.
+  </div>
+  <div id="syn-lookahead" class="description">
+    <h3>(?= ), (?! ) - look-ahead</h3>
+    <p>If a parenthesized group begins with "?=" or "?!", then the remainder of the group is matched
+    against what follows in the string, without changing the position for the rest of the expression.  If a
+    match can be found that begins at the current location, then the outer match proceeds as if the group
+    were not there.  Otherwise, it doesn't match.</p>
+    <p>You can use any regular expression syntax within a look-ahead, including group capture and anchors.</p>
+    <p>You can also use a look-ahead as the condition in a <a href="#syn-condition">conditional</a>.</p>
+    <p>Examples:</p>
+    <p><code>R$('/John(?=\s+(\w+))/')</code> - matches "John" when it is followed by another word, and captures
+    that word as sub-expression 1.</p>
+    <p><code>R$('/(?!\d*5)\d+/')</code> - matches a group of digits, but only if they don't contain a 5.</p>
+  </div>
+  <div id="syn-dynopts" class="description">
+    <h3>(?imnsx) - dynamically set options</h3>
+    <p>
+      For each of the letters that this group includes, the corresponding option is turned on
+      for the remainder of the expression.  You can explicitly turn off an option by preceding it with
+      a '-'.  The options are the same as <a href="#syn-options">when specified following the pattern</a>
+      (which sets their initial states), except that Continue (c) and GlobalSearch (g) are not included because those options
+      cannot be applied to only part of an expression.
+    </p>
+    <p>Examples:</p>
+    <code>R$('/case(?i)nocase(?-i)case/')<br/>
+    R$('/not extended, single line(?xm) extended mode, multi-line(?-x-m) and back/')</code>
+    <p>If the options are followed by a colon (:), then they only apply to the expression that
+    follows the colon up to the close parenthesis.  The above examples can therefore be rewritten as:
+    </p>
+    <code>R$('/case(?i:nocase)case/')<br/>
+    R$('/not extended, single line(?xm: extended mode, multi-line) and back/')</code>
+    <p>When using the first form, be aware that the ExplicitCapture and Extended options affect the operation of the
+    compile phase, while the other three (IgnoreCase, Multiline, and DotMatchesNewline) affect pattern matching.  Thus,
+    the former always apply left to right, while the latter can affect earlier parts
+    of the expression when repeating.  For example:
+    </p>
+    <code>R$('/\b([a-z](?-i))+\b/i')</code>
+    <p>The above matches any word where only the first character may be capitalized or not (thanks to
+    the initial IgnoreCase option selected after the pattern), but the remaining characters must be
+    lowercase.  That's because the (?-i) still applies on the second and following repetitions of the loop.
+    While this can be useful, it can also be confusing.  To avoid these situations, use the encapsulated
+    form (with the colon) where the scope of the setting is clear.
+    </p>
+  </div>
+  <div id="syn-group" class="description">
+    <h3>(?P&lt;<em>group</em>&gt; ) - named group sub-expression (Python syntax)</h3>
+    <p>
+      Creates a sub-expression that does have a numbered back-reference, but may also be referenced
+      by the name <em>group</em>.  Group names are always case-sensitive.  They
+      may contain any characters except &gt; and ).  The text following the &gt;, up to but not
+      including the ) is the sub-expression to capture.
+    </p>
+    <p>Group names do not have to be unique.  In cases where they collide, both sub-expressions
+    map to the same collector, which may be accessed by name or by number.  The number assigned
+    to all sub-expressions having the same name will be based on when the first one was
+    encountered.  When back-referenced or accessed from the replace or MatchData object,
+    the contents of the group will be from the last time a group with that name was matched.</p>
+    <p>This form of named group capture is based on Python syntax.  Unlike the
+    <a href="#ref-netgroup">.NET syntax</a> for named groups, these groups are numbered
+    where they occur, along with unnamed groups.</p>
+    <p>Examples:</p>
+    <p><code>match = R$('/a(?&lt;els&gt;l+)i/').match('alligator')<br/>
+    assert(match['els'].start == 2)<br/>
+    assert(match['els'].length == 2)<br/>
+    assert(match[1].start == 2)<br/>
+    assert(match[1].length == 2)
+    </code></p>
+    <p><code>
+	  r1 = r$('/a(?P&lt;x&gt;\d)|b(?P&lt;x&gt;\w)/')<br/>
+	  match = r1.match('a5')<br/>
+	  assert_equal('5', match['x'].matched)<br/>
+	  match = r1.match('bd')<br/>
+	  assert_equal('d', match['x'].matched)
+    </code></p>
+  </div>
+  <div id="syn-groupref" class="description">
+    <h3>(?P=<em>group</em>) - named group back-reference</h3>
+    <p>
+      Back-references the text previously captured in the named group <em>group</em>.  If that
+      group has not yet been captured, an empty string is used.
+    </p>
+    <p>Example:</p>
+    <p><code>
+	match = r$('/(?P&lt;quote&gt;[''"]).*?(?P=quote)/').match('I said, "She''s a witch"')<br/>
+	assert_equal(9, match.start)<br/>
+	assert_equal(15, match.length)
+    </code></p>
+  </div>
+  <div id="syn-kleene" class="description">
+    <h3>* - zero or more</h3>
+    <p>Also known as a <a href="http://en.wikipedia.org/wiki/Kleene_star">Kleene closure</a>,
+    this operator matches as many of the preceding expression as possible (greedy search, but see ? below),
+    but can match none of them, depending on the constraints of the rest of the expression.
+    </p>
+    <p>Example: <code>R$('/A*B/')</code> matches 'B', 'AB', 'ZAAB', and even 'AZB' (because
+    the final 'B' matches the "zero A's followed by B" case.</p>
+  </div>
+  <div id="syn-plus" class="description">
+    <h3>+ - one or more</h3>
+    <p>This operator matches at least one, but as many as possible (greedy search, but see ? below), of
+    the preceding expression.
+    <p>Example:  <code>R$('/A+B/')</code> matches 'AB' and 'ZAAB', but not 'B' or 'AZB'.</p>
+  </div>
+  <div id="syn-dot" class="description">
+    <h3>. - any single character</h3>
+    <p>This metacharacter matches any character (except sometimes newline).  It's often used to skip over stuff
+    you don't care what it is.  But be careful of searches that are greedier than you
+    intended.</p>
+    <p>
+    By default, the period does not match a newline character (linefeed, char(10)).  You can
+    force period to match newline by enabling the <a href="#ref-dotmatchesnewline">DotMatchesNewline</a> option.
+    </p>
+    <p>Example: <code>R$('/A.B/')</code> matches 'AAB' and 'ACB', but not 'AB'.
+    <code>R$('/.*B/')</code> matches 'ABRACADABRA' at position 1, but the length of
+    the match is 9 (inclusive of the second 'B').</p>
+  </div>
+  <div id="syn-question" class="description">
+    <h3>? - zero or one</h3>
+    <p>This operator matches one or none of the preceding expression.  It prefers one by
+    default (greedy), but if immediately followed by another ? (see below) it prefers none.</p>
+    <p>Example:  <code>R$('/A?B/')</code> matchs 'B', 'AB', 'ZAAB' (at position 3) and
+    even 'AZB' (also at position 3).</p>
+  </div>
+  <div id="syn-nongreedy" class="description">
+    <h3>? - non-greedy match</h3>
+    <p>If a ? immediately follows a *, +, or ? operator, then the match is non-greedy, meaning
+    that it prefers fewer repetitions rather than greater.</p>
+    <p>Example: <code>R$('/A*?/')</code> matches 'AAA' at position 1, with a length of zero,
+    whereas without the ? it would match to a length of 3.</p>
+  </div>
+  <div id="syn-charclass" class="description">
+    <h3>[ ] - character class</h3>
+    <p>The characters between matching square brackets forms a specification of
+    a character class.  In its simplest form, it's just a list of the characters
+    that qualify.  For example: <code>R$('/[xyz]/')</code> matches "x", "y" or "z".
+    In this form, it's synonymous with <code>R$('/x|y|z/')</code>.</p>
+    <p>If the first character within the brackets is "^", then the sense of the
+    character class is reversed.  That is, anything except these characters.
+    For example, <code>R$('/[^abc]/')</code> will not match any of the first three
+    lower-case letters of the alphabet.</p>
+    <p>The back-slash can be used to introduce special characters into the sequence,
+    as detailed below.  Thus, <code>R$('/[\d.]/')</code> matches any numeric digit
+    or a period.  Note that the period (along with most special characters) has
+    a literal meaning when used within a character class.</p>
+    <p>A dash ('-') can be used to specify a range of characters.  For example,
+    <code>R$('/[A-Z]/')</code> matches all uppercase letters.</p>
+    <p>If a dash is immediately followed by a [, then it is taken to mean
+    character class subtraction, and the [ is expected to have a matching ]
+    to indicate the end of the class to subtract from the main class.  For instance,
+    to match all consonants, you could use <code>R$('/[a-z-[aieou]]/i')</code>.  Note, therefore,
+    that to end a range with [ you would need to escape it with a \.  You may
+    subtract more than one subclass, and you may nest subtractions.  For example,
+    <code>R$('/[a-z-[k-o-[lm]]]'/)</code> is functionally equivalent to <code>R$('/[a-z-[kno]]/')</code>, which could also
+    be expressed as <code>R$('/[a-jlmp-z]/')</code>.  Subtraction is more useful for readability than
+    performance:  <code>R$('/[\d-[5]]/')</code> says "all digits except 5" better than <code>R$('/[0-46-9]/')</code> does.</p>
+    <p>POSIX character classes can be enclosed within another level of brackets and colons.
+    For instance, <code>R$('/[[:punct:]]/')</code> matches a punctuation character.  See the list
+    of <a href="#syn-posixclass">supported character classes</a>.</p>
+    <p>Once introduced, a character class becomes an expression like any
+    other character.  Thus, it can be repeated with '*', '+', or '?'.  For
+    example, <code>R$('/[A-Za-z]*/)</code>' matches any number of letters.</p>
+  </div>
+  <div id="syn-escape" class="description">
+    <h3>\ - escape a special character</h3>
+    <p>The back-slash can be used to insert the character that follows, without
+    special interpretation.  However, there are some characters that have special
+    meaning when following a back-slash, depending on context.</p>
+    <p>
+    <table style="font-size: 70%">
+      <tr><th>Legend</th></tr>
+      <tr class="cc"><td>Only available within a <a href="#syn-charclass">character class</a></td></tr>
+      <tr class="ncc"><td>Only available when <em>not</em> within a character class</td></tr>
+      <tr><td>Available in both contexts</td></tr>
+    </table>
+    </p>
+    <table>
+      <tr><th>Escape</th><th>Meaning</th></tr>
+      <tr class="ncc"><td>\1..\9</td><td>back-reference to a previously captured group</td></tr>
+      <tr class="cc"><td>\0..\377</td><td>the character corresponding to the specified octal value</td></tr>
+      <tr><td>\a</td><td>bell (\x07)</td></tr>
+      <tr class="ncc"><td>\A</td><td>anchor to beginning of text (like ^, but does not match the beginning of multiple lines when <a href="#ref-multiline">Multiline</a> is enabled)</td></tr>
+      <tr class="cc"><td>\b</td><td>backspace (\x08)</td></tr>
+      <tr class="ncc"><td>\b</td><td>a word boundary</td></tr>
+      <tr class="ncc"><td>\B</td><td>a word non-boundary</td></tr>
+      <tr><td>\cA..\cZ<br/>\ca..\cz</td><td>the corresponding control character (\x01..\x1A)</td></tr>
+      <tr><td>\d</td><td>a numeric digit ('0'..'9')</td></tr>
+      <tr><td>\D</td><td>anything except a numeric digit.</td></tr>
+      <tr><td>\e</td><td>escape (\x1B)</td></tr>
+      <tr><td>\f</td><td>form feed (\x0C)</td></tr>
+      <tr class="ncc"><td>\G</td><td>end of last match*</td></tr>
+      <tr class="ncc"><td>\k&lt;<em>group</em>&gt;<br/>\k'<em>group</em>'</td><td>named group back-reference</td></tr>
+      <tr class="ncc"><td>\m</td><td>beginning of word</td></tr>
+      <tr class="ncc"><td>\M</td><td>end of word</td></tr>
+      <tr><td>\n</td><td>new line (\x0A)</td></tr>
+      <tr><td>\p{<em>Classname</em>}</td><td><a href="#syn-posixclass">POSIX character class</a> <em>classname</em></td></tr>
+      <tr class="ncc"><td>\Q</td><td>escapes all subsequent text as literal until \E</td></tr>
+      <tr><td>\r</td><td>return (\x0D)</td></tr>
+      <tr><td>\s</td><td>white space [ \t\n\v\f\r]</td></tr>
+      <tr><td>\S</td><td>anything except white space</td></tr>
+      <tr><td>\t</td><td>tab (\x09)</td></tr>
+      <tr><td>\v</td><td>vertical tab (\x0B)</td></tr>
+      <tr><td>\w</td><td>word character [A-Za-z0-9_]</td></tr>
+      <tr><td>\W</td><td>anything except a word character</td></tr>
+      <tr class="ncc"><td>\y</td><td>a word boundary (like \b)</td></tr>
+      <tr class="ncc"><td>\Y</td><td>a word non-boundary (like \B)</td></tr>
+      <tr class="ncc"><td>\z</td><td>anchor to end of text (like $, but does not match the end of multiple lines when <a href="#ref-multiline">Multiline</a> is enabled)</td></tr>
+      <tr class="ncc"><td>\Z</td><td>like \z, but if the text ends with a linefeed, matches the position of the final linefeed</td></tr>
+      <tr><td>\x00..\xFF</td><td>the character corresponding to the specified hexadecimal value.</td></tr>
+      <tr class="ncc"><td>\`</td><td>anchor to beginning of text (like \A)</td></tr>
+      <tr class="ncc"><td>\'</td><td>anchor to end of text (like \z)</td></tr>
+      <tr class="ncc"><td>\&lt;</td><td>beginning of word (like \m)</td></tr>
+      <tr class="ncc"><td>\&gt;</td><td>end of word (like \M)</td></tr>
+    </table>
+    <p>* The operation of \G differs between various regex engines, so it bears explaining here.
+    \G represents an anchor to the end of the last match, meaning that what follows \G must
+    match what follows that position.  The actual position used is maintained in the public
+    member <a href="#ref-continuefrom">ContinueFrom</a>, so that implies that it is
+    Regex-specific, but not string-specific.  If you reuse a Regex that contains \G with another
+    target string, you may want to clear the ContinueFrom member first.  Conversely, if you
+    want to use another Regex with the same string and have it continue from the match
+    of the other Regex, you must first copy the ContinueFrom value from the first Regex to
+    the second one.  When a match fails, ContinueFrom is set to 0, unless the
+    <a href="#ref-continue">Continue</a> option is true.
+    </p>
+  </div>
+  <div id="syn-hat" class="description">
+    <h3>^ - anchor to beginning of line</h3>
+    <p>The match must begin with the first character of a line of text in order to be
+    accepted.  If <a href="#ref-multiline">Multiline</a> is true, then an embedded newline
+    character qualifies as marking the beginning of line, but the beginning of the string
+    always qualifies.</p>
+    <p>Example: <code>R$('/^front/')</code> matches 'front-end', but not 'affront'.</p>
+  </div>
+  <div id="syn-nm" class="description">
+    <h3>{ } - specify minimum/maximum repetitions</h3>
+    <p>
+    This operator optionally specifies the minimum and maximum number of repetitions for the term that it follows.  It can
+    take any of the following forms:
+    <ul>
+      <li>{n} - repeat exactly n times.</li>
+      <li>{n,m} - repeat at least n times, but not more than m times.</li>
+      <li>{n,} - repeat at least n times, but with no maximum.</li>
+      <li>{,m} - repeat no more than m times, but with no minimum.</li>
+    </ul>
+    Example: <code>R$('/(\d{1,3}\.){3}\d{1,3}/')</code> matches an IPv4 address (though it doesn't verify that each number is 255 or less).
+    This expression reads &quot;1 to 3 digits followed by a dot, repeated 3 times, followed by 1 to 3 digits.&quot;
+    </p>
+  </div>
+  <div id="syn-union" class="description">
+    <h3>| - union (or)</h3>
+    <p>This operator occurs between two expressions to specify that either one or the other
+    is required.  It has the lowest operator priority of any operator, so to prevent
+    everything on one side or the other from being lumped together, use parentheses.</p>
+    <p>Example: <code>R$('/c(a|u)t/')</code> matches 'cat' and 'cut' at position 1.
+    But <code>R$('/ca|ut/')</code> matches 'cut' at position 2 ("ut").</p>
+    <p>Note: when used in a <a href="#syn-condition">conditional group</a>, this operator
+    can be taken as an "else" instead.</p>
+  </div>
+</div>
+<div id="syn-posixclass">
+  <h2>POSIX character classes</h2>
+  <p>This parser supports the following POSIX character class names, which are not
+  case-sensitive:</p>
+  <table>
+    <tr><th>Class Name</th><th>Description</th><th>Characters included</th></tr>
+    <tr><td>alnum</td><td>Alphanumeric characters</td><td>a-zA-z0-9</td></tr>
+    <tr><td>alpha</td><td>Alphabetic characters</td><td>a-zA-Z</td></tr>
+    <tr><td>ascii</td><td>ASCII (7-bit)</td><td>\x00-x7F</td></tr>
+    <tr><td>blank</td><td>Space and tab</td><td>\x20\t</td></tr>
+    <tr><td>cntrl</td><td>Control characters and DEL</td><td>\x00-\x1F\x7F</td></tr>
+    <tr><td>digit</td><td>Digits</td><td>0-9</td></tr>
+    <tr><td>graph</td><td>Visible characters (characters with graphemes)</td><td>\x21-\x7E</td></tr>
+    <tr><td>lower</td><td>Lowercase letters</td><td>a-z</td></tr>
+    <tr><td>print</td><td>Printable characters</td><td>\x20-\x7E</td></tr>
+    <tr><td>punct</td><td>Punctuation</td><td>!"#$&amp;'()*+,\-./:;&lt;=&gt;?@[\]^_`{|}~</td></tr>
+    <tr><td>space</td><td>Whitespace</td><td>\x20\t\r\n\v\f</td></tr>
+    <tr><td>upper</td><td>Uppercase letters</td><td>A-Z</td></tr>
+    <tr><td>word</td><td>Word characters</td><td>A-Za-z0-9_</td></tr>
+    <tr><td>xdigit</td><td>Hexadecimal digits</td><td>0-9A-Fa-f</td></tr>
+  </table>
+  <p>You may include a POSIX character class within a <a href="#syn-charclass">character class</a>
+  by enclosing it within "[:" and ":]", or by using the Java syntax \p{<em>Classname</em>}.
+  The latter syntax may also be used outside a character class.  Neither of these flavors
+  are treated as case-sensitive by this implementation, even though they both are in other
+  parsers (with the Java flavor capitalizing some letters).</p>
+</div>
+</div>
+<div id="notyet">
+  <h2>Features not yet implemented</h2>
+  <p>I don't have any items left on my to-do list.  If you can think of any features you'd
+  like to see added, <a href="http://chipstips.com/?page_id=3">please contact me</a>.</p>
+</div>
+<div id="never">
+  <h2>Features that will never be implemented, and why</h2>
+  <p>I hate to say never, but the following features do not match my pattern
+  (pun intended) for Regex.  If you can make a good argument for including any
+  of these, please <a href="http://chipstips.com/?page_id=3">let me know</a>.</p>
+  <ul>
+    <li>(?&gt; ) - Atomic groups.  This engine does not use back-tracking, so the concept
+    does not apply.</li>
+    <li>+ as a possessive quantifier - same reason, back-tracking is not an issue.</li>
+    <li>Unicode characters, properties, scripts, and blocks -- Synergy/DE does not store
+    strings in Unicode (yet).</li>
+    <li>XML character classes (\i, \I, \c, \C) - very few regex parsers implement these,
+    and \c conflicts with \cA..\cZ for control characters.</li>
+    <li>POSIX collating sequences and character equivalents - these rely on locale-specific
+    character set information, and Synergy/DE uses ASCII.</li>
+    <li>POSIX exclusion of \ as an escape in character classes -- that's just wrong.</li>
+    <li>\10..\99 for group back-references - if you need more than 9, perhaps you should use
+    named groups.  Implementing support for more than one digit complicates the syntax -- is \12
+    a back-reference to the twelfth captured group, or is it the first group followed by a
+    literal "2"?  Obviously, you could use () grouping to disambiguate, but why cause the
+    confusion in the first place?</li>
+  </ul>
+</div>
+</body>
+</html>

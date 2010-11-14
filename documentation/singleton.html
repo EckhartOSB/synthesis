@@ -1,0 +1,39 @@
+<html>
+<head>
+<title>Singleton mixin reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Mixin Singleton</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This mixin applies the Singleton design pattern to a class, by providing access
+to a single instance and preventing the creation of any others.</p>
+</div>
+<div class="ref">
+<h2>Usage</h2>
+<p>To use this mixin, you must define the identifier SINGLETON_CLASS as the class under compilation and then include the module.  For example:</p>
+<pre><code>
+class myclass
+.define SINGLETON_CLASS, myclass
+.include "MIXINS:Singleton"
+
+method initialize, void
+proc
+    ;Do any initialization of the one instance.
+end
+</code></pre> 
+<p>You must supply the instance method "initialize" shown above, which may be public, private, or protected.
+This method will be invoked when the one and only instance of the class is created, which happens on the
+first access to the "instance" property.
+</p>
+<p>To access the single instance of the class, use the static property "instance".  For example:</p>
+<pre><code>
+myclass.instance.somemethod()
+</code></pre>
+<p>This mixin creates a private default constructor for the class, so don't try to define your own.</p>
+</div>
+</body>
+</html>

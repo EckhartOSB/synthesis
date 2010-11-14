@@ -1,0 +1,4876 @@
+;------------------------------------------------------------------------------
+;
+; regex.dbl - Class for regexen in Synergy/DE
+;
+; Chip Camden		September 2009
+;
+; Version 1.0
+;
+;------------------------------------------------------------------------------
+
+.include "SYNTHESIS:synthesis.def"
+
+;;.define D_DEBUG	;Uncomment this to enable debug output
+
+.ifdef D_DEBUG
+.define DEBUG_OUT(str) if (Synthesis.Regex.debug) Console.WriteLine(str)
+.else
+.define DEBUG_OUT(str)	;Don't do anything
+.endc
+
+namespace Synthesis
+
+    public class RegexException extends Synergex.SynergyDE.SynException
+    ;
+    ; Special exception class for Regex parsing errors
+    ;
+    	public method RegexException
+	D_INARG str, a
+	D_INARG msg, a
+	   parent("Error parsing regular expression: " + str + ": " + msg)
+	proc
+	end
+    endclass
+
+    public class MatchData
+    ;
+    ; Class of object returned by Regex.match()
+
+    	public start, int	;Beginning index of match (0 = not found,
+				;  may be greater than length of source)
+	public length, int	;Length of matching string (may be 0)
+	public source, string	;The entire original string matched against
+
+	public method MatchData
+	D_INARG a_src, string
+	D_INARG a_ndx, int
+	D_INARG a_len, int
+	proc
+	    source = a_src
+	    start = a_ndx
+	    length = a_len
+	    m_subs = ^null
+	    groups = ^null
+	end
+
+	public property matched, string
+	;
+	; The string matched
+	;
+	  method get
+	  record
+	  	val	,string
+		endp	,int
+	  proc
+	    if ((start < 1) || (length < 1) || (start > source.length))
+	      mreturn ""	;No match, or empty match, or matching $ only
+	    if ((endp = (start + length - 1)) > source.length)
+	      endp = source.length
+	    val = source(start,endp)
+	    mreturn val
+	  end
+	endproperty
+
+	public property end, int
+	;
+	; Ending index of match (may be less than start)
+	;
+	  method get
+	  proc
+	    if (start > 0)
+	      mreturn (start + length - 1)
+	    mreturn 0		;No match
+	  end
+	endproperty
+
+	public property before, string
+	;
+	; The portion of the original string up to but not including the match
+	;
+	method get
+	record
+		val	,string
+	proc
+	    if (start < 1)
+	      mreturn ^null	;No match
+	    if (start == 1)
+	      mreturn ""
+	    if (start <= source.length)
+	      begin
+	        val = source(1,start-1)
+		mreturn val
+	      end
+	    mreturn source	;Matched $
+	end
+	endproperty
+
+	public property after, string
+	;
+	; The portion of the original string following the match
+	;
+	method get
+	record
+		val	,string
+	proc
+	    if (start < 1)
+	      mreturn ^null	;No match
+	    if ((start + length) > source.length)
+	      mreturn ""	;Nothing after
+	    val = source(start + length, source.length)
+	    mreturn val
+	end
+	endproperty
+
+	public property Indexer, @MatchData	;Indexer for subexpression matches
+	D_INARG ndx, int		;Sub-expression number
+	  method get
+	  proc
+	    if (ndx == 0)
+	      mreturn this
+	    if ((m_subs != ^null) && (ndx > 0) && (ndx <= m_subs.Count))
+	      mreturn (MatchData)(m_subs[(int)(ndx-1)])
+	    mreturn new MatchData(source,0,0)
+	  end
+	  method set
+	  proc
+	    if (m_subs == ^null)
+	      m_subs = new ls()
+	    if (ndx > 0)
+	      begin
+	        while (m_subs.Count < ndx)
+		  m_subs.add(new MatchData(source,0,0))
+		m_subs[(int)(ndx-1)] = value
+	      end
+	  end
+	endproperty
+
+	public property Indexer, @MatchData	;Indexer for named groups
+	D_INARG ndx, a
+	  method get
+	  proc
+	    if ((groups != ^null) && (groups[ndx] != ^null))
+	      begin
+	        data n, int
+		n = (int)groups[ndx]
+	        mreturn this[n]
+	      end
+	    mreturn new MatchData(source, 0, 0)
+	  end
+	endproperty
+
+	public property Count, int
+	;
+	; Returns the number of sub-expressions plus one
+	; (because this[0] => this)
+	;
+	  method get
+	  proc
+	    if (m_subs == ^null)
+	      mreturn 1
+	    mreturn m_subs.Count + 1
+	  end
+	endproperty
+
+	public override method ToString, string
+	record
+		sub, @MatchData
+		rval, string
+		ndx, int
+	proc
+	    	rval = string(start)+':'+string(length)
+		clear ndx
+		if ((m_subs != ^null) && (m_subs.Count > 0))
+		  foreach sub in m_subs
+		    begin
+		      incr ndx
+		      if (sub != ^null)
+		        rval = rval + ",\" + string(ndx) + "=>" + sub.ToString()
+		    end
+		mreturn rval
+	end
+
+	public method replace, string
+	;
+	; Description:  Replace \ special tokens in a string
+	;
+	D_INARG str, a
+	record
+		ndx	,int
+		skip	,int
+		rval	,string
+		with	,string
+		char	,a1
+	proc
+		ndx = 1
+		rval = str
+		while ((rval.Length > 0) && (ndx = next_escape(ndx, rval)) && (ndx < rval.Length))
+		  begin
+		    data newval, string
+
+		    char = rval(ndx+1:1)
+		    skip = 2			;The usual case \c
+		    ;First, the cases common to \ and $
+		    using char select
+		    ('0' thru '9'),
+		      with = this[integer(char)].matched
+		    ('&'),
+		      with = this.matched
+		    ('`'),
+		      with = this.before
+		    ("'"),
+		      with = this.after
+		    ('+'),
+		      with = this[(int)(Count-1)].matched
+		    (),
+		      begin
+		        using rval(ndx:1) select
+			('\'),
+			  using char select
+			  ('g'),
+			    begin
+			      if ((ndx < rval.Length-2) && (rval(ndx+2:1) == '<')) then
+				begin
+				  data begb, int
+				  data endb, int
+
+				  begb = ndx + 3
+				  if (!(endb = instr(begb, rval, '>')))
+				    endb = rval.Length + 1
+				  if (endb > begb) then
+				    with = this[rval(begb,endb-1)].matched	;Index by group name
+				  else
+				    with = ''	;Not found
+				  skip = endb - ndx + 1
+				end
+			      else
+				begin
+				  with = char
+				end
+			    end
+			  ('x'),
+			    begin
+			      if (ndx < rval.Length-2) then
+			        begin
+				  try
+				    begin
+				      data val, a2
+
+				      val = rval(ndx+2:2)
+				      with = %char(^x(val))
+				      skip += 2
+				    end
+				  catch (excp)
+				    begin
+				    with = char
+				    end
+				  endtry
+				end
+			      else
+				begin
+			          with = char
+				end
+			    end
+			  (),
+			    with = char		;Escape the next character
+			  endusing
+			('$'),
+			  using char select
+			  ('{'),
+			    begin
+			      data begp, int
+			      data endp, int
+			      data num, int
+			      
+			      begp = ndx+2
+			      if (!(endp = instr(begp, str, '}'))) then
+			        with = "${"	;Just treat as literal
+			      else if (endp > begp) then
+				begin
+				  try
+				    begin
+				      num = rval(begp,endp-1)
+				      with = this[num].matched		;Numeric group reference
+				    end
+				  catch (excp)
+			            with = this[rval(begp,endp-1)].matched	;Named group
+				  endtry
+				  skip = endp - ndx + 1
+				end
+			      else
+				begin
+			          with = ''	;Empty group name
+				  skip = 3
+				end
+			    end
+			  ('$'),
+			    with = char		;$$ escapes $
+			  (),
+			    with = '$' + char	;Literal $ for all other cases
+			  endusing
+			endusing
+		      end
+		    endusing
+		    if (ndx > 1) then
+		      newval = rval(1,ndx-1) + with
+		    else
+		      newval = with
+		    ndx += skip			;Skip escaped character(s)
+		    if (ndx <= rval.length) then
+		      rval = newval + rval(ndx,rval.length)
+		    else
+		      rval = newval
+		    ndx = newval.Length + 1	;Skip what we replaced
+		  end
+		mreturn rval
+	end
+
+	protected method next_escape, int
+	;
+	; Find the next \ or $
+	;
+	D_INARG beg, int	;Beginning index
+	D_INARG str, a		;String to search
+	;
+	record
+		slash	,int
+		dollar	,int
+	proc
+		slash = instr(beg, str, '\')
+		dollar = instr(beg, str, '$')
+		if (dollar && (!slash || (dollar < slash)))
+		  mreturn dollar
+		mreturn slash
+	end
+
+	private m_subs, @ls	;[expr-number-1] => @MatchData
+	public groups, @Hash	;[groupname] => expr-number
+
+    endclass
+
+    public class Regex
+
+        public static debug, boolean, false
+
+    	public method Regex
+	D_INARG str, a
+	proc
+	    m_string = str
+	    LastMatch = ^null
+	    m_groups = ^null
+	    ContinueFrom = 0
+	    compile()
+	end
+
+	public method Regex
+	D_INARG obj, @*		;Handles Var, Regex, string, etc.
+	    this(obj.ToString())
+	proc
+	end
+
+	public static method from, @Regex
+	D_INARG str, a
+	proc
+	    mreturn new Regex(str)
+	end
+
+	public static method from, @Regex
+	D_INARG obj, @*
+	proc
+	    mreturn new Regex(obj)
+	end
+
+	public override method ToString, string
+	proc
+	    mreturn m_string
+	end
+
+	public static method op_Explicit, a
+	D_INARG me, @Regex
+	proc
+	    mreturn me.m_string
+	end
+
+	public method match, @MatchData
+	;
+	; Match a pattern against a string
+	;
+	D_INARG str, a		;The string to compare against
+	D_INARG begin, int		;Beginning index in str for results
+	;
+	record
+		best	,@MatchMaker
+		matches, @ls
+		match	,@MatchMaker
+	proc
+	    if (begin > ^size(str))
+	      mreturn new MatchData(str,0,0)	;Not found
+
+	    best = find(str, begin)
+	    if (best == ^null) then
+	      begin
+	        LastMatch = new MatchData(str,0,0)	;No match
+		if (!Continue)			;/c
+		  ContinueFrom = 0
+	      end
+	    else
+	      begin
+		DEBUG_OUT("best = " + best.ToString())
+	        LastMatch = best.make()
+		ContinueFrom = LastMatch.end
+	      end
+	    mreturn LastMatch
+	end
+
+	public method match, @MatchData
+	;
+	; Version of match without specifying beginning index
+	;
+	D_INARG str, a
+	proc
+	    mreturn match(str, 1)
+	end
+
+	public method replace, string
+	;
+	; Replace a matched pattern in a string
+	;
+	D_INARG str, a		;String to search
+	D_INARG with, a		;Replacement string (may include \n)
+	;
+	proc
+	    mreturn replace(str, with, 1)
+	end
+
+	public method replace, string
+	;
+	; Replace, specifying beginning index
+	;
+	D_INARG str, a
+	D_INARG with, a
+	D_INARG begin, i
+	record
+	    md, @MatchData
+	    rval, string
+	    rpl, string
+	    beg, int
+	proc
+	    beg = begin
+	    rval = str
+	    repeat
+	      begin
+		md = match(rval, beg)
+		if (md.start == 0)
+		  exitloop
+		rpl = md.replace(with)
+	        rval = md.before + rpl + md.after
+		if (!GlobalSearch)
+		  exitloop
+		beg = LastMatch.start + rpl.length ;Don't replace in what we replaced
+	      end
+	    mreturn rval
+	end
+
+	public method split, @ls
+	D_INARG str, a			;String to split
+	proc
+	    mreturn split(str, true)	;Keep empty strings by default
+	end
+
+	public method split, @ls
+	;
+	; Split a string on this Regex
+	;
+	D_INARG str, a			;String to split
+
+	D_INARG incempty, boolean	;True to include empty strings ('')
+	;
+	; Returns an ls containing the pieces, as VarAlphas
+	;
+	; Notes:
+	;
+	;	Use GlobalSearch (/g) to get more than one split.
+	;
+	;	Captured groups are also returned, so use non-
+	;	capturing groups (?:) for grouping that you don't
+	;	want returned.
+	;
+	record
+	    md, @MatchData
+	    rval, @ls
+	    beg, int
+	    len, int
+	    sub, int
+	proc
+	    beg = 1
+	    len = ^size(str)
+	    rval = new ls()
+	    repeat
+	      begin
+	        md = match(str, beg)
+		if (md.start == 0)
+		  exitloop
+		if (md.start > beg) then
+		  rval.add$(str(beg,md.start-1))
+		else if (incempty)
+		  rval.add$('')
+
+	        ;Now the captured sub-expressions, if any
+		for sub from 1 thru md.Count-1
+		  if (incempty || md[sub].length)
+		    rval.add$(md[sub].matched)
+
+		;Setup for the next search, if any
+		beg = md.end + 1
+	        if (!GlobalSearch)
+		  exitloop
+	      end
+
+	    ;Anything left?
+	    if (beg <= len) then
+	      rval.add$(str(beg,len))
+	    else if (incempty)
+	      rval.add$('')
+
+	    mreturn rval
+	end
+
+	public static method escape, string
+	;
+	; Escape special characters
+	;
+	D_INARG str, a
+	;
+	proc
+		mreturn escape(str, '/')	;The usual delimiter
+	end
+
+	public static method escape, string
+	;
+	; Escape special characters
+	;
+	D_INARG str, a
+	D_INARG delim, a
+	;
+	; Returns str with all special characters escaped (preceeded by \)
+	;
+	record
+		beg	,int
+		ndx	,int
+		rval	,string
+		char	,a1
+	proc
+		if (s_specialChars == ^null)
+		  Initialize()
+
+		beg = 1
+		rval = ""
+		for ndx from 1 thru ^size(str)
+		  if (((char = str(ndx:1)) == delim) ||
+		  &     instr(1, s_specialChars, char))
+		    begin
+		      if (ndx > beg) then
+		        rval = rval + str(beg,ndx-1) + '\' + char
+		      else
+		        rval = rval + '\' + char
+		      beg = ndx + 1
+		    end
+		if (ndx > beg)
+		  rval = rval + str(beg,ndx-1)
+		mreturn rval
+	end
+
+	public LastMatch, @MatchData		;The result of the last call to match()
+	public Continue, boolean		;/c
+	public IgnoreCase, boolean		;/i
+	public GlobalSearch, boolean		;/g
+	public Multiline, boolean		;/m
+	public ExplicitCapture, boolean		;/n
+	public DotMatchesNewline, boolean	;/s
+	public Extended, boolean		;/x
+
+	public ContinueFrom, int		;\G anchors after this position (0 = beginning)
+
+	;Internal members:
+
+	protected m_Options, @Options		;Local options
+
+    	protected m_string, string		;String representation of the regex
+	protected m_ndx, int			;Index into m_string for parser
+	protected m_endpattern, int		;Index of the end of the pattern portion of the expression
+	protected m_concat, boolean		;Should the next character trigger concatenation?
+	protected m_FATable, @ls		;Graph of Finite Automata states and transitions
+	protected m_OperandStack, @ls		;Stack of operands (NFATables)
+	protected m_OperatorStack, @ls		;Stack of operators
+	protected m_SubExprStack, @ls		;Stack of open subexpressions
+	protected m_subNext, int		;Number of next sub-expression (1-based)
+	protected m_Input, @ls			;Set of all inputs (Transitions)
+	protected m_literalMode, boolean	;Are we processing expression characters literally? (\Q..\E)
+	protected m_InitialState, @ls		;Initial state at beginning of the expression
+	protected m_groups, @Hash		;Hash of group name => group number
+	protected m_score, @TransScore		;Current greediness score
+	protected m_greedy, @TransScore		;Greedy score
+	protected m_nongreedy, @TransScore	;Non-greedy score
+	protected m_subCond, boolean		;Is the next sub-expression within a condition?
+	protected m_NETGroups, @ls		;Named groups that need to be numbered later
+	protected m_NETGroupFixup, @ls		;List of transitions participating in those groups
+
+	protected enum AnchorOpt		;Can we optimize initial unconditional ^, \A, or \G?
+	  Always				;Yes, because it was \A
+	  Single				;Only if not Multiline, because it was ^
+	  FromPrevious				;Yes, on ContinueFrom, because it was \G
+	  Never					;Nope
+	endenum
+
+	protected m_anchorOpt, AnchorOpt	;Can we optimize initial unconditional ^, \A, or \G?
+
+	protected static s_charHandlers, @ls	;List of special character functors
+	protected static s_specialChars, string	;All special characters
+
+	protected method InitialMatches, @ls
+	;
+	; Return a list of all initial MatchMaker objects
+	;
+	D_INARG str, a				;String being searched
+	D_INARG ndx, int			;Index of next character
+	inout req best, @MatchMaker		;Any previously accepted best match
+	;
+	record
+		m	,@MatchMaker
+		rv	,@ls
+	proc
+		m = new MatchMaker(this, ndx, m_InitialState, str, m_groups, m_Options)
+		m.continue = ContinueFrom
+		rv = m.Move(ndx-1, ls.empty())	;Everywhere we can reach without input
+		AcceptMatches(ndx-1, rv, -1, best)
+		mreturn rv
+	end
+
+	protected method MoveMatches, @ls
+	;
+	; Description:  Move a set of matches forward on a character
+	;
+	D_INARG ndx	,int
+	D_INARG char	,a
+	D_INARG matches	,@ls
+	D_INARG last	,int
+	inout req best	,@MatchMaker
+	;
+	; Returns: new set of matches
+	;
+	record
+		newmatches	,@ls
+		match		,@MatchMaker
+	proc
+		newmatches = new ls()
+		foreach match in matches
+		  newmatches.append$(match.Move(ndx, char))
+		AcceptMatches(ndx, newmatches, last, best)
+		mreturn newmatches
+	end
+
+	protected method AcceptMatches, void
+	;
+	; Description:  Collect any accepting matches
+	;
+	D_INARG ndx, int
+
+	D_INARG matches, @ls
+
+	D_INARG last, int
+
+	inout req best, @MatchMaker
+	;
+	record
+		match	,@MatchMaker
+		ndx2	,int
+		newbest	,boolean
+		
+	proc
+		newbest = false
+
+		foreach match in matches
+		  if (match.Accept(ndx))
+		    begin
+		      if (((last < 0) || (ndx == last)) &&
+		      &   ((best == ^null) ||
+		      &    ((match.index < best.index) ||
+		      &     ((match.index == best.index) &&
+		      &      ((match.score > best.score) ||
+		      &       ((match.score == best.score) &&
+		      &        (match.length > best.length)))))))
+			begin
+		          best = match.copy()	;Copy current state
+			  newbest = true
+			end
+		    end
+
+		;Now eliminate the born losers
+
+		if (newbest)
+		  for ndx2 from matches.Count-1 thru 0 by -1
+		    begin
+		      match = (MatchMaker)matches[ndx2]
+		      if (match.index > best.index)
+			matches.RemoveAt(ndx2)	;Can't be better
+		    end
+
+		mreturn
+	end
+
+	protected method find, @MatchMaker
+	;
+	; Return the best match as a MatchMaker
+	;
+	D_INARG str, a			;String to search
+
+	D_INARG beg, int		;Beginning index
+
+	record
+		best	,@MatchMaker
+		matches	,@ls
+		match	,@MatchMaker
+		start	,int
+		ndx	,int
+		len	,int
+		optnext	,boolean
+		char	,a1
+	proc
+		best = ^null
+		if (m_FATable.Count > 0)
+		  begin
+
+		    ;Set initial runtime options
+
+		    m_Options.IgnoreCase = IgnoreCase
+		    m_Options.Multiline = Multiline
+		    m_Options.DotMatchesNewline = DotMatchesNewline
+
+		    len = ^size(str)
+		    optnext = (m_anchorOpt != AnchorOpt.Never)
+
+		    start = beg
+		    if (m_anchorOpt == AnchorOpt.FromPrevious)
+		      begin
+			ndx = ContinueFrom + 1
+			if (start != ndx)
+			  begin
+			    if (start < ndx) then
+			      start = ndx		;Optimize \G to skip initial chars
+			    else
+			      mreturn ^null		;Starts too late, fail quickly
+			  end
+		      end
+
+		    matches = InitialMatches(str, start, best)
+
+		    for ndx from start thru len		;For each character input
+		      begin
+
+		        char = str(ndx:1)
+
+		        ;Move along our current set of states, and try a new one
+			;Don't add InitialMatches if we can optimize out that case
+			if (optnext || ((best != ^null) && (best.index < ndx))) then
+			  matches = MoveMatches(ndx, char, matches, -1, best)
+			else
+			  matches = MoveMatches(ndx, char,
+			  &	matches.append$(InitialMatches(str, ndx, best)), -1, best)
+
+			if (matches.Count < 1)			;Nothing still being worked on
+			  begin
+			    using m_anchorOpt select
+			    (AnchorOpt.Never),
+			      if (best != ^null)
+			        mreturn best			;We aren't going to find better
+			    (AnchorOpt.Always, AnchorOpt.FromPrevious),
+			      mreturn best			;We aren't going to match any more
+			    (AnchorOpt.Single),
+			      if (!m_Options.Multiline)
+			        mreturn best			;No more chance for ^
+			    endusing
+			  end
+
+			if ((m_anchorOpt == AnchorOpt.Single) && (m_Options.Multiline))
+			  optnext = (char != %char(10))
+
+.ifdef D_DEBUG
+			if (Regex.debug)
+			  begin
+			    data states, @ls, new ls()
+			    foreach match in matches
+			      states.union$(match.GetStates())
+			    DEBUG_OUT(char + " => " + states.ToString())
+			  end
+.endc
+		      end
+		  end
+
+		;No match, no hat, try for sole $, \z, or \Z
+		if ((best == ^null) && (m_anchorOpt == AnchorOpt.Never))
+		  InitialMatches(str, len+1, best)
+		mreturn best		;Best match, or ^null
+	end
+
+	protected method lookahead, @MatchMaker
+	;
+	; See if a lookahead pattern matches
+	;
+	D_INARG str, a			;String being searched
+
+	D_INARG beg, int		;Beginning index
+
+	D_INARG initial, @ls		;List of MatchMaker(s) starting this branch
+
+	record
+		best	,@MatchMaker
+		matches	,@ls
+		ndx	,int
+		len	,int
+	proc
+		best = ^null
+		len = ^size(str)
+		matches = initial	;Start with the initial list
+
+		AcceptMatches(beg, matches, -1, best)	;Could accept here
+
+		for ndx from beg thru len		;For each character input
+		  begin
+		    matches = MoveMatches(ndx, str(ndx:1), matches, -1, best)
+		    if (matches.Count < 1)		;We aren't going to find any more
+		      exitloop
+.ifdef D_DEBUG
+		    if (Regex.debug)
+		      begin
+			data match, @MatchMaker
+			data states, @ls, new ls()
+			foreach match in matches
+			  states.union$(match.GetStates())
+			DEBUG_OUT('  ' + str(ndx:1) + " => " + states.ToString())
+		      end
+.endc
+		  end
+		mreturn best		;Best match, or ^null
+	end
+
+	protected method lookbehindInitial, @ls
+	;
+	; Compose initial matches for look-behind
+	;
+	D_INARG ndx, int
+	D_INARG states, @ls
+	D_INARG str, string
+	D_INARG options, @Options
+	D_INARG last, int
+	inout req best, @MatchMaker
+	record
+		match		,@MatchMaker
+		rv		,@ls
+	proc
+		match = new MatchMaker(this, ndx, states, str, m_groups, options)
+		rv = match.Move(ndx-1, ls.empty())	;Everywhere we can reach without input
+		AcceptMatches(ndx-1, rv, last, best)
+		mreturn rv
+	end
+
+	protected method lookbehind, @MatchMaker
+	;
+	; See if a lookbehind pattern matches
+	;
+	D_INARG str, a			;String being searched
+
+	D_INARG last, int		;Where the match must end
+
+	D_INARG initial, @ls		;List of MatchMaker(s) starting this branch
+
+	D_INARG options, @Options	;Current options
+
+	record
+		best	,@MatchMaker
+		matches	,@ls
+		match	,@MatchMaker
+		ndx	,int
+	proc
+		best = ^null
+		matches = new ls()
+
+		for ndx from 1 thru last		;For each character input
+		  begin
+		    matches = MoveMatches(ndx, str(ndx:1),
+		    &  matches.append$(lookbehindInitial(ndx, initial, str, options, last, best)), last, best)
+.ifdef D_DEBUG
+		    if (Regex.debug)
+		      begin
+			data states, @ls, new ls()
+			foreach match in matches
+			  states.union$(match.GetStates())
+			DEBUG_OUT('  ' + str(ndx:1) + " => " + states.ToString())
+		      end
+.endc
+		  end
+		mreturn best		;Best match, or ^null
+	end
+
+	;Macros for operator precedence:
+	.define PREC_MIDDLE		,5000
+	.define PREC_FIRST		,0
+	.define PREC_LAST		,10000
+	.define PREC_SAMEAS(c)		(c.instance.Precedence)
+	.define PREC_BEFORE(c)		(c.instance.Precedence / 2)
+	.define PREC_AFTER(c)		((10000 + c.instance.Precedence) / 2)
+	.define PREC_BETWEEN(c1,c2)	((c1.instance.Precedence + c2.instance.Precedence) / 2)
+
+	protected static method Initialize, void
+	;
+	; Initialize the operators list
+	;
+	proc
+	    s_specialChars = ".\[^$*?+{|()"	;Rather than use a constant, I initialize it
+	    					; once here for self-documentation
+
+	    s_charHandlers = ls.of(MetaAny.instance)      |
+	    &			   MetaCharClass.instance |
+	    &			   MetaCharSet.instance   |
+	    &			   MetaBeginLine.instance |
+	    &			   MetaEndLine.instance   |
+	    &			   OpZeroOrMore.instance  |
+	    &			   OpZeroOrOne.instance   |
+	    &			   OpOneOrMore.instance   |
+	    &			   OpRepeat.instance      |
+	    &			   OpUnion.instance       |
+	    &			   OpBeginGroup.instance  |
+	    &			   OpEndGroup.instance
+
+	    OpConcat.instance.Precedence =      PREC_MIDDLE		  ;Some higher, some lower
+	    OpZeroOrMore.instance.Precedence =	PREC_BEFORE(OpConCat)	  ;AB* repeats only B
+	    OpZeroOrOne.instance.Precedence =	PREC_SAMEAS(OpZeroOrMore) ;AB? A opt followed by B
+	    OpOneOrMore.instance.Precedence =	PREC_SAMEAS(OpZeroOrMore) ;AB+ A & 1 or more B
+	    OpRepeat.instance.Precedence =	PREC_SAMEAS(OpZeroOrMore) ;AB{2,3} A & 2 or 3 B's
+	    OpUnion.instance.Precedence =	PREC_AFTER(OpConcat)	  ;anything|anything
+	    OpBeginGroup.instance.Precedence =	PREC_LAST		  ;Begin parenthesis group
+	    OpEndGroup.instance.Precedence =	PREC_FIRST		  ;End parenthesis group
+	    OpNonGreedy.instance.Precedence =   PREC_BEFORE(OpZeroOrMore) ;To set greediness first
+	end
+
+	protected method compile, void
+	;
+	; Description:  Compile the regular expression
+	;
+	; Note:  May throw a RegexException
+	;
+	record
+		FATable	,@ls		;Finite Automata graph
+		unmarked,@ls		;List of unmarked DFA states
+		start	,@State		;Starting state for the final table
+		s	,@State
+		t	,@Transition
+		ta	,@TransAutomatic
+		v	,@Var
+		num	,int
+		spc	,int
+		delim	,a1		;Delimiter character (e.g., '/')
+		char	,a1		;A character
+	proc
+		DEBUG_OUT("")
+		DEBUG_OUT("Compiling " + m_string)
+		m_FATable = new ls()
+		if (m_string.Length < 1)  ;We need at least an initial delimiter
+		  throw new RegexException(m_string, "Empty expression not allowed")
+
+		delim = m_string(1:1)	  ;Whatever the first character is, that's the delimiter
+
+		if (s_charHandlers == ^null)
+		  Initialize()
+
+		Continue = false
+		IgnoreCase = false
+		GlobalSearch = false
+		Multiline = false
+		ExplicitCapture = false
+		DotMatchesNewline = false
+		Extended = false
+
+		;Parse the string and generate an NFA Table
+		m_Options = new Options()
+		m_OperandStack = new ls()
+		m_OperatorStack = new ls()
+		m_SubExprStack = new ls()
+		m_greedy = new TransScore(1)	;Additional characters improve score
+		m_nongreedy = new TransScore(-1); or hurt it, if non-greedy
+		m_score = m_greedy		;Greedy, by default
+		m_subNext = 1
+		m_Input = new ls()
+		m_literalMode = false
+		m_subCond = false
+		m_NETGroups = new ls()
+		m_NETGroupFixup = new ls()
+
+		m_ndx = 1
+		m_concat = false
+		State.Nextid = 0
+
+		;First, parse out options (so we can determine initial extended mode or not)
+
+		if (m_ndx = rvstr(2, m_string, delim)) then	;Found end delimter, parse any options
+		  begin
+		    m_endpattern = m_ndx - 1
+		    while (m_ndx < m_string.Length)
+		      begin
+			incr m_ndx
+			char = m_string(m_ndx:1)
+			using char select
+			('c'),	Continue = true
+			('g'),	GlobalSearch = true
+			('i'),	IgnoreCase = true
+			('m'),	Multiline = true
+			('n'),	ExplicitCapture = true
+			('s'),	DotMatchesNewline = true
+			('x'),	Extended = true
+			(' ', %char(9) thru %char(13)), nop	;Ignore white space here
+			('#'),	if (Extended) then		;Comment
+				  begin
+				    while (m_ndx < m_string.Length)
+				      using (m_string(m_ndx+=1:1)) select
+				      (%char(10) thru %char(13)),	;LF, VT, FF, CR
+				        exitloop
+				      endusing
+				  end
+				else
+				  throw new RegexException(m_string,
+				  &  "unknown option: # (did you forget option x?)")
+			(),	throw new RegexException(m_string,
+				&  "unknown option: " + char)
+			endusing
+		      end
+		  end
+		else
+		  m_endpattern = m_string.Length	;Lenient about trailing delimiter
+
+		m_Options.ExplicitCapture = ExplicitCapture
+		m_Options.Extended = Extended			;Set compile-time options
+
+		m_ndx = 1	;Back to the top
+
+		;Parse the pattern, up to the second delimiter
+
+		while (m_ndx < m_endpattern)
+		  begin
+		    incr m_ndx
+		    if (m_literalMode) then
+		      begin
+		        if ((m_ndx < m_endpattern) && (m_string(m_ndx:2) .eqs. "\E")) then
+			  begin
+			    incr m_ndx			;Consume the E
+			    m_literalMode = false
+			  end
+			else				;Push the character literally
+			  begin
+			    if (m_concat)
+			      PushOperator(OpConcat.instance)
+			    PushInput(m_string(m_ndx:1))
+			    m_concat = true	;Another character here implies concatenation
+			  end
+		      end
+		    else				;Not literal mode
+		      begin
+			if ((char = m_string(m_ndx:1)) == delim)	;Load the next character
+			  throw new RegexException(m_string, "extra pattern delimiter: " + char)
+			if (m_Options.Extended)	;Extended mode, ignore white space & comments
+			  begin
+			    using char select
+			    ('#'),				;Comment character, ignore to EOL
+			      begin
+				while (m_ndx < m_endpattern)
+				  begin
+				    using (m_string(m_ndx+=1:1)) select
+				    (%char(10) thru %char(13)),	;LF, VT, FF, CR
+				      exitloop
+				    endusing
+				  end
+				nextloop				;Evaluate the next character
+			      end
+			    (' ', %char(9) thru %char(13)),		;Space, tab, LF, VT, FF, CR
+				    nextloop				;Ignore
+			    endusing
+			  end
+			if (spc = instr(1, s_specialChars, char)) then	;Special character?
+			  begin
+			    ((SpecialChar)s_charHandlers[spc-1]).parse(this)
+			  end
+			else						;Not a special character
+			  begin
+			    if (m_concat)
+			      PushOperator(OpConcat.instance)
+			    PushInput(char)
+			    m_concat = true	;Another character here implies concatenation
+			  end
+		      end
+		    DEBUG_OUT("After " + char)
+		    DEBUG_OUT(m_OperandStack)
+		  end
+		while (m_OperatorStack.Count > 0)
+		  Eval()
+		FATable = PopOperand()				;Should be the last one
+		((State)FATable.last).Accepting = true		;Last state is always accepting
+
+		DEBUG_OUT("NFATable:")
+		DEBUG_OUT(Dump(FATAble))
+		DEBUG_OUT("Inputs: " + m_Input.ToString())
+
+		;Next, enhance determinism as much as possible
+
+		State.Nextid = 0
+		unmarked = new ls()
+		
+		;Start with epsilon closure of start state
+		start = new State(EpsilonClosure(ls.of(FATable[0])))
+
+		m_FATable.add(start)		;Let's start at the very beginning...
+		unmarked.add(start)		;  a very good place to start...
+
+		while (unmarked.Count > 0)
+		  begin
+		    data procState, @State
+
+		    procState = (State)(unmarked.poplast())
+		    DEBUG_OUT("State " + string(procState.Id))
+		    foreach t in m_Input	;Test each of our input transitions
+		      begin
+		        data e, @ls		;Epsilon closure for the result of this input
+
+			e = EpsilonClosure(Move(t, procState.GetState()))
+
+			DEBUG_OUT("e-closure for " + t.ToString() +
+			&	" on states " + procState.GetState().ToString() + 
+			&	": " + e.ToString())
+
+			if (e.Count > 0)
+			  begin
+			    s = (State)m_FATable.find(new State.FindStates(e))
+			    if (s == ^null)		;Didn't find one
+			      begin
+			        s = new State(e)	;Create a new state from this closure
+			        unmarked.add(s)		;Need to process
+			        m_FATable.add(s)	;It's part of our result, though
+			      end
+			    procState.AddTransition(t, s)  ;Transition to it
+			  end
+		      end
+		  end
+
+		;Now number the .NET named groups
+
+		num = m_subNext
+		foreach v in m_NETGroups
+		  begin
+		    m_groups[v.ToString()] = (object)num
+		    incr num
+		  end
+		foreach ta in m_NETGroupFixup
+		  begin
+		    num = (int)m_groups[(a)ta.Key]	;Map name to number
+		    ta.Key = new VarInt(num)
+		  end
+
+		;Now we can release the .NET fixup lists
+		clear m_NETGroups, m_NETGroupFixup
+
+		;Now see if we can optimize for an initial ^ or \A
+
+		s = (State)m_FATable[0]		;Initial state
+
+		m_anchorOpt = s.GetAnchorOpt()
+
+		m_InitialState = ls.of(s)	;Cache initial expression state
+
+		DEBUG_OUT("FATable:")
+		DEBUG_OUT(Dump(m_FATAble))
+	end
+
+	protected method PushInput, void
+	;
+	; Description:  Create an NFA Table from an input character, and push on the operand stack
+	;
+	D_INARG a_char	,a	;Character input
+	;
+	proc
+		PushInput(new TransChar(a_char))
+	end
+
+	protected method PushInput, void
+	;
+	; Description:  Create an NFA Table from any input, and push on the operand stack
+	;
+	D_INARG a_input	,@Transition	;The input
+	;
+	record
+		s0	,@State
+		s1	,@State
+	proc
+		s0 = new State()
+		s1 = new State()
+		s0.AddTransition(a_input, s1)
+		PushOperand(ls.of(s0) & s1)
+		m_Input.union$(a_input)
+	end
+
+	protected method PushNull, void
+	;
+	; Description:  Push an epsilon transition
+	;
+	record
+		s0	,@State
+		s1	,@State
+	proc
+		s0 = new State()
+		s1 = new State()
+		s0.AddTransition(TransEpsilon.instance, s1)
+		PushOperand(ls.of(s0) & s1)
+	end
+
+	protected method PushOperand, void
+	;
+	; Description:  Push a fully constructed operand onto the operand stack
+	;
+	D_INARG operand, @ls
+	;
+	proc
+		m_OperandStack.add(operand)
+	end
+
+	protected method PopOperand, @ls
+	;
+	; Description:  Pop an operand from the operand stack
+	;
+	proc
+		if (m_OperandStack.Count < 1)
+		  throw new RegexException(m_string, "Missing operand")
+		mreturn (ls)(m_OperandStack.poplast())
+	end
+
+	protected method PushOperator, void
+	;
+	; Description:  Push an operator onto the operator stack
+	;
+	; Note:  evaluates any higher-precedence operator already on the top
+	;
+	D_INARG op, @Operator
+	;
+	proc
+		while ((m_OperatorStack.Count > 0) &&
+		&      (((Operator)m_OperatorStack.last).Precedence <= op.Precedence))
+		  Eval()
+		m_OperatorStack.add(op)
+	end
+
+	protected method Eval, @Operator
+	;
+	; Pop the operator stack and evaluate the operation
+	;
+	record
+		op	,@Operator
+	proc
+		op = (Operator)(m_OperatorStack.poplast())
+		op.eval(this)
+		mreturn op
+	end
+
+	protected method CheckNonGreedy, void
+	;
+	; Called from an Operator's parse method when ? may follow
+	;
+	proc
+		if ((m_ndx < m_endpattern) && (m_string(m_ndx+1:1) == '?'))
+		  begin
+		    incr m_ndx		;Consume the ?
+		    PushOperator(OpNonGreedy.instance)
+		  end
+	end
+
+	protected method ParseRange, void
+	;
+	; Called from the OpRepeat.parse method to parse {n,m}
+	;
+	inout req beg, int
+	inout req en, int
+
+	record
+		brace	,int
+		comma	,int
+	proc
+		beg = 0
+		en = -1
+
+		if ((brace = instr(m_ndx, m_string, '}')) && (brace <= m_endpattern))
+		  begin
+		    if ((comma = instr(m_ndx, m_string, ',')) && (comma < brace)) then
+		      begin
+		        ParseOptNum(beg, m_ndx, comma)
+			ParseOptNum(en, comma, brace)
+		      end
+		    else
+		      begin
+		        ParseOptNum(beg, m_ndx, brace)
+			en = beg
+		      end
+		    m_ndx = brace			;Consume up to here
+		    mreturn
+		  end
+
+		throw new RegexException(m_string, "Malformed {n,m} specification")
+	end
+
+	protected method ParseOptNum, void
+	;
+	; Parse an optional number, leaving the value unmodified if not specified
+	;
+	inout req num	,int	;Possibly returned number
+	D_INARG delim1	,int	;Index of first delimiter
+	D_INARG delim2	,int	;Index of second delimiter
+
+	record
+		b, int
+		e, int
+	proc
+		b = delim1 + 1
+		e = delim2 - 1
+		if ((e >= b) && ((a)m_string(b,e)))	;Non-blank
+		  try
+		    num = m_string(b,e)
+		  catch (excp)
+		    throw new RegexException(m_string, "Number expected: " + m_string(b,e))
+		  endtry
+	end
+
+	protected method EnterSubExpression, void
+	;
+	; Start of a new subexpression
+	;
+	record
+	    ndx		,int
+	    ndx2	,int
+	    sub		,@SubExpressionParse
+	    num		,int
+	    name	,string
+	    o		,@*
+	proc
+	    m_concat = true			;Assume we'll concatenate
+	    ndx = m_ndx
+	    while ((ndx += 1) <= m_endpattern)	;Find next significant character
+	      begin
+		if (m_Options.Extended) then
+		  using m_string(ndx:1) select
+		  (' ', %char(9) thru %char(13)),
+		    nop			;Ignore
+		  ('#'),
+		    begin
+		      while ((ndx+=1) <= m_endpattern)
+		        using m_string(ndx:1) select
+			(%char(10) thru %char(13)),
+			  exitloop
+			endusing
+		    end
+		  (),
+		    exitloop		;Found one
+		  endusing
+		else
+		  exitloop		;Not Extended mode
+	      end
+	    if ((ndx <= m_endpattern) && (m_string(ndx:1) == '?')) then
+	      begin			;Special case subexpression
+	        incr ndx
+		if (ndx <= m_endpattern) then
+		  begin
+		    using m_string(ndx:1) select
+		    (':'),		;Sub-expression without back-reference
+		    	begin
+			  m_SubExprStack.add(new SubExpressionParse(0))	;0 means no back-reference
+			  m_ndx = ndx	;Pick up after this one
+			end
+		    ('!'),		;Negative look-ahead
+		        begin
+			  m_ndx = ndx	;Continue on the next character
+			  sub = new SubExpressionParse(0)	;Not counted
+			  sub.lookaround = 1			;Look-ahead
+			  sub.positive = false
+			  sub.concat = !m_subCond
+			  m_subCond = false
+			  m_SubExprStack.Add(sub)
+			end
+		    ('#'),		;Comment
+		        begin
+			  m_SubExprStack.add(new SubExpressionParse(0))	;0 means no back-reference
+			  ndx = instr(ndx, m_string, ')')	;Find close-paren
+			  if (ndx && (ndx <= m_endpattern)) then
+			    m_ndx = ndx-1			;Skip to here
+			  else
+			    m_ndx = m_endpattern		;Lenient off the end
+			end
+		    ("'"),
+		        begin
+			  incr ndx
+			  if ((ndx2 = instr(ndx, m_string, "'")) && (ndx2 <= m_endpattern)) then
+			    begin
+netgroup,
+				;At this point, ndx => first character of name, ndx2 to terminator
+				if (ndx < ndx2) then
+				  begin
+				    name = m_string(ndx, ndx2-1)
+				    if (m_groups == ^null)
+				      m_groups = new Hash()
+				    if (((o = m_groups[name]) == ^null) || ((int)o < 1)) then
+				      begin
+addnetgroup,
+					sub = new SubExpressionParse(0)	;Not counted yet
+					sub.name = name
+					m_SubExprStack.add(sub)
+					m_NetGroups.union$(name)		;For fixup later
+					num = 0
+					m_groups[name] = (object)num	;So we can map to it
+				      end
+				    else
+				      begin
+					num = (int)o		;Maps to existing group
+					m_SubExprStack.add(new SubExpressionParse(num))
+				      end
+				    m_ndx = ndx2		;Pick up after the ' or >
+				  end
+				else
+				  throw new RegexException(m_string, "Malformed named group: " + 
+				  &	m_string(ndx-3,m_endpattern))
+			      end
+			    else
+			      throw new RegexException(m_string,
+			      &  "Unknown ? sub-operator: " + m_string(ndx-1:2))
+			  end
+		      ('('),		;Conditional
+			  begin
+			    data beg, int
+			    data grp, @Var
+
+			    sub = new SubExpressionParse(0)	;Not back-referenced
+			    sub.condition = true			;This is a conditional
+			    m_SubExprStack.add(sub)
+
+			    beg = ndx + 1
+			    if (m_string(beg:1) == '?') then	;Look-around?
+			      begin
+				m_ndx = ndx-1			;Back to the '('
+				m_subCond = true			;Don't concatenate next sub-expression
+				m_concat = false			;And don't concatenate a null here
+			      end
+			    else
+			      begin
+				ndx = instr(beg, m_string, ')')	;Find the end of the sub-subexpression
+				if (ndx && (ndx > beg) && (ndx <= m_endpattern)) then
+				  begin
+				    m_ndx = ndx			;Pick up right after that
+				    try
+				      begin
+					num = m_string(beg,ndx-1)	;Try for numeric
+					grp = Var.Box(num)
+				      end
+				    catch (excp)
+				      begin
+					grp = Var.Box(m_string(beg,ndx-1))
+				      end
+				    endtry
+				    PushInput(new TransTestGroup(grp))
+				  end
+				else
+				  throw new RegexException(m_string, "Malformed conditional: " + m_string(m_ndx,m_endpattern))
+			      end
+			  end
+		      ('-','i','m','n','s','x'),	;Options change
+			  begin
+			    data onoff, boolean, true		;Options encountered are true by default
+			    data in_comment, boolean, false	;Are we processing an extended mode comment?
+
+			    sub = new SubExpressionParse(0)	;Not a counted back-reference
+			    sub.opts = new Options()		;Assume stacking until proven otherwise
+			    while (ndx <= m_endpattern)
+			      begin
+				if (in_comment) then		;Processing an extended mode comment
+				  begin
+				    using m_string(ndx:1) select
+				    (%char(10) thru %char(13)),	;Found a line end
+				      in_comment = false
+				    endusing
+				  end
+				else
+				  begin
+				    using m_string(ndx:1) select
+				    ('-'),
+				      begin
+					onoff = false			;For the next option
+				      end
+				    ('i'),
+				      begin
+					sub.opts.IgnoreCase = onoff
+					onoff = true			;For the next option
+				    end
+				  ('m'),
+				    begin
+				      sub.opts.Multiline = onoff
+				      onoff = true
+				    end
+				  ('n'),
+				    begin
+				      sub.opts.ExplicitCapture = m_Options.ExplicitCapture	;Save previous value
+				      m_Options.ExplicitCapture = onoff	;For the parser
+				      onoff = true
+				    end
+				  ('s'),
+				    begin
+				      sub.opts.DotMatchesNewline = onoff
+				    end
+				  ('x'),
+				    begin
+				      sub.opts.Extended = m_Options.Extended	;Save previous value
+				      m_Options.Extended = onoff	;For the parser
+				      onoff = true
+				    end
+				  (':'),
+				    begin
+				      m_ndx = ndx			;Pick up right after this
+				      exitloop
+				    end
+				  (')'),				;Options to stick, no sub-expression
+				    begin
+				      m_ndx = ndx-1			;We need to hit this
+				      if (sub.opts.RuntimeChange) then
+					sub.opts.stack = false		;Don't stack this
+				      else
+					sub.opts = ^null		;Don't need this one
+				      exitloop
+				    end
+				  (' ', %char(9) thru %char(13)),
+				    if (!m_Options.Extended)
+				      throw new RegexException(m_string, "Unrecognized option: " + m_string(m_ndx,ndx))
+				  ('#'),
+				    if (m_Options.Extended) then
+				      begin
+					in_comment = true
+				      end
+				    else
+				      begin
+					throw new RegexException(m_string, "Unrecognized option: " + m_string(m_ndx,ndx))
+				      end
+				  (),
+				    begin
+				      throw new RegexException(m_string, "Unrecognized option: " + m_string(m_ndx,ndx))
+				    end
+				  endusing
+				end
+			      incr ndx
+			    end
+			  m_SubExprStack.add(sub)
+			end
+		    ('<'),		;Look behind, or .NET named group
+		    	begin
+			  incr ndx
+			  sub = new SubExpressionParse(0)	;Not counted
+			  using m_string(ndx:1) select
+			  ('='),
+			    sub.positive = true
+			  ('!'),
+			    sub.positive = false
+			  (),
+			    begin
+			      if ((ndx2 = instr(ndx, m_string, '>')) && (ndx2 <= m_endpattern)) then
+			        goto netgroup
+			      else
+			        throw new RegexException(m_string,
+				&	"Unrecognized ?< sub-operator: " + m_string(m_ndx,ndx))
+			    end
+			  endusing
+			  sub.lookaround = -1			;Look-behind
+			  sub.concat = !m_subCond
+			  m_subCond = false
+			  m_SubExprStack.Add(sub)
+			  m_ndx = ndx	;Continue on next character after this one
+			end
+		    ('='),		;Positive look-ahead
+		        begin
+			  m_ndx = ndx	;Continue on the next character
+			  sub = new SubExpressionParse(0)	;Not counted
+			  sub.lookaround = 1			;Look-ahead
+			  sub.positive = true
+			  sub.concat = !m_subCond
+			  m_subCond = false
+			  m_SubExprStack.Add(sub)
+			end
+		    ('P'),		;Named group
+		        begin
+			  m_ndx = ndx + 1
+			  if (m_ndx > m_endpattern)
+			    throw new RegexException(m_string, "Missing ?P sub-operator")
+			  using (m_string(m_ndx:1)) select
+			  ('<'),	;Start group
+			    begin
+			      incr m_ndx
+			      ndx = instr(m_ndx, m_string, '>')
+			      if ((ndx > m_ndx) && (ndx <= m_endpattern)) then
+			        begin
+
+				  name = m_string(m_ndx, ndx-1)
+				  if (m_groups == ^null)
+				    m_groups = new Hash()
+				  if ((o = m_groups[name]) == ^null) then
+				    begin
+				      num = m_subNext
+				      m_groups[name] = (object)num
+			              incr m_subNext		;Count this one
+				    end
+				  else
+				    begin
+				      num = (int)o		;Maps to existing group
+				      if (num < 1)		;A .NET named group
+					begin
+					  ndx2 = ndx
+				          goto addnetgroup
+					end
+				    end
+			          m_SubExprStack.add(new SubExpressionParse(num))
+				  m_ndx = ndx				;Pick up after the >
+				end
+			      else
+			        throw new RegexException(m_string, "Malformed named group: " + m_string(m_ndx-2,m_endpattern))
+			    end
+			  ('='),	;Back-reference group
+			    begin
+			      incr m_ndx
+			      ndx = instr(m_ndx, m_string, ')')
+			      if ((ndx > m_ndx) && (ndx <= m_endpattern)) then
+			        begin
+				  m_SubExprStack.add(new SubExpressionParse(0))	;0 means no back-reference
+				  PushInput(new TransBackReference(Var.Box(m_string(m_ndx,ndx-1))))
+				  PushOperator(OpConcat.instance)	;Concatenate to null below
+				  m_ndx = ndx-1				;Process the ) next
+				end
+			      else
+			        throw new RegexException(m_string, "Malformed named group reference: " + m_string(m_ndx-2,m_endpattern))
+			    end
+			  (),
+			    throw new RegexException(m_string, "Unknown ?P sub-operator: " + m_string(m_ndx-2:3))
+			  endusing
+			end
+		    (),
+		    	throw new RegexException(m_string, "Unknown ? sub-operator: " + m_string(ndx-1:2))
+		    endusing
+		  end
+		else
+		  throw new RegexException(m_string, "Missing ? sub-operator")
+	      end
+	    else			;Regular subexpression
+	      begin
+		if (m_Options.ExplicitCapture) then
+		  m_SubExprStack.add(new SubExpressionParse(0))	;No back-reference
+		else
+		  begin							;With back-reference
+		    m_SubExprStack.add(new SubExpressionParse(m_subNext))
+		    incr m_subNext
+		  end
+	      end
+	    if (m_concat)
+	      PushNull()			;Give us something to concatenate to
+	end
+
+	protected method ExitSubExpression, @SubExpressionParse
+	;
+	; End of a subexpression
+	;
+	proc
+	    mreturn (SubExpressionParse)(m_SubExprStack.poplast())
+	end
+
+	protected method EpsilonClosure, @ls
+	;
+	; Return the epsilon closure for a set of states.
+	; An epsilon closure is the set of all states that can be reached
+	; from this set of states on no input.
+	;
+	D_INARG states, @ls
+	;
+	record
+		rval	,@ls		;Returned epsilon closure
+		unproc	,@ls		;Stack of unprocessed states
+	proc
+		rval = states.copy()	;All states have epsilon closure with themselves
+		unproc = states.copy()	;Push all states onto unprocessed stack
+		while (unproc.Count > 0)
+		  begin
+		    data t, @State		;Top of the stack
+		    data e, @ls			;List of epsilon transitions
+		    data obj, @*		;A state
+
+		    t = (State)unproc.poplast()
+		    e = t.GetTransition(TransEpsilon.instance)
+		    foreach obj in e
+		      begin
+		        if (!rval.contains(obj))	;In our result?
+			  begin
+			    rval.add(obj)
+			    unproc.add(obj)		;Process this one still
+			  end
+		      end
+		  end
+		mreturn rval
+	end
+
+	protected method Move, @ls
+	;
+	; Return the set of states that results from a transition on a set of states
+	;
+	D_INARG trans, @Transition
+
+	D_INARG states, @ls
+	;
+	record
+		rval	,@ls	;Returned set of states
+		s	,@State
+	proc
+		rval = new ls()
+		foreach s in states
+		  begin
+		    rval.union$(s.GetTransition(trans))
+		  end
+		mreturn rval
+	end
+
+	public method DumpTable, @ls
+	proc
+		mreturn Dump(m_FATable)
+	end
+
+	protected method GetTransScore, @TransScore
+	;
+	; Return a transition that scores additional characters based on current greediness
+	;
+	record
+		rv	,@TransScore
+	proc
+		rv = m_score
+		m_score = m_greedy	;Revert to greedy by default
+		m_Input.union$(rv)
+		mreturn rv
+	end
+
+	protected method GetTransPosixClass, @Transition
+	;
+	; Return a transition that represents a POSIX character class
+	;
+	D_INARG classname, a		;Name of the POSIX class
+	;
+	record
+		t	,@Transition
+		name	,a6		;case-desensitized name
+
+	literal space		;Whitespace characters
+		,a1		;A real space
+		,i1, 9		;Tab
+		,i1, 10		;Newline
+		,i1, 11		;Vertical tab
+		,i1, 12		;Form feed
+		,i1, 13		;Return
+	proc
+		name = classname
+		locase name
+		using name select
+		('alnum'),
+		  mreturn new TransUnion(ls.of(new TransRange('a','z')) |
+		  &			       new TransRange('A','Z')  |
+		  &			       new TransRange('0','9'))
+		('alpha'),
+		  mreturn new TransUnion(ls.of(new TransRange('a','z')) |
+		  &			       new TransRange('A','Z'))
+		('ascii'),
+		  mreturn new TransRange(%char(0), %char(^x(7f)))
+		('blank'),
+		  mreturn new TransUnion(ls.of(new TransChar(' ')) |
+		  &			       new TransChar(%char(9)))
+		('cntrl'),
+		  mreturn new TransUnion(ls.of(new TransRange(%char(0), %char(^x(1f)))) |
+		  &			       new TransChar(%char(^x(7f))))
+		('digit'),
+		  mreturn new TransRange('0','9')
+		('graph'),
+		  mreturn new TransRange(%char(^x(21)),%char(^x(7e)))
+		('lower'),
+		  mreturn new TransRange('a','z')
+		('print'),
+		  mreturn new TransRange(' ',%char(^x(7e)))
+		('punct'),
+		  mreturn new TransSet('!"#$&''()*+,\-./:;<=>?@[\]^_`{|}~')
+		('space'),
+		  mreturn new TransSet(space)
+		('upper'),
+		  mreturn new TransRange('A','Z')
+		('word'),
+		  mreturn new TransUnion(ls.of(new TransRange('a','z')) |
+		  &			       new TransRange('A','Z')  |
+		  &			       new TransRange('0','9')  |
+		  &			       new TransChar('_'))
+		('xdigit'),
+		  mreturn new TransUnion(ls.of(new TransRange('0','9')) |
+		  &			       new TransRange('A','F')  |
+		  &			       new TransRange('a','f'))
+		endusing
+		throw new RegexException(m_string, "Unrecognized POSIX character class: " +
+		&			  classname)
+	end
+
+	protected method Dump, @ls
+	;
+	; For debugging, dumps a table structure
+	;
+	D_INARG table, @ls		;Must be a list of State
+	;
+	record
+		s	,@State
+		rslt	,@ls
+	proc
+		rslt = new ls()
+		if (table.Count > 0)
+		  begin
+		    s = (State)(table[0])
+		    s.Dump(0, rslt, new ls())
+		  end
+		mreturn rslt
+	end
+
+	public abstract class SpecialChar
+	;
+	; A character that is not interpreted literally
+	;
+	    public virtual method parse, void	;May be overridden
+	    ;
+	    ; Parse the character in context
+	    ;
+	    D_INARG rgx, @Regex
+	    proc
+	    end
+
+	endclass
+
+	public abstract class MetaChar extends SpecialChar
+	;
+	; A metachar is a functor for producing a metacharacter transition
+	;
+	    public abstract method GetTransition, @Transition
+	    ;
+	    ; Produce the transition for this metacharacter
+	    ;
+	    D_INARG rgx, @Regex		;The Regex requesting this
+
+	    proc
+	    end
+
+	    public override method parse, void
+	    D_INARG rgx, @Regex
+	    record
+		    t	,@Transition
+	    proc
+		    if ((t = GetTransition(rgx)) != ^null)	;Did it generate anything?
+		      begin
+			if (rgx.m_concat)
+			  rgx.PushOperator(OpConcat.instance)
+			rgx.PushInput(t)
+			rgx.m_concat = true
+		      end
+	    end
+
+	endclass
+
+	public class MetaAny extends MetaChar
+	;
+	; Any character (.)
+	;
+	    .define SINGLETON_CLASS, MetaAny
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method GetTransition, @Transition
+	    D_INARG rgx, @Regex		;The Regex requesting this
+
+	    proc
+	    	mreturn TransAny.instance
+	    end
+
+	endclass
+
+	public class MetaCharClass extends MetaChar
+	;
+	; Escaped character(s) \...
+	;
+	    .define SINGLETON_CLASS, MetaCharClass
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method GetTransition, @Transition
+	    D_INARG rgx, @Regex		;The Regex requesting this
+	    proc
+	    	mreturn GetTransition(rgx, false)	;Default case
+	    end
+
+	    public method GetTransition, @Transition
+	    D_INARG rgx, @Regex		;The Regex requesting this
+	    D_INARG in_set, boolean	;Are we in a character set? []
+
+	    record
+		t	,@Transition
+		char	,a1
+
+	    literal space	;Whitespace characters
+		,a1		;A real space
+		,i1, 9		;Tab
+		,i1, 10		;Newline
+		,i1, 11		;Vertical tab
+		,i1, 12		;Form feed
+		,i1, 13		;Return
+	    proc
+		incr rgx.m_ndx
+		if (rgx.m_ndx > rgx.m_endpattern)
+		  throw new RegexException(rgx.m_string, "Final \ encountered")
+
+		char = rgx.m_string(rgx.m_ndx:1)
+		using char select
+		('0' thru '9'),			;A digit
+			if (in_set) then		;In a character set?
+			  begin
+			    if (char > '7') then	;Not octal
+			      t = new TransChar(char)	;Just a character
+			    else
+			      begin		;Treat as octal
+				data ndx, int
+				data val, a3
+
+				ndx = rgx.m_ndx
+				do
+				  incr ndx
+				until ((ndx > (rgx.m_ndx + 2)) ||
+				&	 (ndx > rgx.m_endpattern) ||
+				&	 (rgx.m_string(ndx:1) < '0') ||
+				&	 (rgx.m_string(ndx:1) > '7'))
+				val = rgx.m_string(rgx.m_ndx, ndx-1)
+				t = new TransChar(%char(^o(val)))
+				rgx.m_ndx = ndx-1		;Move to the end
+			      end
+			  end
+			else if (char > '0') then
+			  begin
+			    t = new TransBackReference(Var.Box(integer(char)))	;1-9
+			  end
+			else
+			  begin
+			    t = new TransChar(char)	;Just a 0 
+			  end
+		('a'),					;Bell character
+			t = new TransChar(%char(7))
+		('A', '`'),				;Beginning of text
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)
+			  end
+			else
+			  begin
+			    t = new TransBegin()
+			  end
+		('b'),
+			if (in_set) then
+			  begin
+			    t = new TransChar(%char(8))	;Backspace in a character set
+			  end
+			else
+			  begin
+			    t = new TransBoundary(TransBoundary.Either)	;Word boundary
+			  end
+		('B'),	
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just a B
+			  end
+			else
+			  begin
+			    t = new TransBoundary(TransBoundary.Neither);Not a word boundary
+			  end
+		('c'),				;Control characters
+			begin
+			  data c, a1
+
+			  incr rgx.m_ndx
+			  if (rgx.m_ndx > rgx.m_endpattern)
+			    throw new RegexException(rgx.m_string, "\c expects a letter")
+			  c = rgx.m_string(rgx.m_ndx:1)
+			  using c select
+			  ('A' thru 'Z'),
+			    t = new TransChar(%char(%decml(c) - 64))
+			  ('a' thru 'z'),
+			    t = new TransChar(%char(%decml(c) - 96))
+			  (),
+			    throw new RegexException(rgx.m_string, "\c expects a letter")
+			  endusing
+			end
+		('d'),				;Digit
+			t = new TransRange('0', '9')
+		('D'),				;Not digit
+			t = new TransNot(new TransRange('0', '9'))
+		('e'),				;Escape
+			t = new TransChar(%char(27))
+		('f'),				;Form-feed
+			t = new TransChar(%char(12))
+		('G'),	
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just a B
+			  end
+			else
+			  begin
+			    t = new TransLastMatch()	;Anchor to end of last match
+			  end
+		('k'),
+			if (in_set) then
+			  t = new TransChar(char)	;Just a k
+			else
+			  begin
+			    data ndx, int
+			    data ndx2, int
+
+			    ndx = rgx.m_ndx + 1
+			    using rgx.m_string(ndx:1) select
+			    ('<'),
+			    	begin
+				  incr ndx
+				  ndx2 = instr(ndx, rgx.m_string, '>')
+				  if ((ndx2 > ndx) && (ndx2 <= rgx.m_endpattern)) then
+				    begin
+				      t = new TransBackReference(Var.Box(rgx.m_string(ndx, ndx2-1)))
+				      rgx.m_ndx = ndx2
+				    end
+				  else
+			            throw new RegexException(rgx.m_string,
+				    &	"Malformed named group reference: " +
+				    &	rgx.m_string(rgx.m_ndx-1,rgx.m_endpattern))
+				end
+			    ("'"),
+			    	begin
+				  incr ndx
+				  ndx2 = instr(ndx, rgx.m_string, "'")
+				  if ((ndx2 > ndx) && (ndx2 <= rgx.m_endpattern)) then
+				    begin
+				      t = new TransBackReference(Var.Box(rgx.m_string(ndx, ndx2-1)))
+				      rgx.m_ndx = ndx2
+				    end
+				  else
+			            throw new RegexException(rgx.m_string,
+				    &	"Malformed named group reference: " +
+				    &	rgx.m_string(rgx.m_ndx-1,rgx.m_endpattern))
+				end
+			    (),
+			    	t = new TransChar(char)	;Just a k
+			    endusing
+			  end
+		('m', '<'),				;Beginning of word
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just am m
+			  end
+			else
+			  begin
+			    t = new TransBoundary(TransBoundary.BeginWord)
+			  end
+		('M', '>'),				;End of word
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just an M
+			  end
+			else
+			  begin
+			    t = new TransBoundary(TransBoundary.EndWord)
+			  end
+		('n'),				;Newline
+			t = new TransChar(%char(10))
+		('p'),
+			if ((rgx.m_ndx < rgx.m_endpattern-1) &&
+			&   (rgx.m_string(rgx.m_ndx+1:1) == '{')) then
+			  begin				;POSIX character class
+			    data ndx, int
+			    data ndx2, int
+
+			    ndx = rgx.m_ndx + 2		;Skip the brace
+			    ndx2 = instr(ndx+1, rgx.m_string, "}")
+			    if (!ndx2 || (ndx2 > rgx.m_endpattern))
+			      ndx2 = rgx.m_endpattern+1	;Lenient off the end
+			    t = rgx.GetTransPosixClass(rgx.m_string(ndx,ndx2-1))
+			    rgx.m_ndx = ndx2
+			  end
+			else
+			  begin
+			    t = new TransChar(char)	;Just a p
+			  end
+		('Q'),
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just a Q
+			  end
+			else
+			  begin				;Go to literal mode
+			    rgx.m_literalMode = true
+			    t = ^null			;Don't insert anything here
+			  end
+		('r'),				;Return
+			t = new TransChar(%char(13))
+		('s'),				;Space
+			t = new TransSet(space)
+		('S'),				;Not space
+			t = new TransNot(new TransSet(space))
+		('t'),				;Tab
+			t = new TransChar(%char(9))
+		('v'),				;Vertical tab
+			t = new TransChar(%char(11))
+		('w'),				;Word character
+			t = new TransUnion(
+			&	    ls.of(new TransRange('A','Z')) |
+			&		  new TransRange('a','z')  |
+			&		  new TransRange('0','9')  |
+			&		  new TransChar('_'))
+		('W'),				;Not word character
+			t = new TransNot(new TransUnion(
+			&	    ls.of(new TransRange('A','Z')) |
+			&		  new TransRange('a','z')  |
+			&		  new TransRange('0','9')  |
+			&		  new TransChar('_')))
+		('x'),	
+			begin			;Hex
+			  data val, a2
+			  incr rgx.m_ndx
+			  try
+			    begin
+			      val = rgx.m_string(rgx.m_ndx:2)
+			      t = new TransChar(%char(^x(val)))
+			    end
+			  catch (e)
+			    begin
+			      throw new RegexException(rgx.m_string, "\x expects two hex digits")
+			    end
+		  	  endtry
+			  incr rgx.m_ndx		;To the second digit
+			end
+		('y'),
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just a y
+			  end
+			else
+			  begin
+			    t = new TransBoundary(TransBoundary.Either)	;Word boundary
+			  end
+		('Y'),	
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)	;Just a Y
+			  end
+			else
+			  begin
+			    t = new TransBoundary(TransBoundary.Neither);Not a word boundary
+			  end
+		('z', "'"),				;End of text
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)
+			  end
+			else
+			  begin
+			    t = new TransEnd()
+			  end
+		('Z'),				;End of text, minus any final delimiter
+			if (in_set) then
+			  begin
+			    t = new TransChar(char)
+			  end
+			else
+			  begin
+			    t = new TransEndDelim()
+			  end
+		(),	
+			t = new TransChar(char)	;Any other character
+		endusing
+
+		mreturn t
+	    end
+
+	endclass
+
+	public class MetaCharSet extends MetaChar
+	;
+	; Bracketed character set [...]
+	;
+	; Note: m_ndx => [
+	;
+	    .define SINGLETON_CLASS, MetaCharSet
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method GetTransition, @Transition
+	    D_INARG rgx, @Regex
+	    record
+		l		,@ls
+		subs		,@ls
+		t		,@Transition
+		bExclude	,boolean
+		bRange		,boolean
+		char		,a1
+	    proc
+		l = new ls()
+		subs = new ls()
+		t = ^null
+		bExclude = false
+		bRange = false
+
+		while (rgx.m_ndx < rgx.m_endpattern)
+		  begin
+		    incr rgx.m_ndx
+		    char = rgx.m_string(rgx.m_ndx:1)
+		    using char select
+		    (']'),
+		    	begin
+			  call collect_sets
+			  using (l.Count) select
+			  (1),	t = (Transition)(l[0])	;Just one
+			  (> 1),t = new TransUnion(l)	;More than one
+			  (),	throw new RegexException(rgx.m_string, "Empty [] not allowed")
+			  endusing
+			  exitloop
+			end
+		    ('^'),
+		    	begin
+			  if (l.Count < 1) then		;First encountered
+			    bExclude = true
+			  else
+			    begin
+			      l.add(new TransChar(char))
+			      call check_range
+			    end
+			end
+		    ('\'),
+			begin
+		    	  l.add(MetaCharClass.instance.GetTransition(rgx, true)) ;Escaped character
+			  call check_range
+			end
+		    ('-'),
+			if ((rgx.m_ndx < rgx.m_endpattern) && (rgx.m_string(rgx.m_ndx+1:1) == '[')) then
+			  begin
+			    incr rgx.m_ndx			;To the [
+			    subs.add(GetTransition(rgx));Add the subtraction
+			  end
+			else
+		    	  bRange = true			;Process after next character
+		    ('['),
+		        begin
+			  if ((rgx.m_ndx < rgx.m_endpattern) && (rgx.m_string(rgx.m_ndx+1:1) == ':')) then
+			    begin
+			      data begp, int
+			      data endp, int
+
+			      begp = rgx.m_ndx + 2
+			      endp = instr(begp, rgx.m_string, ':]')
+			      if ((endp > begp) && (endp < rgx.m_endpattern)) then
+			        begin
+				  l.add(rgx.GetTransPosixClass(rgx.m_string(begp,endp-1)))
+				  call check_range
+				  rgx.m_ndx = endp+1	;the ']'
+				end
+			      else
+			        begin
+				  l.add(new TransChar(char))
+				  call check_range
+				end
+			    end
+			  else
+			    begin
+			      l.add(new TransChar(char))
+			      call check_range
+			    end
+			end
+		    (),
+			begin
+		    	  l.add(new TransChar(char))	;Normal character
+			  call check_range
+			end
+		    endusing
+		  end
+
+		if (t == ^null)
+		  throw new RegexException(rgx.m_string, "Missing ]")
+		if (bExclude)
+		  t = new TransNot(t)
+		if (subs.Count > 0)
+		  t = new TransSetSubtract(t, subs)
+		mreturn t
+
+	    check_range,
+		if (bRange)	;Check for ranges
+		  begin
+		    data op1, @Transition
+		    data op2, @Transition
+
+		    if (l.Count < 2)
+		      throw new RegexException(rgx.m_string,
+		      &		"Character range requires two characters")
+		    
+		    op2 = (Transition)(l.poplast())
+		    op1 = (Transition)(l.poplast())
+		    if ((op1 .is. TransChar) && (op2 .is. TransChar)) then
+		      begin
+		        l.add(new TransRange(op1.ToString(), op2.ToString()))
+		      end
+		    else
+		      throw new RegexException(rgx.m_string, "Invalid character range")
+		    bRange = false
+		  end
+		return
+
+	    collect_sets,
+		begin
+		  data obj, @*
+		  data chars, @ls, new ls()
+		  foreach obj in l
+		    if (obj .is. TransChar)
+		      chars.add(obj)
+
+		  if (chars.Count > 1)	;More than one simple character, make a set
+		    begin
+		      l.subtract$(chars)	;Remove the original chars
+		      l.add(new TransSet(chars.join('')))
+		    end
+		end
+		return
+	    end
+
+	endclass
+
+	public class MetaBeginLine extends MetaChar
+	;
+	; Beginning of line ^
+	;
+	    .define SINGLETON_CLASS, MetaBeginLine
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method GetTransition, @Transition
+	    D_INARG rgx, @Regex
+	    proc
+	        mreturn new TransBeginLine()
+	    end
+
+	endclass
+
+	public class MetaEndLine extends MetaChar
+	;
+	; End of line $
+	;
+	    .define SINGLETON_CLASS, MetaEndLine
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method GetTransition, @Transition
+	    D_INARG rgx, @Regex
+	    proc
+	    	mreturn new TransEndLine()
+	    end
+
+	endclass
+
+	public abstract class Operator extends SpecialChar
+	;
+	; An operator is a functor for performing an operation
+	;
+	    protected method initialize, void	;Needed for singletons
+	    proc
+	    end
+
+	    public abstract method eval, void	;Must be overridden
+	    ;
+	    ; Evaluate the operation
+	    ;
+	    D_INARG rgx, @Regex
+	    proc
+	    end
+		
+	    ;The following member is initialized by Regex.Initialize():
+
+	    public Precedence, int		;Operator rank (0 = first)
+
+	endclass
+
+	public class OpConcat extends Operator
+	;
+	; Concatenate two characters together
+	;
+	    .define SINGLETON_CLASS, OpConcat
+	    .include "MIXINS:singleton"
+
+	    public override method eval, void
+	    ;
+	    ; Perform state concatenation
+	    ;
+	    D_INARG rgx, @Regex
+
+	    record
+	    	a	,@ls		;First operand
+		b	,@ls		;Second operand
+	    proc
+	    	b = rgx.PopOperand()	;Pop operands in reverse order
+		a = rgx.PopOperand()
+	    	;Connect last state of A to first state of B with an epsilon
+		((State)a.last).AddTransition(TransEpsilon.instance, (State)b[0])
+		a.append$(b)		;New composite table
+		rgx.PushOperand(a)	;Push the new table
+	    end
+
+	endclass
+
+	public class OpNonGreedy extends Operator
+	;
+	; Set non-greedy mode for the previous operator
+	;
+	    .define SINGLETON_CLASS OpNonGreedy
+	    .include "MIXINS:singleton"
+
+	    public override method eval, void
+	    ;
+	    ; A*?, A+?, A??
+	    ;
+	    D_INARG rgx, @Regex
+	    proc
+	    	rgx.m_score = rgx.m_nongreedy
+	    end
+
+	endclass
+
+	public class OpZeroOrMore extends Operator
+	;
+	; Zero or more of previous operand (*)
+	;
+	    .define SINGLETON_CLASS OpZeroOrMore
+	    .include "MIXINS:singleton"
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    proc
+		rgx.PushOperator(this)
+		rgx.CheckNonGreedy()
+		rgx.m_concat = true		;Concatenate next character
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; A*
+	    ;
+	    D_INARG rgx, @Regex
+	    ;
+	    record
+	    	sStart	,@State		;Start and end states
+		sEnd	,@State
+		sLast	,@State		;Last state in A
+		sFirst	,@State		;First state in A
+		sCount	,@State		;State for counting greediness
+		A	,@ls		;Operand
+	    proc
+	    	A = rgx.PopOperand()
+		sStart = new State()
+		sEnd = new State()
+		sCount = new State()
+
+		;First, the "zero" case:
+		sStart.AddTransition(TransEpsilon.instance, sEnd)
+
+		;Second, the "got one" case:
+		sFirst = (State)(A[0])
+		sStart.AddTransition(TransEpsilon.instance, sCount)	;Count greediness
+		sCount.AddTransition(rgx.GetTransScore(), sFirst)
+		sLast = (State)(A.last)
+		sLast.AddTransition(TransEpsilon.instance, sEnd)
+
+		;Third, the "or more" case:
+		sLast.AddTransition(TransEpsilon.instance, sCount)
+
+		;Now convert A into the automata for the entire operation:
+		A.push(sCount)		;Count state ahead of first
+		A.push(sStart)		;Beginning state on the front
+		A.add(sEnd)		;Ending state on the end
+
+		;This becomes our new operand:
+		rgx.PushOperand(A)
+	    end
+
+	endclass
+
+	public class OpZeroOrOne extends Operator
+	;
+	; Zero or one of previous operand (?)
+	;
+	    .define SINGLETON_CLASS OpZeroOrOne
+	    .include "MIXINS:singleton"
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    proc
+		rgx.PushOperator(this)
+		rgx.CheckNonGreedy()
+		rgx.m_concat = true		;Concatenate next character
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; A+
+	    ;
+	    D_INARG rgx, @Regex
+	    ;
+	    record
+	    	sStart	,@State		;Start and end states
+		sEnd	,@State
+		sLast	,@State		;Last state in A
+		sFirst	,@State		;First state in A
+		sCount	,@State		;State for counting greediness
+		A	,@ls		;Operand
+	    proc
+	    	A = rgx.PopOperand()
+		sStart = new State()
+		sEnd = new State()
+		sCount = new State()
+
+		;First, the "zero" case:
+		sStart.AddTransition(TransEpsilon.instance, sEnd)
+
+		;Second, the "one" case:
+		sFirst = (State)(A[0])
+		sStart.AddTransition(TransEpsilon.instance, sCount)
+		sCount.AddTransition(rgx.GetTransScore(), sFirst)	;Count greediness
+		sLast = (State)(A.last)
+		sLast.AddTransition(TransEpsilon.instance, sEnd)
+
+		;Now convert A into the automata for the entire operation:
+		A.push(sCount)		;Count state ahead of first
+		A.push(sStart)		;Beginning state on the front
+		A.add(sEnd)		;Ending state on the end
+
+		;This becomes our new operand:
+		rgx.PushOperand(A)
+	    end
+
+	endclass
+
+	public class OpOneOrMore extends Operator
+	;
+	; One or more of previous operand (+)
+	;
+	    .define SINGLETON_CLASS OpOneOrMore
+	    .include "MIXINS:singleton"
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    proc
+		rgx.PushOperator(this)
+		rgx.CheckNonGreedy()
+		rgx.m_concat = true		;Concatenate next character
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; A+
+	    ;
+	    D_INARG rgx, @Regex
+	    ;
+	    record
+	    	sStart	,@State		;Start and end states
+		sEnd	,@State
+		sLast	,@State		;Last state in A
+		sFirst	,@State		;First state in A
+		sCount	,@State		;Count greediness state
+		A	,@ls		;Operand
+	    proc
+	    	A = rgx.PopOperand()
+		sStart = new State()
+		sEnd = new State()
+		sCount = new State()
+
+		;First, the "got one" case:
+		sFirst = (State)(A[0])
+		sStart.AddTransition(TransEpsilon.instance, sCount)
+		sCount.AddTransition(rgx.GetTransScore(), sFirst)	;Count greediness
+		sLast = (State)(A.last)
+		sLast.AddTransition(TransEpsilon.instance, sEnd)
+
+		;Second, the "or more" case:
+		sLast.AddTransition(TransEpsilon.instance, sCount)
+
+		;Now convert A into the automata for the entire operation:
+		A.push(sCount)		;Count state ahead of first
+		A.push(sStart)		;Beginning state on the front
+		A.add(sEnd)		;Ending state on the end
+
+		;This becomes our new operand:
+		rgx.PushOperand(A)
+	    end
+
+	endclass
+
+	public class OpRepeat extends Operator
+	;
+	; Specific range of number of previous operand ({n,m})
+	;
+	    .define SINGLETON_CLASS OpRepeat
+	    .include "MIXINS:singleton"
+
+	    ;This is a pseudo-singleton.  We create an instance for each
+	    ; time we stack the operator, but a single instance is used
+	    ; to recognize and parse.
+
+	    private method OpRepeat
+	    ;
+	    ; Private constructor for begin and end
+	    ;
+	    D_INARG beg, int	;Minimum number (0 = not specified)
+	    D_INARG en, int	;Ending number (-1 = not specified)
+	    ;
+	    proc
+	    	m_begin = beg
+		m_end = en
+		Precedence = OpRepeat.instance.Precedence
+	    end
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    record
+	    	beg	,int
+		en	,int
+	    proc
+		rgx.ParseRange(beg, en)
+		rgx.PushOperator(new OpRepeat(beg,en))
+		rgx.CheckNonGreedy()
+		rgx.m_concat = true		;Concatenate next character
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; A{n,m}
+	    ;
+	    D_INARG rgx, @Regex
+	    ;
+	    record
+	    	sStart	,@State		;Start and end states
+		sEnd	,@State
+		sLast	,@State		;Last state in A
+		sFirst	,@State		;First state in A
+		sMore	,@State		;State for checking if we can take more
+		sCount	,@State		;State for counting greediness
+		counter	,@TransStartCounter
+		t	,@Transition
+		A	,@ls		;Operand
+	    proc
+	    	A = rgx.PopOperand()
+		sStart = new State()
+		sEnd = new State()
+		sMore = new State()
+		sCount = new State()
+		counter = new TransStartCounter(m_begin, m_end)
+		rgx.m_Input.union$(counter)
+
+		sFirst = (State)(A[0])
+		sStart.AddTransition(counter, sMore)			;Initialize counter
+
+		if (m_end < 0) then
+		  sMore.AddTransition(TransEpsilon.instance, sCount)	;We can always take more
+		else
+		  begin
+		    t = new TransMore(counter)
+		    sMore.AddTransition(t, sCount)			;Move forward if we can
+		    rgx.m_Input.union$(t)
+		  end
+
+		;Increment the counter for each time we enter the machine (which also scores greediness)
+		t = new TransIncrCounter(counter, rgx.GetTransScore())
+		sCount.AddTransition(t, sFirst)
+		rgx.m_Input.union$(t)
+
+		;Transition around the machine if possible
+		if (m_begin < 1) then
+		  sMore.AddTransition(TransEpsilon.instance, sEnd)	;Unconditional exit
+		else
+		  begin
+		    t = new TransEnough(counter)
+		    sMore.AddTransition(t, sEnd)			;Only if we have enough
+		    rgx.m_Input.union$(t)
+		  end
+		sLast = (State)(A.last)
+
+		;Loop back to re-evaluate, always
+		sLast.AddTransition(TransEpsilon.instance, sMore)
+
+		;Now convert A into the automata for the entire operation:
+		A.push(sCount)		;Count state ahead of first
+		A.push(sMore)		;Evaluation state ahead of count
+		A.push(sStart)		;Beginning state on the front
+		A.add(sEnd)		;Ending state on the end
+
+		;This becomes our new operand:
+		rgx.PushOperand(A)
+	    end
+
+	    private m_begin, int
+	    private m_end, int
+
+	endclass
+
+	public class OpUnion extends Operator
+	;
+	; Union of two operands (|)
+	;
+	    .define SINGLETON_CLASS OpUnion
+	    .include "MIXINS:singleton"
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    proc
+		rgx.PushOperator(this)
+		rgx.m_concat = false	;Don't concatenate what follows
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; A|B
+	    ;
+	    D_INARG rgx, @Regex
+	    ;
+	    record
+	    	A	,@ls		;First operand
+		B	,@ls		;Second operand
+		sStart	,@State		;New start and end states
+		sEnd	,@State
+
+	    proc
+	    	B = rgx.PopOperand()
+		A = rgx.PopOperand()
+		sStart = new State()
+		sEnd = new State()
+
+		;Transition from the start to either A or B
+		sStart.AddTransition(TransEpsilon.Instance,(State)(A[0]))
+		sStart.AddTransition(TransEpsilon.Instance,(State)(B[0]))
+
+		; and from the end of each to the final state
+		((State)A.last).AddTransition(TransEpsilon.instance, sEnd)
+		((State)B.last).AddTransition(TransEpsilon.instance, sEnd)
+
+		;Combine all together into one operand
+		A.push(sStart).append$(B).add(sEnd)
+		rgx.PushOperand(A)
+	    end
+
+	endclass
+
+	public class OpBeginGroup extends Operator
+	;
+	; Begin a nested group (()
+	;
+	    .define SINGLETON_CLASS OpBeginGroup
+	    .include "MIXINS:singleton"
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    proc
+		if (rgx.m_concat)
+		  rgx.PushOperator(OpConcat.instance)
+		rgx.EnterSubExpression()
+		rgx.m_OperatorStack.add(this)	;We have high priority for stacking, so don't use PushOperator()
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; This doesn't need to do anything
+	    ;
+	    D_INARG rgx, @Regex
+	    proc
+	    end
+
+	endclass
+
+	public class OpEndGroup extends Operator
+	;
+	; End a nested group ())
+	;
+	    .define SINGLETON_CLASS OpEndGroup
+	    .include "MIXINS:singleton"
+
+	    public override method parse, void
+	    ;
+	    ; Parse the operation
+	    ;
+	    D_INARG rgx, @regex
+	    ;
+	    record
+	    	sub	,@SubExpressionParse
+		nested	,boolean
+	    proc
+		rgx.PushOperator(this)
+		if (rgx.m_SubExprStack.Count > 0) then
+		  begin
+		    sub = (SubExpressionParse)rgx.m_SubExprStack.last	;Without popping, just peeking
+		    if ((sub.opts != ^null) && (sub.opts.stack))
+		      begin
+			if (sub.opts.ExplicitCapture != Options.NoChange)
+			  rgx.m_Options.ExplicitCapture = sub.opts.ExplicitCapture	;Reset ExplicitCapture mode
+		        if (sub.opts.Extended != Options.NoChange)
+		          rgx.m_Options.Extended = sub.opts.Extended	;Reset extended mode
+		      end
+		    rgx.m_concat = sub.concat
+		  end
+		else
+		  rgx.m_concat = true
+	    	rgx.Eval()
+	    end
+
+	    public override method eval, void
+	    ;
+	    ; Unwind to previous OpBeginGroup
+	    ;
+	    D_INARG rgx, @Regex
+
+	    record
+	    	A	,@ls		;The resulting operand
+		B	,@ls
+		sub	,@SubExpressionParse
+		sv	,@Var
+		s0	,@State
+		s1	,@State
+		s2	,@State
+		t	,@Transition
+		ts	,@ls
+		op	,@Operator
+		hasUnion,boolean
+
+	    proc
+		hasUnion = false
+	    	repeat
+		  begin
+		    if (rgx.m_OperatorStack.Count < 1)
+		      throw new RegexException(rgx.m_string,"Unmatched )")
+		    op = rgx.Eval()
+		    if (op .is. OpBeginGroup)
+		      exitloop
+		    hasUnion = (op .is. OpUnion)
+		  end
+
+		DEBUG_OUT(") unwind")
+		DEBUG_OUT(rgx.m_OperandStack)
+
+		;Now, whatever's left on top is a subexpression
+
+		sub = rgx.ExitSubExpression()
+
+		;Check for look-around
+		if (sub.lookaround)
+		  begin
+		    A = rgx.PopOperand()	;The look-around function
+		    ((State)A.last).Accepting = true	;Last state must accept
+		    s0 = new State()
+		    s1 = new State()
+		    if (sub.lookaround > 0) then
+		      t = new TransLookAhead(sub.positive)
+		    else
+		      t = new TransLookBehind(sub.positive)
+		    s0.AddTransition(t, s1)
+		    rgx.m_Input.union$(t)
+		    s1.AddTransition(t = TransFunctionRef.instance, (State)A[0])
+		    rgx.m_Input.union$(t)
+		    s2 = new State()
+		    if (sub.concat) then	;Implied condition
+		      begin
+		        s1.AddTransition(t = TransThen.instance, s2)
+			rgx.m_Input.union$(t)
+		      end
+		    else			;We'll add a condition later
+		      s1.AddTransition(TransEpsilon.instance, s2)
+		    A.push(s1).push(s0).add(s2)
+		    rgx.PushOperand(A)
+		  end
+
+		;Check for any condition
+		if (sub.condition)
+		  begin
+		    B = rgx.PopOperand()	;The conditionally executed code
+		    A = rgx.PopOperand()	;The condition
+		    s0 = (State)A.last
+		    s1 = new State()
+		    ((State)B.last).AddTransition(TransEpsilon.instance, s1)
+		    if (hasUnion) then		;This would now be the topmost operand
+		      begin
+		        s2 = (State)B.pop()	;Remove the first state
+			ts = s2.GetTransition(TransEpsilon.instance)		;Convert the 'or' into
+			s0.AddTransition(TransThen.instance, (State)ts[0])	;Then, or
+			s0.AddTransition(TransElse.instance, (State)ts[1])	;Else
+		      end
+		    else			;No union, just a 'then'
+		      begin
+		        s0.AddTransition(TransThen.instance, (State)B[0])
+		        s0.AddTransition(TransElse.instance, s1)
+		      end
+		    rgx.m_Input.union$(TransThen.instance)
+		    rgx.m_Input.union$(TransElse.instance)
+		    A.append$(B).add(s1)
+		    rgx.PushOperand(A)
+		  end
+
+		;Check for runtime options settings
+
+		if ((sub.opts != ^null) && sub.opts.RuntimeChange)
+		  begin
+		    A = rgx.PopOperand()
+		    s0 = new State()
+		    t = new TransSetOptions(sub.opts)
+		    s0.AddTransition(t, (State)A[0])
+		    rgx.m_Input.union$(t)
+		    A.push(s0)
+		    if (sub.opts.stack)
+		      begin
+		        s1 = new State()
+			t = TransPopOptions.instance
+			((State)A.last).AddTransition(t, s1)
+			rgx.m_Input.union$(t)
+			A.add(s1)
+		      end
+		    rgx.PushOperand(A)
+		  end
+
+		if (sub.exprNum > 0) then		;Need a back-reference?
+		  begin
+		    sv = Var.Box(sub.exprNum)
+		    A = rgx.PopOperand()
+		    s0 = new State()
+		    s1 = new State()
+		    t = new TransEnterSubexpression(sv)
+		    s0.AddTransition(t, (State)A[0])
+		    rgx.m_Input.union$(t)
+		    t = new TransExitSubExpression(sv)
+		    ((State)A.last).AddTransition(t, s1)
+		    rgx.m_Input.union$(t)
+		    A.push(s0).add(s1)
+		    rgx.PushOperand(A)
+		  end
+		else if (sub.name != ^null)		;.NET group, map number later
+		  begin
+		    sv = Var.Box(sub.name)
+		    A = rgx.PopOperand()
+		    s0 = new State()
+		    s1 = new State()
+		    t = new TransEnterSubExpression(sv)
+		    s0.AddTransition(t, (State)A[0])
+		    rgx.m_Input.union$(t)
+		    rgx.m_NETGroupFixup.add(t)
+		    t = new TransExitSubExpression(sv)
+		    ((State)A.last).AddTransition(t, s1)
+		    rgx.m_Input.union$(t)
+		    rgx.m_NETGroupFixup.add(t)
+		    A.push(s0).add(s1)
+		    rgx.PushOperand(A)
+		  end
+	    end
+
+	endclass
+
+	public class SubExpressionParse
+	;
+	; A stacked sub-expression
+	;
+	    public exprNum, int		;Sub-expression back-reference number (0 = none)
+	    public opts, @Options	;Options that are stacked (if any)
+	    public condition, boolean	;Does this group have a condition?
+	    public lookaround, int	;0 = none, 1 = forward, -1 = backward
+	    public positive, boolean	;Is lookaround positive?
+	    public concat, boolean	;Does this sub-expression drive a potential concatenation?
+	    public name, string		;Name, if to be numbered later (.NET style)
+
+	    public method SubExpressionParse
+	    D_INARG num, int		;Expression number
+	    proc
+	    	exprNum = num
+	    	opts = ^null
+		condition = false
+		lookaround = 0
+		positive = true
+		concat = true
+		name = ^null
+	    end
+
+	endclass
+
+	public class Options
+	;
+	; A set of local options
+	;
+	    public const NoChange, int, -1
+
+	    public Extended, int		;Extended mode /x
+	    public IgnoreCase, int		;Case-insensitive /i
+	    public DotMatchesNewline, int	;DotMatchesNewline /s
+	    public ExplicitCapture, int		;Explicit capture /n
+	    public Multiline, int		;Multiline mode /m
+	    public stack, boolean		;Do these options need to be stacked?
+
+	    public method Options
+	    proc
+		IgnoreCase = NoChange
+		Multiline = NoChange
+		ExplicitCapture = NoChange
+		DotMatchesNewline = NoChange
+	        Extended = NoChange
+		stack = true		;By default
+	    end
+
+	    public property RuntimeChange, boolean
+	    ;
+	    ; Does this options set affect runtime?
+	    ;
+	      method get
+	      proc
+		  ;ExplicitCapture and Extended modes only affects compile time
+	          mreturn (IgnoreCase != NoChange) ||
+		  &	  (Multiline != NoChange) ||
+		  &	  (DotMatchesNewline != NoChange)
+	      end
+	    endproperty
+
+	    public method copy, @Options
+	    ;
+	    ; Return a Memberwise copy
+	    ;
+	    record
+	    	rv	,@Options
+	    proc
+	    	rv = new Options()
+		rv.IgnoreCase = this.IgnoreCase
+		rv.Multiline = this.Multiline
+		rv.ExplicitCapture = this.ExplicitCapture
+		rv.DotMatchesNewline = this.DotMatchesNewline
+		rv.Extended = this.Extended
+		rv.stack = this.stack
+		mreturn rv
+	    end
+
+	    public method update, @Options
+	    ;
+	    ; Update options from another options
+	    ;
+	    D_INARG other, @Options
+	    ;
+	    proc
+		if (other.IgnoreCase != NoChange)
+		  this.IgnoreCase = other.IgnoreCase
+		if (other.Multiline != NoChange)
+		  this.Multiline = other.Multiline
+	    	if (other.ExplicitCapture != NoChange)
+		  this.ExplicitCapture = other.ExplicitCapture
+		if (other.DotMatchesNewline != NoChange)
+		  this.DotMatchesNewline = other.DotMatchesNewline
+	    	if (other.Extended != NoChange)
+		  this.Extended = other.Extended
+	    	mreturn this
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '?' + OptString(Extended, 'x') + OptString(IgnoreCase, 'i') + 
+		&	      OptString(Multiline, 'm') + OptString(ExplicitCapture, 'n') +
+		&	      OptString(DotMatchesNewline, 's') + OptString(stack, ':')
+	    end
+
+	    private method OptString, a
+	    D_INARG opt, int
+	    D_INARG letr, a
+	    proc
+	    	if (opt == NoChange)
+		  mreturn ""
+		if (opt)
+		  mreturn letr
+		mreturn '-' + letr
+	    end
+
+	endclass
+
+	public class State
+	;
+	; A state represents a node in the graph
+	;
+	    public method State
+	        this(^null)
+	    proc
+	    end
+
+	    public method State
+	    D_INARG states, @ls
+	    record
+	    	s	,@State
+	    proc
+		Id = NextId
+		incr NextId
+	        Accepting = false
+		m_edge = new ls()
+		m_states = states
+		if (m_states != ^null)
+		  foreach s in states
+		    begin
+		      if (s.Accepting)
+		        Accepting = true
+		    end
+	    end
+
+	    public static NextId, int
+	    public Id, int
+
+	    public method AddTransition, void
+	    ;
+	    ; Add a transition to our list of transitions
+	    ;
+	    D_INARG a_trans, @Transition
+	    D_INARG a_state, @State
+	    ;
+	    proc
+	    	m_edge.keyadd(a_trans, a_state)
+	    end
+
+	    public method GetTransition, @ls
+	    ;
+	    ; Retrieve the set of all states that may result from a character input
+	    ;
+	    D_INARG a_match, @MatchMaker
+	    D_INARG a_char, a	;The character
+	    ;
+	    record
+	    	states		,@ls
+		edge		,@ls
+		trans		,@Transition
+	    proc
+	    	states = new ls()
+		foreach edge in m_edge
+		  begin
+		    trans = (Transition)edge[0]
+		    if (trans.Match(a_match, a_char))
+		      begin	; states.append$(edge.cdr) -- optimized
+		        data ndx, int
+			for ndx from 1 thru edge.Count-1
+			  states.add(edge[ndx])
+		      end
+		  end
+		mreturn states
+	    end
+
+	    public method GetTransition, @ls
+	    ;
+	    ; Retrieve the set of all states that may result from a class of character input
+	    ;
+	    D_INARG a_class, @Transition		;A transition
+	    ;
+	    proc
+	    	mreturn m_edge.keygetl(a_class)	;This is easy
+	    end
+
+	    public method GetAutoTransitions, @ls
+	    ;
+	    ; Retrieve the set of all automatic transitions
+	    ;
+	    record
+	    	ts	,@ls
+		edge	,@ls
+	    proc
+		ts = new ls()
+	    	foreach edge in m_edge
+		  if (edge[0] .is. TransAutomatic)
+		    ts.add(edge[0])
+	        mreturn ts
+	    end
+
+	    public method GetAnchorOpt, AnchorOpt
+	    ;
+	    ; See if we can optimize this state for unconditional ^ or \A
+	    ;
+	    proc
+	    	if (m_edge.Count == 1)		;Only one way to start
+		  begin
+		    data l, @ls
+		    data t, @Transition
+		    l = (ls)m_edge[0]
+		    t = (Transition)l[0]
+		    if (t .is. TransBeginLine)	;^
+		      mreturn AnchorOpt.Single
+		    if (t .is. TransBegin)	;\A
+		      mreturn AnchorOpt.Always
+		    if (t .is. TransLastMatch)	;\G
+		      mreturn AnchorOpt.FromPrevious
+		  end
+		mreturn AnchorOpt.Never
+	    end
+
+	    public method GetState, @ls
+	    ;
+	    ; Retrieve the states used to compose this state
+	    ;
+	    proc
+	    	if (m_states == ^null)
+		  m_states = new ls()
+		mreturn m_states
+	    end
+
+	    public Accepting, boolean	;True = reaching this node accepts the match
+
+	    protected m_edge, @ls	;List of edges leading from here, keyed by Transition
+	    				;  as a multimap alist.  That is, each element is
+					;  composed of a list of [@Transition, @State, @State...]
+					;  where the Transition acts as a .Equals() key
+
+	    protected m_states, @ls	;List of states used to compose this state
+
+	    public method Dump, void
+	    D_INARG indent, int
+	    D_INARG lines, @ls
+	    D_INARG did, @ls
+	    record
+		rslt	,a65535
+		ptr	,int
+		ndx	,int
+	    	obj	,@*
+		l	,@ls
+	    proc
+		clear rslt
+		ptr = indent + 1
+		rslt(ptr,^size(rslt)) = this.ToString()
+
+		if (m_edge.Count < 1)
+		  begin
+		    lines.add((string)atrim(rslt))
+		    mreturn
+		  end
+
+	        ptr = trim(rslt) + 2
+	    	foreach l in m_edge
+		  begin
+		    rslt(ptr,^size(rslt)) = '-' + ((Transition)l[0]).ToString() + '->'
+		    lines.add((string)atrim(rslt))
+		    for ndx from 1 thru l.Count-1
+		      begin
+		        data s, @State
+			s = (State)(l[ndx])
+			if (did.contains(s)) then ;Avoid looping
+			  begin
+			    clear rslt
+			    rslt(indent+4,^size(rslt)) = "\" + string(s.Id)
+			    lines.add((string)atrim(rslt))
+			  end
+			else
+			  begin
+			    did.add(s)
+			    s.Dump(indent+4, lines, did)
+			  end
+		      end
+		    clear rslt
+		  end
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	if (Accepting)
+		  mreturn "(" + string(Id) + ")"
+		mreturn string(Id)
+	    end
+
+	    public class FindStates extends MapBoolean
+
+	    	public method FindStates
+		D_INARG a_states, @ls
+		proc
+		    m_states = a_states
+		end
+
+		public override method test, boolean
+		D_INARG obj, @*
+		proc
+		    mreturn ((State)obj).GetState().Equals(m_states)
+		end
+
+		private m_states, @ls
+
+	    endclass
+
+	endclass
+
+	public abstract class Transition
+
+	;Transition class.  Each describes a way to move from one state to another
+
+	    public virtual method Match, boolean
+	    ;
+	    ; Does an input character qualify for this transition?
+	    ;
+	    D_INARG match, @Regex.MatchMaker	;Match to apply to
+	    D_INARG a_char, a	;The character from the input stream
+	    proc
+		mreturn false	;Assume not
+	    end
+
+	    public virtual method Apply, void
+	    ;
+	    ; Apply the transition to a match
+	    ;
+	    D_INARG match, @Regex.MatchMaker	;Match to apply to
+	    D_INARG ndx, int			;Index of last character encountered
+	    proc
+	    end
+
+	endclass
+
+	public class TransEpsilon extends Transition
+	;
+	; Special case for epsilon transitions (a transition that proceeds without input)
+	; These transitions will be eliminated after parsing the regex.
+
+	    .define SINGLETON_CLASS, TransEpsilon	;We'll never need more than one
+	    .include "MIXINS:singleton"
+
+	    private method initialize, void	;Required for Singleton, doesn't do anything
+	    proc
+	    end
+	    
+	    public override method ToString, string
+	    proc
+	    	mreturn '(' + char(238) + ')'	;ASCII extended char for epsilon
+	    end
+	    
+	endclass
+
+	public class TransAutomatic extends Transition
+	;
+	; An epsilon-like transition, but one we want to preserve in the final graph for special cases
+	;
+	    public Key, @Var			;An identifier (e.g., group name)
+
+	    public virtual method IsEnabled, boolean
+	    ;
+	    ; Test to see if this transition aplies in this context
+	    ;
+	    D_INARG match, @MatchMaker		;Match to consider
+	    D_INARG ndx, int			;Index of last character encountered
+	    proc
+	    	mreturn true
+	    end
+
+	endclass
+
+	public class TransEnterSubexpression extends TransAutomatic
+	;
+	; An epsilon-like transition into a parenthesized subexpression
+	;
+	    public method TransEnterSubexpression
+	    D_INARG group, @Var	;Sub-expression number or name
+	    proc
+	    	Key = group
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.EnterSubExpression(Key, ndx+1)	;Enter on next character
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+		mreturn ((other .is. TransEnterSubexpression) &&
+		&	 (((TransEnterSubexpression)other).Key == Key))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '(' + (a)Key
+	    end
+
+	endclass
+
+	public class TransExitSubexpression extends TransAutomatic
+	;
+	; An epsilon-like transition out of a parenthesized subexpression
+	;
+	    public method TransExitSubexpression
+	    D_INARG group, @Var	;Sub-expression number or name
+	    proc
+	    	Key = group
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.ExitSubExpression(Key, ndx)	;Enter on last character
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransExitSubexpression) &&
+		&	 (((TransExitSubExpression)other).Key == Key))
+	    end
+
+	    public override method ToString, string
+	    proc
+	        mreturn (a)Key + ")"
+	    end
+
+	endclass
+
+	public class TransBackReference extends TransAutomatic
+	;
+	; A transition that represents a back-reference to a previously captured group
+	;
+	    public method TransBackReference
+	    D_INARG group, @Var			;Back-reference indexer
+	    proc
+	    	Key = group
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.BackReference(Key, ndx+1)	;Backreference starts with next character
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransBackReference) &&
+		&	 (((TransBackReference)other).Key == Key))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "\"+(a)Key
+	    end
+
+	endclass
+
+	public class TransScore extends TransAutomatic
+	;
+	; A transition that scores the greediness of the result based on the current greediness mode
+	;
+	    public method TransScore
+	    D_INARG score, int		;+/-1, depending on whether taking this path is in line with
+	    				;  current greediness
+	    proc
+	    	m_score = score
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.score += m_score
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransScore) &&
+		&	 (((TransScore)other).m_score == m_score))
+	    end
+
+	    public override method ToString, string
+	    proc
+	        if (m_score < 0)
+		  mreturn "?" + string(m_score)
+		mreturn "?+" + string(m_score)
+	    end
+
+	    private m_score, int
+
+	endclass
+
+	public class TransStartCounter extends TransAutomatic
+	;
+	; A transition that begins counting an {n,m} repetition
+	;
+	    public minimum, int		;Minimum iterations
+	    public maximum, int		;Maximum iterations (-1 = no max)
+
+	    public method TransStartCounter
+	    D_INARG beg, int
+	    D_INARG en, int
+	    proc
+	    	minimum = beg
+		maximum = en
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.StartCounter(this)
+	    end
+
+	    public override method ToString, string
+	    proc
+	        mreturn "{0}"
+	    end
+
+	endclass
+
+	public class TransIncrCounter extends TransAutomatic
+	;
+	; A transition that increments an {n,m} repetition
+	;
+	    public method TransIncrCounter
+	    D_INARG counter, @TransStartCounter	;The transition that starts this counter
+	    D_INARG score, @TransScore		;How to score this increment
+	    ;
+	    ; Since every increment of an {n,m} counter results in an expression-determined
+	    ; delta in greediness score, we might as well combine those operations to avoid
+	    ; spinning off a new MatchMaker for each one.
+	    ;
+	    proc
+	    	m_counter = counter
+		m_score = score
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.IncrementCounter(m_counter)
+		m_score.Apply(match, ndx)		;Score greediness
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "{+1}" + m_score.ToString()
+	    end
+
+	    private m_counter, @TransStartCounter
+	    private m_score, @TransScore
+
+	endclass
+
+	public class TransEnough extends TransAutomatic
+	;
+	; A transition that applies only if its counter has received the minimum increments
+	;
+	    public method TransEnough
+	    D_INARG counter, @TransStartCounter
+	    proc
+	        m_counter = counter
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn (match.GetCounter(m_counter) >= m_counter.minimum)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "{>=" + string(m_counter.minimum) + "}"
+	    end
+
+	    private m_counter, @TransStartCounter
+
+	endclass
+
+	public class TransMore extends TransAutomatic
+	;
+	; A transition that applies only if its counter has not exceeded the maximum increments
+	;
+	    public method TransMore
+	    D_INARG counter, @TransStartCounter
+	    proc
+	        m_counter = counter
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+		;If the maximum is -1 (no max), then we won't use this transition
+	    	mreturn (match.GetCounter(m_counter) < m_counter.maximum)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "{<" + string(m_counter.maximum) + "}"
+	    end
+
+	    private m_counter, @TransStartCounter
+
+	endclass
+
+	public class TransBoundary extends TransAutomatic
+	;
+	; A transition that tests for word boundaries
+	;
+	    public const Neither, int, 0			;\B, \Y
+	    public const BeginWord, int, 1			;\m
+	    public const EndWord, int, 2			;\M
+	    public const Either, int, (BeginWord|EndWord)	;\b, \y
+
+	    public method TransBoundary
+	    D_INARG boundary, int		;What boundaries do we want?
+	    proc
+	        m_boundary = boundary
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+		if (m_boundary)
+	    	  mreturn (match.OnBoundary(ndx) & m_boundary)
+	        mreturn (match.OnBoundary(ndx) == Neither)
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransBoundary) &&
+		&	 (((TransBoundary)other).m_boundary == m_boundary))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	using m_boundary select
+		(Neither),	mreturn "\B"
+		(BeginWord),	mreturn "\m"
+		(EndWord),	mreturn "\M"
+		(Either),	mreturn "\b"
+		endusing
+	    end
+
+	    private m_boundary, int
+
+	endclass
+
+	public class TransLastMatch extends TransAutomatic
+	;
+	; A transition that anchors to the end of the last match
+	;
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn (ndx == match.continue)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "\G"
+	    end
+
+	endclass
+
+	public class TransSetOptions extends TransAutomatic
+	;
+	; A transition that optionally pushes current options and sets new ones
+	;
+	    public method TransSetOptions
+	    D_INARG opts, @Options
+	    proc
+	    	m_opts = opts
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.SetOptions(m_opts)
+	    end
+
+	    public override method ToString, string
+	    proc
+	        mreturn m_opts.ToString()
+	    end
+
+	    private m_opts, @Options
+
+	endclass
+
+	public class TransPopOptions extends TransAutomatic
+	;
+	; A transition that pops options back to an earlier state
+	;
+	    .define SINGLETON_CLASS, TransPopOptions
+	    .include "MIXINS:singleton"		;We only need one
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.PopOptions()
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn ":?"
+	    end
+
+	endclass
+
+	public class TransTestGroup extends TransAutomatic
+	;
+	; A transition that tests for group membership
+	;
+	    public method TransTestGroup
+	    D_INARG group, @Var
+	    proc
+	    	m_group = group
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.test_result = (match.HasGroup(m_group) > 0)
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransTestGroup) &&
+		&	 (((TransTestGroup)other).m_group == m_group))
+	    end
+
+	    public override method ToString, string
+	    proc
+	        mreturn "(?(" + (a)m_group + ")"
+	    end
+
+	    private m_group, @Var
+
+	endclass
+
+	public class TransThen extends TransAutomatic
+	;
+	; A transition that applies when the match's test_result is true
+	;
+	    .define SINGLETON_CLASS TransThen
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn match.test_result
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "then"
+	    end
+
+	endclass
+
+	public class TransElse extends TransAutomatic
+	;
+	; A transition that applies when the match's test_result is false
+	;
+	    .define SINGLETON_CLASS TransElse
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn !match.test_result
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "else"
+	    end
+	endclass
+
+	public class TransBegin extends TransAutomatic
+	;
+	; Anchor to begining of text
+	;
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn (other .is. TransBegin)	;matches TransBeginLine also
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	        mreturn (ndx < 1)		;Only at the very beginning
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '\A'
+	    end
+
+	endclass
+
+	public class TransBeginLine extends TransBegin
+	;
+	; Anchor to beginning of a line
+	;
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn (other .is. TransBeginLine)
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	        mreturn match.OnBeginLine(ndx)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '(^)'
+	    end
+
+	endclass
+
+	public class TransEnd extends TransAutomatic
+	;
+	; Anchor to end of text
+	;
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn (other .is. TransEnd)	;Matches TransEndLine also
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @Matchmaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn match.OnEnd(ndx)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '\z'
+	    end
+
+	endclass    
+
+	public class TransEndDelim extends TransEnd
+	;
+	; Anchor to end of text, excluding a final \n
+	;
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn (other .is. TransEndDelim)
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @Matchmaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn match.OnEndDelim(ndx)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '\Z'
+	    end
+
+	endclass
+
+	public class TransEndLine extends TransEnd
+	;
+	; Anchor to end of line
+	;
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn (other .is. TransEndLine)
+	    end
+
+	    public override method IsEnabled, boolean
+	    D_INARG match, @Matchmaker
+	    D_INARG ndx, int
+	    proc
+	    	mreturn match.OnEndLine(ndx)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn '($)'
+	    end
+
+	endclass    
+
+	public class TransLookAhead extends TransAutomatic
+	;
+	; A transition that invokes look-ahead and sets a result
+	;
+	    public method TransLookAhead
+	    D_INARG positive, boolean
+	    proc
+	        m_positive = positive
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.LookAhead(ndx, m_positive)
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransLookAhead) &&
+		&	 (((TransLookAhead)other).m_positive == m_positive))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "?="
+	    end
+
+	    private m_positive, boolean
+
+	endclass
+
+	public class TransLookBehind extends TransAutomatic
+	;
+	; A transition that invokes look-behind and sets a result
+	;
+	    public method TransLookBehind
+	    D_INARG positive, boolean
+	    proc
+	        m_positive = positive
+	    end
+
+	    public override method Apply, void
+	    D_INARG match, @MatchMaker
+	    D_INARG ndx, int
+	    proc
+	    	match.LookBehind(ndx, m_positive)
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransLookBehind) &&
+		&	 (((TransLookBehind)other).m_positive == m_positive))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "?<"
+	    end
+
+	    private m_positive, boolean
+
+	endclass
+
+	public class TransFunctionRef extends Transition
+	;
+	; A function reference.  This class is not automatic,
+	; because we never want to be followed directly.  It is
+	; always invoked through a LookAhead or LookBehind.
+	;
+	    .define SINGLETON_CLASS, TransFunctionRef
+	    .include "MIXINS:singleton"
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "func"
+	    end
+
+	endclass
+
+	public class TransChar extends Transition
+	;
+	; The standard case of a transition based on a single character
+	;
+	    public method TransChar
+	    D_INARG a_char, a		;What character are we matching?
+	    proc
+	        m_char = a_char
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+		;We are equal only if we're matching the same character
+	    	mreturn ((other .is. TransChar) && (((TransChar)other).m_char == m_char))
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    proc
+	    	mreturn a_char == m_char
+	    end
+	    
+	    public override method ToString, string
+	    proc
+	    	mreturn m_char
+	    end
+
+	    private m_char, a1
+	endclass
+
+	public class TransAny extends Transition
+	;
+	; A transition based on any character (.)
+	;
+	    .define SINGLETON_CLASS, TransAny
+	    .include "MIXINS:singleton"
+
+	    private method initialize, void
+	    proc
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    proc
+	    	mreturn (match.opts.DotMatchesNewline || (a_char != %char(10)))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "(.)"
+	    end
+
+	endclass
+
+	public class TransRange extends Transition
+	;
+	; Matching on a range of characters (e.g. [A-Z])
+	;
+	    public method TransRange
+	    D_INARG a_begin, a
+	    D_INARG a_end, a
+	    proc
+	        m_begin = a_begin
+		m_end = a_end
+		if (m_begin > m_end)
+		  throw new RegexException(ToString(), "Invalid character range")
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	        mreturn ((other .is. TransRange) &&
+		&	(((TransRange)other).m_begin == m_begin) &&
+		&	(((TransRange)other).m_end == m_end))
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    proc
+	    	mreturn ((m_begin <= a_char) && (a_char <= m_end))
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "[" + m_begin + "-" + m_end + "]"
+	    end
+
+	    private m_begin, a1
+	    private m_end, a1
+	endclass
+
+	public class TransSet extends Transition
+	;
+	; Matching on a set of characters, not expressed as a range (e.g. [aeiou])
+	;
+	    public method TransSet
+	    D_INARG a_chars, a
+	    proc
+	        m_chars = a_chars
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransSet) && (((TransSet)other).m_chars .eqs. m_chars))
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    proc
+	        mreturn m_chars.Contains(a_char)
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "[" + m_chars + "]"
+	    end
+
+	    private m_chars, string
+	endclass
+
+	public class TransNot extends Transition
+	;
+	; The negation of some other transition (e.g. [^A-Z], [^xyz])
+	;
+	    public method TransNot
+	    D_INARG a_trans, @Transition		;Takes the other transition as argument
+	    proc
+	        m_trans = a_trans
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransNot) && (((TransNot)other).m_trans.Equals(m_trans)))
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    proc
+	    	mreturn !m_trans.Match(match, a_char)	;Negates the other transition's match
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn "^" + m_trans.ToString()
+	    end
+
+	    private m_trans, @Transition
+
+	endclass
+
+	public class TransSetSubtract extends Transition
+	;
+	; A character class subtraction (e.g., [a-z-[aeiou]])
+	;
+	    public method TransSetSubtract
+	    D_INARG a_trans, @Transition		;The base transition
+	    D_INARG a_subs, @ls				;List of subtractions
+	    proc
+	    	m_trans = a_trans
+		m_subs = a_subs
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransSetSubtract) &&
+		&	 (((TransSetSubtract)other).m_trans.Equals(m_trans)) &&
+		&	 (((TransSetSubtract)other).m_subs.Equals(m_subs)))
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    proc
+	    	if (m_trans.Match(match, a_char))		;Has to be in this one
+		  begin
+		    data t, @Transition
+
+		    foreach t in m_subs
+		      if (t.Match(match, a_char))
+		        mreturn false				;Not supposed to be in this one
+
+		    mreturn true
+		  end
+		mreturn false
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn m_trans.ToString() + '-' + m_subs.ToString()
+	    end
+
+	    private m_trans, @Transition
+	    private m_subs, @ls
+
+	endclass
+
+	public class TransUnion extends Transition
+	;
+	; The union of one or more transitions
+	;
+	    public method TransUnion
+	    D_INARG a_set, @ls		;A set of Transition objects
+	    proc
+	    	m_set = a_set
+	    end
+
+	    public override method Equals, D_EQUALS_TYPE
+	    D_EQUALS_PARAM(other)
+	    proc
+	    	mreturn ((other .is. TransUnion) &&
+		&	 (((TransUnion)other).m_set.Equals(m_set)))
+	    end
+
+	    public override method Match, boolean
+	    D_INARG match, @MatchMaker	;Match to apply to
+	    D_INARG a_char, a
+	    record
+	    	t	,@Transition
+	    proc
+	    	foreach t in m_set
+		  if (t.Match(match, a_char))
+		    mreturn true	;Note for performance: list most likely matches first
+		mreturn false
+	    end
+
+	    public override method ToString, string
+	    proc
+	    	mreturn m_set.ToString()
+	    end
+
+	    private m_set, @ls
+
+	endclass
+
+	public class MatchMaker
+	;
+	; A MatchMaker represents a unique combination of the beginning
+	; index and length of a match, the beginning and ending indices
+	; of all matched sub-expressions, and a greediness score.
+
+	    public index, int		;Index of the match
+	    public length, int		;Length of the match
+	    public score, int		;Greedy/non-greedy score
+	    public opts, @Options	;Runtime options
+	    public test_result, boolean	;Result of last conditional test
+	    public continue, int	;Point of last match continuation (for \G)
+
+	    public method MatchMaker
+	    D_INARG rgx, @Regex		;Regex creating this
+	    D_INARG ndx, int		;Index at which this match was created
+	    D_INARG states, @ls		;Set of initial states
+	    D_INARG str, string		;String being matched against
+	    D_INARG groups, @Hash	;Group name associations
+	    D_INARG a_opts, @Options	;Runtime options
+	    proc
+	    	index = ndx
+		length = 0
+		score = 0
+		opts = a_opts.copy()
+		m_regex = rgx
+		m_string = str
+		m_states = states
+		m_subs = ^null
+		m_pending_subs = ^null
+		m_groups = groups
+		m_counters = ^null
+		m_optstack = ^null
+		test_result = false
+		continue = 0
+	    end
+
+	    private class SubExpressionMatch
+	      public beginning	,int
+	      public ending	,int
+
+	      public method SubExpressionMatch
+	      D_INARG b, int
+	      D_INARG e, int
+	      proc
+	        beginning = b
+		ending = e
+	      end
+
+	      public override method ToString, string
+	      proc
+	          mreturn string(beginning)+':'+string(ending-beginning+1)
+	      end
+	    endclass
+
+	    public method GetStates, @ls
+	    proc
+	    	mreturn m_states
+	    end
+
+	    public method Move, @ls
+	    ;
+	    ; Move any transition that requires no input and may produce new MatchMakers
+	    ;
+	    D_INARG ndx, int		;Index of last character encountered
+
+	    D_INARG seen, @ls		;List of states previously encounetred on this move (to prevent infinite recursion)
+	    ;
+	    ; Returns a list of MatchMakers, including this
+	    ;
+	    record
+	    	matches	,@ls
+		ts	,@ls
+		state	,@State
+		t	,@TransAutomatic
+
+	    proc
+	    	matches = ls.of(this)	;Start with us
+
+		;Now see what automatic transitions we can make
+
+		ts = new ls()
+		foreach state in m_states
+		  ts.union$(state.GetAutoTransitions())		;Collect the possible transitions
+		foreach t in ts
+		  begin
+		    if (t.IsEnabled(this, ndx))
+		      matches.append$(this.copy().Move(ndx, t, seen))
+		  end
+
+	    	mreturn matches
+	    end
+
+	    public method Move, @ls
+	    ;
+	    ; Move on a character encountered
+	    ;
+	    D_INARG ndx, int		;Index of the character
+	    D_INARG char, a		;Character that drives the state transition
+	    ;
+	    ; Returns a list of MatchMakers, which may include this
+	    ;
+	    record
+		newstates	,@ls
+	    	obj		,@State
+	    proc
+		newstates = new ls()
+	    	foreach obj in m_states
+		  begin
+		    data c, a1
+		    
+		    c = char
+		    if (opts.IgnoreCase)
+		      begin
+			using c select
+			('a' thru 'z'),
+			  upcase c
+			endusing
+		      end
+		    newstates.union$(obj.GetTransition(this, c))
+		    if (opts.IgnoreCase)		;Must check for lowercase matches
+		      begin
+			using c select
+			('A' thru 'Z'),
+			  begin
+			    locase c
+			    newstates.union$(obj.GetTransition(this, c))
+			  end
+			endusing
+		      end
+		  end
+		m_states = newstates
+
+		;We're not going to call apply on transitions here, because any
+		; transition that accepts a character does not provide an Apply method.
+
+		if (m_states.Count > 0)
+		  mreturn this.Move(ndx, ls.empty())	;Provoke any automatic transitions
+		mreturn ls.empty()
+	    end
+
+	    public method Move, @ls
+	    ;
+	    ; Move on a non-character transition
+	    ;
+	    D_INARG ndx, int		;Index of last character encountered
+
+	    D_INARG trans, @Transition
+
+	    proc
+	    	mreturn Move(ndx, trans, ^null)
+	    end
+
+	    public method Move, @ls
+	    ;
+	    ; Move on a non-character transition
+	    ;
+	    D_INARG ndx, int		;Index of last character encountered
+
+	    D_INARG trans, @Transition
+
+	    D_INARG seen, @ls		;List of previously encountered states, to
+					; prevent infinite recursion
+	    ;
+	    ; Returns a list of MatchMakers, which may include this
+	    ;
+	    record
+		newstates	,@ls
+		newseen		,@ls
+		removed		,@ls
+		obj		,@State
+		rv		,@ls
+	    proc
+		newstates = new ls()
+		foreach obj in m_states
+		  begin
+		    newstates.union$(obj.GetTransition(trans))
+		  end
+
+		if (seen == ^null) then
+		  removed = ls.empty()
+		else
+		  removed = seen.intersection(newstates)
+
+		m_states = newstates
+
+		if (m_states.Count > 0)			;Did we succeeed?
+		  begin
+		    trans.Apply(this, ndx)		;Transition-specific logic
+		    if (m_states.Count > 0)		;If we didn't eliminate everything
+		      begin
+			if (seen == ^null) then
+			  newseen = m_states		;Don't circle past this point
+			else
+			  newseen = seen.append(m_states)  ;Or any previous point on this circle
+			m_states.subtract$(removed)	;Prevent infinite recursion
+			rv = this.Move(ndx, newseen)	;Check for any additional moves
+			m_states.union$(removed)
+			mreturn rv
+		      end
+		  end
+
+		mreturn ls.empty()
+	    end
+
+	    public method EnterSubExpression, void
+	    D_INARG group	,@Var		;Sub-expression number
+	    D_INARG ndx		,int		;Index of first character
+	    record
+		num		,int
+		s		,@SubExpressionMatch
+	    proc
+		if (m_pending_subs == ^null)
+		  m_pending_subs = new ls()
+		num = (int)group - 1
+		while (m_pending_subs.Count <= num)
+		  m_pending_subs.add(^null)
+		m_pending_subs[num] = new SubExpressionMatch(ndx, 0)
+	    end
+
+	    public method ExitSubExpression, void
+	    D_INARG group	,@Var		;Sub-expression number
+	    D_INARG ndx		,int		;Index of last character
+	    record
+		num		,int
+	    proc
+		if (m_subs == ^null)
+		  m_subs = new ls()
+		num = (int)group - 1
+		while (m_subs.Count <= num)
+		  m_subs.add(^null)
+		m_subs[num] = new SubExpressionMatch(((SubExpressionMatch)m_pending_subs[num]).beginning, ndx)
+		m_pending_subs[num] = ^null
+	    end
+
+	    public method HasGroup, int
+	    D_INARG group, @Var			;Group number or name
+	    ;
+	    ; Returns 0 if no such group, otherwise the group number
+	    ;
+	    record
+		o		,@*
+		num		,int
+	    proc
+		if (m_subs == ^null)
+		  mreturn 0			;No groups yet
+
+		if (group .is. VarAlpha) then	;Named group reference
+		  begin
+		    if (m_groups == ^null)
+		      mreturn 0			;No named groups
+		    o = m_groups[(a)group]
+		    if (o == ^null)
+		      mreturn 0			;Non-existent group
+		    num = (int)o
+		  end
+		else
+		  num = (int)group		;Integer group reference
+
+		if ((m_subs.Count < num) || (m_subs[num-1] == ^null))
+		  mreturn 0			;No such subexpression completed yet
+
+		mreturn num
+	    end
+
+	    public method BackReference, void
+	    D_INARG group	,@Var		;Group name referenced
+	    D_INARG ndx		,int		;Index of next character
+	    record
+		oldstates	,@ls
+		ref		,@SubExpressionMatch
+		s0		,@State
+		s1		,@State
+		num		,int
+
+	    proc
+		if (num = HasGroup(group))	;Do we have this group?
+		  begin
+		    data begp, int
+		    data endp, int
+
+		    ref = (SubExpressionMatch)m_subs[num-1]
+		    begp = ref.beginning
+		    endp = ref.ending
+
+		    if (endp >= begp)		;We captured some characters
+		      begin
+			oldstates = m_states	;Save our destination states
+			s0 = new State()
+			m_states = ls.of(s0)	;Start with this state
+			while (begp < endp)
+			  begin
+			    s1 = new State()
+			    s0.AddTransition(new TransChar(m_string(begp:1)), s1)
+			    s0 = s1
+			    incr begp
+			  end
+			foreach s1 in oldstates
+			  s0.AddTransition(new TransChar(m_string(endp:1)), s1)
+		      end
+		  end
+	    end
+
+	    public method StartCounter, void
+	    ;
+	    ; Start a new {n,m} repetition counter
+	    ;
+	    D_INARG counter, @TransStartCounter
+
+	    literal
+		zero	,int, 0
+	    proc
+		if (m_counters == ^null)
+		  m_counters = new ls()
+		m_counters.keyset(counter, (object)zero)	;A boxed i is slightly faster than a Var
+	    end
+
+	    public method IncrementCounter, void
+	    ;
+	    ; Increment an {n,m} repetition counter
+	    ;
+	    D_INARG counter, @TransStartCounter
+
+	    record
+		count	,int
+
+	    proc
+		;We won't test for null here, because if we get one it indicates
+		; a problem with the compilation phase.
+
+		count = (int)m_counters.keyget(counter)
+		incr count
+		m_counters.keyset(counter, (object)count)
+	    end
+
+	    public method GetCounter, int
+	    ;
+	    ; Retrieve the count for a specific {n,m} repetition
+	    ;
+	    D_INARG counter, @TransStartCounter
+	    ;
+	    proc
+		;Ditto on testing for null.
+		mreturn (int)m_counters.keyget(counter)
+	    end
+
+	    public method OnBeginLine, boolean
+	    ;
+	    ; Test for line begin (^)
+	    ;
+	    D_INARG ndx, int
+	    ;
+	    proc
+		mreturn ((ndx < 1) ||
+		&	(opts.Multiline && (m_string(ndx:1) == %char(10))))
+	    end
+
+	    public method OnEnd, boolean
+	    ;
+	    ; Test for \z
+	    ;
+	    D_INARG ndx, int
+	    ;
+	    proc
+		mreturn (ndx >= m_string.Length)
+	    end
+
+	    public method OnEndLine, boolean
+	    ;
+	    ; Test for line end ($)
+	    ;
+	    D_INARG ndx, int
+	    ;
+	    proc
+		mreturn ((ndx >= m_string.Length) ||
+		&	(opts.Multiline && (m_string(ndx+1:1) == %char(10))))
+	    end
+
+	    public method OnEndDelim, boolean
+	    ;
+	    ; Test for \Z
+	    ;
+	    D_INARG ndx, int
+	    ;
+	    record
+		len	,int
+	    proc
+		len = m_string.Length
+		if (m_string(len:1) == %char(10))
+		  mreturn (ndx == len-1)
+		mreturn (ndx >= len)
+	    end
+
+	    public method OnBoundary, int
+	    ;
+	    ; Test for whether we're on a word boundary
+	    ;
+	    D_INARG ndx, int			;Index of last character encountered
+	    ;
+	    literal
+		word_chars, a*, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
+
+	    .define is_word(n) (instr(1,word_chars,m_string(n:1)))
+
+	    record
+		len		,int
+
+	    proc
+		if (ndx < 1)
+		  begin
+		    if (is_word(1))	;Start of string is a word character?
+		      mreturn TransBoundary.BeginWord
+		    mreturn TransBoundary.Neither
+		  end
+
+		if (ndx >= (len = m_string.Length))
+		  begin
+		    if (is_word(len))
+		      mreturn TransBoundary.EndWord
+		    mreturn TransBoundary.Neither
+		  end
+
+		if (is_word(ndx))
+		  begin
+		    if (is_word(ndx+1))
+		      mreturn TransBoundary.Neither
+		    mreturn TransBoundary.EndWord
+		  end
+
+		if (is_word(ndx+1))
+		  mreturn TransBoundary.BeginWord
+		mreturn TransBoundary.Neither
+	    end
+
+	    public method SetOptions, void
+	    ;
+	    ; Set the current options, optionally stacking the old ones
+	    ;
+	    D_INARG newopts, @Options
+	    ;
+	    proc
+		if (newopts.stack)
+		  begin
+		    if (m_optstack == ^null)
+		      m_optstack = new ls()
+		    m_optstack.add(opts.copy())
+		  end
+		opts.update(newopts)
+	    end
+
+	    public method PopOptions, void
+	    ;
+	    ; Revert options to previously stacked state
+	    ;
+	    proc
+		opts = (Options)m_optstack.poplast()
+	    end
+
+	    public method LookAhead, void
+	    ;
+	    ; Process look-ahead and set test_result based on the match
+	    ;
+	    D_INARG ndx, int			;Index of last character encountered
+
+	    D_INARG positive, boolean		;Positive test?
+
+	    record
+		match	,@MatchMaker
+
+	    proc
+		match = m_regex.lookahead(m_string, ndx+1, this.copy().Move(ndx, TransFunctionRef.instance))
+		if (test_result = (match != ^null))
+		  m_subs = match.m_subs		;Keep any new subexpressions if we matched
+	        if (!positive)
+		  test_result = !test_result
+	    end
+
+	    public method LookBehind, void
+	    ;
+	    ; Process look-behind and set test_result based on the match
+	    ;
+	    D_INARG ndx, int			;Index of last character encountered
+
+	    D_INARG positive, boolean		;Positive test?
+
+	    record
+	    	match	,@MatchMaker
+		state	,@State
+		t	,@TransFunctionRef
+		func	,@ls			;List of initial states for function
+
+	    proc
+		func = new ls()
+		t = TransFunctionRef.instance
+		foreach state in m_states
+		  func.union$(state.GetTransition(t))	;Collect states for function call
+	    	match = m_regex.lookbehind(m_string, ndx, func, opts)
+		if (test_result = (match != ^null))
+		  m_subs = match.m_subs
+		if (!positive)
+		  test_result = !test_result
+	    end
+
+	    public method Accept, boolean	;True if accepted
+	    D_INARG ndx	,int			;Index of current character
+	    record
+	    	s	,@State
+	    proc
+	    	foreach s in m_states
+		  begin
+		    if (s.Accepting)
+		      begin
+		        length = ndx - index + 1	;String indices are 1-based
+			mreturn true
+		      end
+		  end
+		mreturn false
+	    end
+
+	    public method copy, @MatchMaker
+	    ;
+	    ; Clone thyself
+	    ;
+	    record
+	    	newmatch	,@MatchMaker
+	    proc
+	    	newmatch = new MatchMaker(m_regex, this.index, m_states.copy(), m_string, m_groups, this.opts)
+		newmatch.length = this.length
+		newmatch.score = this.score
+		newmatch.test_result = this.test_result
+		newmatch.continue = this.continue
+		if (this.m_subs != ^null)
+		  newmatch.m_subs = this.m_subs.copy()
+		if (this.m_pending_subs != ^null)
+		  newmatch.m_pending_subs = this.m_pending_subs.copy()
+		if (this.m_counters != ^null)
+		  newmatch.m_counters = this.m_counters.deepcopy()
+		if (this.m_optstack != ^null)
+		  newmatch.m_optstack = this.m_optstack.copy()
+		mreturn newmatch
+	    end
+
+	    public method make, @MatchData
+	    ;
+	    ; Construct a MatchData object from this
+	    ;
+	    record
+	    	md	,@MatchData
+		sub	,@SubExpressionMatch
+		ndx	,int
+	    proc
+	    	md = new MatchData(m_string, this.index, this.length)
+		if (m_subs != ^null)
+		  begin
+		    for	ndx from 1 thru m_subs.Count
+		      begin
+			if (m_subs[ndx-1] != ^null)
+			  begin
+			    sub = (SubExpressionMatch)m_subs[ndx-1]
+			    md[ndx] = new MatchData(m_string, sub.beginning, (sub.ending - sub.beginning + 1))
+			  end
+		      end
+		    ;We shouldn't have any pending subs if we're accepting
+		  end
+		md.groups = m_groups
+	    	mreturn md
+	    end
+
+	    public override method ToString, string
+	    proc
+		if (m_subs != ^null)
+	          mreturn string(index)+':'+string(length)+m_subs.ToString()+'=>'+string(score)
+		mreturn string(index)+':'+string(length)+'=>'+string(score)
+	    end
+
+	    private m_regex, @Regex	;Back-reference to our Regex
+	    private m_string, string	;String being matched against
+	    private m_states, @ls	;List of states (@State)
+	    private m_subs, @ls		;List of completed subexpressions [ndx] => (start,end)
+	    private m_pending_subs, @ls	;List of open subexpressions [ndx] => start
+	    private m_groups, @Hash	;Hash of group name => group number
+	    private m_counters, @ls	;Alist of {n,m} counter => count
+	    private m_optstack, @ls	;Stack of options settings
+
+	endclass
+
+    endclass
+
+endnamespace

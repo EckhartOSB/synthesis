@@ -1,0 +1,75 @@
+<html>
+<head>
+<title>Transport class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Abstract Class Transport</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class represents a serial transport mechanism.  Its primary reason for existing is to
+provide an abstraction above <a href="socket.html">Socket</a> for use by the
+<a href="telnet.html">Telnet</a> class, since the telnet protocol
+does not strictly require sockets as its transport mechanism.  For instance, it is theoretically
+possible to conduct a Telnet session over HTTP, a pipe, or even smoke signals -- provided an
+encoding of characters 0-255.</p>
+<p>This abstract class only provides two methods, Send and Receive.  We do not presume
+characteristics of the relationship between the sender and the receiver such as 
+client/server, peer-to-peer, out/in process, or threading.  It is expected that
+derived classes will add members to establish connections and control options.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-receive">Receive</a> - Receive text from a sender</li>
+    <li><a href="#ref-send">Send</a> - Send text to a receiver</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-receive" class="ref">
+    <h3>abstract method Receive</h3>
+    <code>
+      <em>transport</em>.Receive(<em>a</em>) =&gt; <em>i</em>
+    </code>
+    <div class="description">
+        This method receives data from a sender on the other end of the connection, returning that data in
+	the parameter <em>a</em>, which must be writable.  It is expected that the data will be limited to the size of <em>a</em>.
+	The method returns the number of characters returned in <em>a</em>.
+    </div>
+  </div>
+  <div id="ref-send" class="ref">
+    <h3>abstract method Send</h3>
+    <code>
+      <em>transport</em>.Send(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This method sends the characters in <em>a</em> to the receiver on the other end of the connection.
+      It returns true if successful, or false to indicate a failure.  There is no presumption that the receiver
+      has actually received the data yet, merely that the send did not fail.
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<html>
+<head>
+<title>Htmlcover utility reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Htmlcover utility</h1>
+<div id="intro">
+<h2>Introduction</h2>
+The htmlcover utility provides a command-line driven tool to analyze code coverage of
+a Synergy/DE executable and generate an HTML report.
+</div>
+<div id="usage">
+<h2>Usage</h2>
+<code>
+dbr SYNTHESIS:htmlcover -o <em>htmlfile</em> -r <em>executable</em> [...] [-t <em>title</em>]
+</code>
+<div class="description">
+Samples each <em>executable</em> (which may also contain arguments if enclosed in quotes) and
+Analyzes all source files using the <a href="coverage.html">CodeCoverage</a> class.  Outputs an HTML
+coverage report to <em>htmlfile</em> via the <a href="coverage.html#ref-markupall">MarkupAll</a>
+method of CodeCoverage.  If <em>title</em> is given, it will be used as the title of the report.
+Otherwise "Coverage for" followed by the first <em>executable</em> will be used instead.
+</div>
+</div>
+</body>
+</html>

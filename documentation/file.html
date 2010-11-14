@@ -1,0 +1,170 @@
+<html>
+<head>
+<title>File class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class File</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class wraps file I/O.  Currently, this class only supports simple sequential file
+manipulation, but it may be extended in a future version.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-channel">channel</a> - retrieve the file's channel</li>
+    <li><a href="#ref-close">Close</a> - Close the file</li>
+    <li><a href="#ref-display">Display</a> - display text to the file</li>
+    <li><a href="#ref-mode">mode</a> - retrieve the file's open mode</li>
+    <li><a href="#ref-name">name</a> - retrieve the file's name</li>
+    <li><a href="#ref-open">open</a> - create a File object</li>
+    <li><a href="#ref-readline">ReadLine</a> - read sequentially from the file</li>
+    <li><a href="#ref-readlines">ReadLines</a> - read all remaining lines from the file</li>
+    <li><a href="#ref-writeline">WriteLine</a> - write sequentially to the file</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-channel" class="ref">
+    <h3>property channel</h3>
+    <code>
+      <em>file</em>.channel =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      This read-only property yields the channel number used for I/O.
+    </div>
+  </div>
+  <div id="ref-close" class="ref">
+    <h3>method Close</h3>
+    <code>
+      <em>file</em>.Close()
+    </code>
+    <div class="description">
+      <p>
+      This method closes the file.  It is called automatically by the destructor, but on .NET you may
+      wish to call it explicitly, because you cannot know when the destructor will be invoked.  If
+      called more than once, no error results.
+      </p>
+      <p>
+      If the UI Toolkit was used to open this file (see <a href="#ref-open">Open</a>), then the
+      UI Toolkit routine U_CLOSE will be used to close it.
+      </p>
+    </div>
+  </div>
+  <div id="ref-display" class="ref">
+    <h3>method Display</h3>
+    <code>
+      <em>file</em>.Display(<em>a</em>)
+    </code>
+    <div class="description">
+      <p>
+      This method writes raw text to <em>file</em>, without any line terminator.
+      </p>
+      <p>
+      If the mode of the file is incompatible with a variable-length write, or if some other error
+      occurs, a catchable exception will result.
+      </p>
+    </div>
+  </div>
+  <div id="ref-mode" class="ref">
+    <h3>property mode</h3>
+    <code>
+      <em>file</em>.mode =&gt; <em>a</em>
+    </code>
+    <div class="description">
+      This read-only property yields the mode used to open the file.
+    </div>
+  </div>
+  <div id="ref-name" class="ref">
+    <h3>property name</h3>
+    <code>
+      <em>file</em>.name =&gt; <em>a</em>
+    </code>
+    <div class="description">
+      This read-only property yields the name of the file as passed to the constructor.
+    </div>
+  </div>
+  <div id="ref-open" class="ref">
+    <h3>static method open, constructor</h3>
+    <code>
+      File.Open(<em>a</em>) =&gt; <em>file</em><br/>
+      File.Open(<em>a</em>, <em>a2</em>) =&gt; <em>file</em><br/>
+      new File(<em>a</em>) =&gt; <em>file</em><br/>
+      new File(<em>a</em>, <em>a2</em>) =&gt; <em>file</em>
+    </code>
+    <div class="description">
+      <p>Instantiates a new File object and opens the file named <em>a</em>.  If
+      <em>a2</em> is passed, it specifies the I/O mode.  Otherwise, "I" is assumed.</p>
+      <p>If the UI Toolkit is active, this method uses U_OPEN to open the file, and
+      U_GBLCHN to prevent the UI Toolkit from closing it before this object goes out of
+      scope.  If the UI Toolkit is not active, this method seeks out an open channel
+      and opens it directly.</p>
+      <p>If an error occurs when opening the file, a catchable exception will result.</p>
+    </div>
+  </div>
+  <div id="ref-readline" class="ref">
+    <h3>method ReadLine</h3>
+    <code>
+      <em>file</em>.ReadLine() =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      This method obtains a line of input from the file.  If an error occurs (other than EOF),
+      a catchable exception results.  If EOF is encountered, <em>string</em> is returned ^null.
+      Otherwise, <em>string</em> is returned with the line of text read.
+    </div>
+  </div>
+  <div id="ref-readlines" class="ref">
+    <h3>method ReadLines</h3>
+    <code>
+      <em>file</em>.ReadLines() =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      This method reads all remaining lines of input from <em>file</em>, and returns an
+      <a href="ls.html">ls</a> in which each member is a <a href="var.html">Var</a>
+      containing a line of text.</p>
+    </div>
+  </div>
+  <div id="ref-writeline" class="ref">
+    <h3>method WriteLine</h3>
+    <code>
+      <em>file</em>.WriteLine(<em>object</em>)
+    </code>
+    <div class="description">
+      <p>
+      This method writes sequentially to <em>file</em>.  If <em>object</em> is an ArrayList
+      (or derived from ArrayList -- e.g., <a href="ls.html">ls</a>), then each member's string
+      representation (obtained by calling its ToString() method) is output as a separate line.
+      For any other type of object or primitive (a, int, decimal), the string representation
+      of that argument is output as a separate line.
+      </p>
+      <p>
+      If the mode of the file is incompatible with a sequential write, or if some other error
+      occurs, a catchable exception will result.
+      </p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

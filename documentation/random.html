@@ -1,0 +1,151 @@
+<html>
+<head>
+<title>Random class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Random</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class generates pseudorandom numbers, booleans, or characters.
+It uses the Synergy/DE built-in subroutine RANDM, so it inherits its degree of randomness.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-ctor">(constructors)</a></li>
+    <li><a href="#ref-next">Next</a> - next random number</li>
+    <li><a href="#ref-nextbool">NextBool</a> - random true or false</li>
+    <li><a href="#ref-nextchars">NextChars</a> - random characters</li>
+    <li><a href="#ref-nextint">NextInt</a> - random 32-bit integer</li>
+    <li><a href="#ref-nextlong">NextLong</a> - random 64-bit integer</li>
+    <li><a href="#ref-seeds">Seed1, Seed2</a> - seed values</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-ctor" class="ref">
+    <h3>constructors</h3>
+    <code>
+      new Random() =&gt; <em>Random</em><br/>
+      new Random(<em>int</em>, <em>int2</em>) =&gt; <em>Random</em>
+    </code>
+    <div class="description">
+      Creates a new random number generator.  If <em>int</em> and <em>int2</em>
+      are passed, they will be used as the initial values for <a href="#ref-seeds">Seed1
+      and Seed2</a>.  Otherwise, a value for each will be derived from
+      the current system time.
+    </div>
+  </div>
+  <div id="ref-next" class="ref">
+    <h3>method Next</h3>
+    <code>
+      <em>Random</em>.Next() =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      This method returns the next random number in the sequence.  Its value will
+      be between 0 and 32767, inclusive.  To generate numbers in other ranges, see
+      <a href="#ref-nextint">NextInt</a>, <a href="#ref-nextlong">NextLong</a>, and
+      <a href="#ref-nextdec">NextDec</a>.
+    </div>
+  </div>
+  <div id="ref-nextbool" class="ref">
+    <h3>method NextBool</h3>
+    <code>
+      <em>Random</em>.NextBool() =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This method returns a pseudorandom true or false, emulating a coin toss.
+    </div>
+  </div>
+  <div id="ref-nextchars" class="ref">
+    <h3>method NextChars</h3>
+    <code>
+      <em>Random</em>.NextChars(<em>a</em>)<br/>
+      <em>Random</em>.NextChars(<em>a</em>, <em>int</em>, <em>int2</em>)
+    </code>
+    <div class="description">
+      This method fills <em>a</em> (which must therefore be writable) with random
+      characters.  If passed, <em>int</em> specifies the minimum ASCII character value
+      to include, and <em>int2</em> specifies the maximum.  If not passed, these are
+      assumed to be 0 and 255, respectively.
+    </div>
+  </div>
+  <div id="ref-nextint" class="ref">
+    <h3>method NextInt</h3>
+    <code>
+      <em>Random</em>.NextInt() =&gt; <em>int</em><br/>
+      <em>Random</em>.NextInt(<em>int2</em>) =&gt; <em>int</em><br/>
+      <em>Random</em>.NextInt(<em>int3</em>, <em>int2</em>) =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      This method returns a 32-bit pseudorandom integer value.  If passed, 
+      <em>int2</em> is the maximum value to return, and <em>int3</em> is the
+      minimum value (both of which may be negative).  If <em>int2</em> or
+      <em>int3</em> are not passed, then they are assumed to be the maximum positive
+      integer value (^x(7FFFFFFF)) and 0, respectively.  If <em>int3</em> is
+      greater than <em>int2</em>, a Synergex.SynergyDE.SynArgumentException will
+      be thrown.  If the difference between <em>int3</em> and <em>int2</em> is
+      greater than the maximum positive integer value, the result is not guaranteed
+      to be within the specified range.
+    </div>
+  </div>
+  <div id="ref-nextlong" class="ref">
+    <h3>method NextLong</h3>
+    <code>
+      <em>Random</em>.NextLong() =&gt; <em>long</em><br/>
+      <em>Random</em>.NextLong(<em>long2</em>) =&gt; <em>long</em><br/>
+      <em>Random</em>.NextLong(<em>long3</em>, <em>long2</em>) =&gt; <em>long</em>
+    </code>
+    <div class="description">
+      This method returns a 64-bit pseudorandom integer value.  If passed, 
+      <em>long2</em> is the maximum value to return, and <em>long3</em> is the
+      minimum value (both of which may be negative).  If <em>long2</em> or
+      <em>long3</em> are not passed, then they are assumed to be the maximum positive
+      long value (^x(7FFFFFFFFFFFFFFF)) and 0, respectively.  If <em>long3</em> is
+      greater than <em>long2</em>, a Synergex.SynergyDE.SynArgumentException will
+      be thrown.  If the difference between <em>long3</em> and <em>long2</em> is
+      greater than the maximum positive long value, the result is not guaranteed
+      to be within the specified range.
+    </div>
+  </div>
+  <div id="ref-seeds" class="ref">
+    <h3>Seed1, Seed2</h3>
+    <code>
+      <em>Random</em>.Seed1 =&gt; <em>int</em><br/>
+      <em>Random</em>.Seed1 = <em>int</em><br/>
+      <em>Random</em>.Seed2 =&gt; <em>int</em><br/>
+      <em>Random</em>.Seed2 = <em>int</em>
+    </code>
+    <div class="description">
+      These public members represent the seed values for the random number sequence.
+      Only the low-order 15 bits of either of these values are significant, because
+      the internal random sequence is limited to values between 0 and 32767.  Because
+      the pseudorandom algorithm is deterministic, setting the seeds to a specific
+      pair of values will always result in the same sequence.
+    </div>
+  </div>
+</div>
+</body>
+</html>

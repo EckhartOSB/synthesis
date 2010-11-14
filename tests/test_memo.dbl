@@ -1,0 +1,114 @@
+.include "SYNTHESIS:synthesis.def"
+
+function fib, d, reentrant
+D_INARG nth, i
+proc
+    using nth select
+    (0),
+      freturn 0
+    (1),
+      freturn 1
+    (),
+      freturn fib(nth-2) + fib(nth-1)
+    endusing
+end
+
+function memofib, d, reentrant
+D_INARG nth, i
+proc
+    using nth select
+    (0),
+      freturn 0
+    (1),
+      freturn 1
+    (),
+      begin
+        data n1, @*
+	data n2, @*
+
+	memoize(n1, memofib, nth - 2)
+	memoize(n2, memofib, nth - 1)
+
+	freturn (d)n1 + (d)n2
+      end
+    endusing
+end
+
+function memofib2, d, reentrant
+D_INARG nth, i
+record
+    o	,@*
+    rv	,d28
+proc
+    if ((o = Memo.retrieve("memofib2", (object)nth)) != ^null)
+      freturn (d)o
+
+    using nth select
+    (0),
+      rv = 0
+    (1),
+      rv = 1
+    (),
+      rv = memofib2(nth-2) + memofib2(nth-1)
+    endusing
+    Memo.store((object)rv, "memofib2", (object)nth)
+    freturn rv
+end
+
+namespace test
+  public class t
+    public static method times_3, @Var
+    D_INARG v, @Var
+    proc
+      mreturn v * 3
+    end
+    public method clone, @t
+    D_INARG arg, @*
+    proc
+       mreturn new t()
+    end
+  endclass
+endnamespace
+
+main test_memo
+record
+  timer		,@ElapsedTime
+  n		,decimal
+  o1		,@*
+  o2		,@*
+  at		,@t
+  at2		,@t
+proc
+  timer = new ElapsedTime()
+  Console.WriteLine("fib(35) = " + string(fib(35)) + " in " + timer.ToString())
+  n = timer.nSeconds
+  timer.reset()
+  Console.WriteLine("memofib(35) = " + string(memofib(35)) + " in " + timer.ToString())
+  assert(timer.nSeconds < (n/100))		;Even allowing for extraneous differences
+  timer.reset()
+  Console.WriteLine("memofib2(35) = " + string(memofib2(35)) + " in " + timer.ToString())
+
+  memoize(o1, string, 123)
+  memoize(o2, string, 123)
+  assert(o1.Equals(o2))
+  assert(object.ReferenceEquals(o1, o2))
+  memoize(o2, STRING, 123)			;Case-insensitive
+  assert(object.ReferenceEquals(o1, o2))
+
+  memoize(o1, t.times_3, Var.Box(2))		;Static method instead of a function
+  memoize(o2, t.times_3, Var.Box(1+1))
+  assert(o1.Equals(o2))
+  assert(object.ReferenceEquals(o1, o2))
+  memoize(o2, t.times_3, Var.Box(3))
+  assert(!object.ReferenceEquals(o1, o2))
+
+  at = new t()
+  memoize(o1, at.clone, ls.empty())		;Member method, equal arguments
+  memoize(o2, at.clone, ls.empty())
+  assert(object.ReferenceEquals(o1, o2))
+  at2 = at
+  memoize(o2, at2.clone, ls.empty())		;Different object variable name
+  assert(!object.ReferenceEquals(o1, o2))	;Doesn't know they're the same
+
+  pass()
+end

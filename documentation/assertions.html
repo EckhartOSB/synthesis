@@ -1,0 +1,70 @@
+<html>
+<head>
+<title>Assertions for SynergyDE</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Assertions for SynergyDE</h1>
+
+<p>Assertions provide an easy way to test that conditions that you expect are true.  When 
+an unexpected condition arises, the assert macros throw a special exception of the class
+AssertionFailedError.  Your test harness can either let that exception die uncaught, or catch
+it and process the message it includes.</p>
+
+<p>Example usage:</p>
+
+<p><pre><code>
+record
+        lval    ,int
+proc
+	lval = myfunc()
+	assert_equal(1, lval, "Return value for myfunc was %a, expected %a")
+	pass()
+</code></pre></p>
+
+<p>Note that we avoid embedding myfunc() within the assert_equal statement, because
+it could then be executed twice: once for the assertion, and again when 
+formatting the message.</p>
+
+<p>If you don't supply a message format, a default message will be applied in some cases.</p>
+
+<p>See test_assertions.dbl for a full test suite for assertions themselves.</p>
+
+<p>Assertion macros and what they mean:</p>
+
+<table>
+<tr><th>Macro</th><th>Explanation</th><th>Arguments to build_message</th></tr>
+<tr><td>assert(condition,message,arg1,arg2,arg3)</td><td>Asserts condition is TRUE</td><td>arg1, arg2, arg3 (if passed)</td></tr>
+<tr><td>assert_equal(expected,actual,message)</td><td>Asserts actual == expected</td><td>actual, expected</td></tr>
+<tr><td>assert_not_equal(expected,actual,message)</td><td>Asserts actual != expected</td><td>actual, expected</td></tr>
+<tr><td>assert_not_null(object,message)</td><td>Asserts object != ^null</td><td>none</td></tr>
+<tr><td>assert_null(object,message)</td><td>Asserts object == ^null</td><td>none</td></tr>
+<tr><td>assert_kind_of(klass,object,message)</td><td>Asserts object .is. klass</td><td>"klass"</td></tr>
+<tr><td>assert_in_delta(expected,actual,delta,message)</td><td>Asserts (expected - delta) <= actual <= (expected + delta)</td><td>actual expected, delta</td></tr>
+<tr><td>assert_throws(exceptype,routine)</td><td>Asserts that routine throws an exception of class exceptype</td><td>N/A</td></tr>
+<tr><td>assert_fails(routine)</td><td>Asserts that routine throws an AssertionFailedError</td><td>N/A</td></tr>
+<tr><td>assert_fails_with(routine, msg)</td><td>Asserts that routine throws an exception with the Message property containing msg</td><td>N/A</td></tr>
+<tr><td>flunk(message)</td><td>Throws an AssertionFailedError with Message msg</td><td>N/A</td></tr>
+<tr><td>pass(what)</td><td>Suppresses STOP message and prints a message indicating that the routine passed.</td><td>N/A</td></tr>
+</table>
+
+<p>In the macros that accept a message argument, that string will be used as the Message property for the
+exception if the assertion fails.  If the message is not passed, a default mesage will be used in
+some cases.  For the generic assert, just "Assertion failed" will be used.</p>
+
+<p>If the macro passes arguments to build_message, then those arguments can be formatted into the message
+using s_bld syntax.  All arguments are converted to string first, so only %a should be used for formatting.</p>
+
+<p>The included function build_message is simply a syntactically handier version of s_bld, in that it returns
+the formatted string as its return value rather than as an argument.</p>
+
+<p>You can conditionally disable assertions by:</p>
+
+<code>.define D_NO_ASSERTIONS</code>
+
+<p>prior to including synthesis.def.</p>
+
+</body>
+</html>

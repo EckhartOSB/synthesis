@@ -1,0 +1,72 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+proc
+	if (CommandLine.HasSwitch("test")) then
+	  begin
+	    data args, @ls
+	    args = CommandLine.SwitchArgs("test")
+	    assert(args.Count >= 1)
+	    using args[0].ToString() select
+	    ("text"),
+	    	Console.WriteLine(CommandLine.Text)
+	    ("args"),
+	    	Console.WriteLine(CommandLine.Args.ToString())
+	    ("switch"),
+		begin
+		  if (CommandLine.HasSwitch("fred")) then
+		    Console.Display("Got fred, ")
+		  else
+		    Console.Display("No fred, ")
+		  if (CommandLine.HasSwitch("wilma")) then
+		    Console.WriteLine("got wilma")
+		  else
+		    Console.WriteLine("no wilma")
+		end
+	    ("swargs"),
+	    	Console.WriteLine(CommandLine.SwitchArgs("flintstones").ToString())
+	    ("prefix"),
+	    	begin
+		  CommandLine.SwitchPrefix = '/'
+		  if (CommandLine.HasSwitch("fred")) then
+		    Console.WriteLine("1")
+		  else
+		    Console.WriteLine("0")
+		end
+	    ("getprefix"),
+	    	Console.WriteLine(CommandLine.SwitchPrefix)
+	    ("collect"),
+	    	Console.WriteLine(CommandLine.SwitchArgs("x").ToString())
+	    (),
+	    	Console.WriteLine("Unrecognized test")
+	    endusing
+	  end
+	else
+	  begin
+	    ;Main driver
+	    test("text", "", "dbs TEST_EXE:test_commandline -test text")
+	    test("args", "-- arg1 arg2 arg3", "[-test, args, --, arg1, arg2, arg3]")
+	    test("switch", "-fred", "Got fred, no wilma")
+	    test("swargs", "-flintstones fred wilma   pebbles 'dino the -dinosaur'",
+	    &	  "[fred, wilma, pebbles, dino the -dinosaur]")
+	    test("prefix", "-fred", "0")
+	    test("prefix", "/fred", "1")
+	    test("getprefix", "", "-")
+	    test("collect", "-x 5 -y 3 -x 7", "[5, 7]")
+	    pass()
+	  end
+end
+
+subroutine test
+D_INARG t, a
+D_INARG rest, a
+D_INARG expected, a
+record
+	fd, @File
+	rslt, string
+proc
+	fd = File.Open("|dbs TEST_EXE:test_commandline -test " + t + ' ' + rest)
+	rslt = fd.Readline()
+	assert_equal(expected, rslt)
+	xreturn
+end

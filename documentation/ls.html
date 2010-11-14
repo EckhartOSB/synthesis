@@ -1,0 +1,1201 @@
+<html>
+<head>
+<title>Ls class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Ls extends System.Collections.ArrayList</h1>
+<div id="intro">
+<h2>Introduction</h2>
+This class adds numerous extensions to the Synergy/DE version of
+System.Collections.Arraylist to enable:
+<ul>
+<li>Shorthand for composing lists in a single statement</li>
+<li>Various functions for manipulating lists</li>
+<li>Support for associative lists (list of key/value pairs, or alists)</li>
+<li>Automatic boxing of primitives as <a href="http://chipstips.com/?tag=synvar">Var</a></li>
+<li>More to come...</li>
+</ul>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-ctor">(constructors)</a></li>
+    <li><a href="#ref-append">append, append$, appendflat$, add$, +, |, &amp;</a> - append to a list</li>
+    <li><a href="#ref-car">car</a> - the first element in a list</li>
+    <li><a href="#ref-cdr">cdr</a> - the second and following elements in a list</li>
+    <li><a href="#ref-chop">chop, chop$</a> - truncate a list</li>
+    <li><a href="#ref-compact">compact, compact$</a> - remove null elements from a list</li>
+    <li><a href="#ref-contains">contains</a> - determine if an object is a member of a list</li>
+    <li><a href="#ref-copy">copy</a> - copy a list</li>
+    <li><a href="#ref-countif">countif</a> - conditionally count members</li>
+    <li><a href="#ref-deepcopy">deepcopy</a> - copy all nested lists</li>
+    <li><a href="#ref-empty">empty</a> - create a new, empty list</li>
+    <li><a href="#ref-equals">Equals</a> - override instance equality testing</li>
+    <li><a href="#ref-find">find</a> - find an object that satisfies a condition</li>
+    <li><a href="#ref-findall">findall</a> - find all objects that satisfy a condition</li>
+    <li><a href="#ref-flatten">flatten</a> - flatten a list</li>
+    <li><a href="#ref-from">from</a> - create a list from another list, array, or Hash</li>
+    <li><a href="#ref-intersection">intersection</a> - intersection of two lists</li>
+    <li><a href="#ref-issubsetof">issubsetof</a> - determine whether a list is a subset of another list</li>
+    <li><a href="#ref-issupersetof">issupersetof</a> - determine whether a list is a superset of another list</li>
+    <li><a href="#ref-join">join</a> - join a list to create a string</li>
+    <li><a href="#ref-keyadd">keyadd</a> - add an association to an alist</li>
+    <li><a href="#ref-keydel">keydel</a> - delete an association from an alist</li>
+    <li><a href="#ref-keyfind">keyfind</a> - find an element of an alist</li>
+    <li><a href="#ref-keyget">keyget, []</a> - get the value associated with a key in an alist</li>
+    <li><a href="#ref-keygetl">keygetl</a> - get the list of values associated with a key in an alist</li>
+    <li><a href="#ref-keyset">keyset, []=</a> - set the value associated with a key in an alist</li>
+    <li><a href="#ref-last">last</a> - the last item of a list</li>
+    <li><a href="#ref-of">of</a> - create a list from an object</li>
+    <li><a href="#ref-makepair">make_pair</a> - create a list of two objects</li>
+    <li><a href="#ref-map">map, map$</a> - map one list to another</li>
+    <li><a href="#ref-mapnonull">mapnonull</a> - map one list to another, excluding nulls</li>
+    <li><a href="#ref-merge">merge, merge$</a> - merge two lists</li>
+    <li><a href="#ref-mergesort">mergesort</a> - sort a list, using MergeSort</li>
+    <li><a href="#ref-pop">pop</a> - remove and return the first item in a list</li>
+    <li><a href="#ref-poplast">poplast</a> - remove and return the last item in a list</li>
+    <li><a href="#ref-push">push</a> - insert an item at the front of a list</li>
+    <li><a href="#ref-quicksort">quicksort, quicksort$</a> - sort a list, using QuickSort</li>
+    <li><a href="#ref-reduce">reduce, reduceRight</a> - reduce a list to an object</li>
+    <li><a href="#ref-remove">remove, remove$, operator -</a> - remove an object from a list</li>
+    <li><a href="#ref-removeif">removeif, removeif$</a> - conditionally remove items</li>
+    <li><a href="#ref-reverse">reverse</a> - reverse a list</li>
+    <li><a href="#ref-rotate">rotate$</a> - reorder members of a list</li>
+    <li><a href="#ref-sort">sort, sort$</a> - sort a list</li>
+    <li><a href="#ref-subseq">subseq</a> - subsequence of a list</li>
+    <li><a href="#ref-subtract">subtract, subtract$, -</a> - subtract one list from another</li>
+    <li><a href="#ref-tohash">ToHash</a> - convert to a Hash</li>
+    <li><a href="#ref-tostring">ToString</a> - override string representation</li>
+    <li><a href="#ref-union">union</a> - union of two lists</li>
+    <li><a href="#ref-uniq">uniq, uniq$</a> - remove duplicates from a list</li>
+  </ol>
+</li>
+<li><a href="#compare">Compare functors</a>
+  <ol>
+    <li><a href="#ref-CompareCar">CompareCar</a> - compare list first elements</li>
+    <li><a href="#ref-CompareDesc">CompareDesc</a> - descending sort</li>
+    <li><a href="#ref-CompareList">CompareList</a> - compare lists</li>
+    <li><a href="#ref-CompareMap1">CompareMap1</a> - map the first object in a comparison</li>
+    <li><a href="#ref-CompareMap2">CompareMap2</a> - map both objects before comparing them</li>
+    <li><a href="#ref-CompareString">CompareString</a> - compare ToString() results</li>
+    <li><a href="#ref-CompareVar">CompareVar</a> - compare Vars</li>
+    <li><a href="#ref-CompareVarAlpha">CompareVarAlpha</a> - compare Vars as alphanumeric</li>
+    <li><a href="#ref-CompareVarDec">CompareVarDec</a> - compare Vars as decimal</li>
+    <li><a href="#ref-CompareVarInt">CompareVarInt</a> - compare Vars as integer</li>
+  </ol>
+</li>
+<li><a href="#mapper">Mapper functors</a>
+  <ol>
+    <li><a href="#ref-mapobject">abstract MapObject</a> - map one object to another
+      <ol>
+	<li><a href="#ref-mapassoc">MapAssoc</a> - map a key to its association in an alist</li>
+	<li><a href="#ref-mapdeep">MapDeep</a> - recursively map all ls members</li>
+	<li><a href="#ref-mapif">MapIf</a> - map objects using MapBoolean</li>
+	<li><a href="#ref-mapkey">MapKey</a> - create a key =&gt; value pair from a value</li>
+	<li><a href="#ref-mapvar">MapVar</a> - map objects to Var
+	  <ol>
+            <li><a href="#ref-mapalpha">MapAlpha</a> - map objects to VarAlpha</li>
+            <li><a href="#ref-mapdec">MapDec</a> - map objects to VarDec</li>
+            <li><a href="#ref-mapint">MapInt</a> - map objects to VarInt</li>
+	    <li><a href="#ref-mapreplace">MapReplace</a> - apply Regex replacement</li>
+	  </ol>
+	</li>
+      </ol>
+    </li>
+    <li><a href="#ref-mapboolean">abstract MapBoolean</a> - map an object to a boolean
+      <ol>
+	<li><a href="#ref-mapmatches">MapMatches</a> - map true if Regex matches</li>
+        <li><a href="#ref-mapnonnull">MapNonNull</a> - map true if not null</li>
+        <li><a href="#ref-mapnull">MapNull</a> - map true if null</li>
+      </ol>
+    </li>
+  </ol>
+</li>
+<li><a href="#reducer">Reducer functors</a>
+  <ol>
+    <li><A href="#ref-reducer">abstract Reducer</a> - reduce two objects to one
+      <li><a href="#ref-reducesum">ReduceSum</a> - add all Vars</li>
+      <li><a href="#ref-reducedifference">ReduceDifference</a> - subtract all Vars</li>
+      <li><a href="#ref-reduceproduct">ReduceProduct</a> - multiply all Vars</li>
+      <li><a href="#ref-reducequotient">ReduceQuotient</a> - divide all Vars</li>
+    </li>
+  </ol>
+</li>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+<p>Generally speaking, methods that end in "$" modify the receiver, while methods that don't end in "$"
+are free of side-effects.  But that isn't always the case.  The methods push and pop (as well as the
+properties car and cdr when set) modify the receiver -- but I have omitted the "$" because their traditional
+names adequately communicate their side-effects, I believe.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-ctor" class="ref">
+    <h3>constructors</h3>
+    <code>
+      <em>ls</em> = new ls()</br>
+      <em>ls</em> = new ls(<em>int</em>)
+    </code>
+    <div class="description">
+      Creates a new, empty list, optionally specifying initial capacity as <em>int</em>.  The optional
+      capacity merely provides a performance enhancement when the correct or usual capacity is known -- the list
+      will be expanded as needed beyond this number.
+    </div>
+  </div>
+  <div id="ref-append" class="ref">
+    <h3>methods append, append$, appendflat$, add$; operators +, |, &amp;</h3>
+    <code>
+      <em>ls</em>.append(<em>object</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em> + <em>object</em> =&gt; <em>ls2</em><br/><br/>
+      <em>ls</em>.append$(<em>object</em>) =&gt; <em>ls</em><br/>
+      <em>ls</em> | <em>object</em> =&gt; <em>ls</em><br/><br/>
+      <em>ls</em>.add$(<em>object</em>) =&gt; <em>ls</em><br/>
+      <em>ls</em> &amp; <em>object</em> =&gt; <em>ls</em><br/><br/>
+      <em>ls</em>.appendflat$(<em>object</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+    <p>The <code>append</code> method (and the + operator) adds an object to a list, returning
+    a new list.  if <em>object</em> is an ArrayList (or a derived class, such as another ls),
+    then all of its members are added instead of the ArrayList itself.</p>
+    <p>The <code>append$</code> method (and the | operator) modifies <em>ls</em> by adding the
+    object in place, and returns the modified list.  It also expands any Arraylist passed.</p>
+    <p>The <code>add$</code> method (and the &amp; operator) operates like <code>append$</code>,
+    but ArrayLists are not expanded.  This provides for composing nested lists.
+    <p>The <code>appendflat$</code> method operates like <code>append$</code>, but any ArrayList
+    argument is completely flattened.  Not only is the Arraylist replaced by its members, but any
+    members of the ArrayList that are ArrayLists are recursively expanded.</p>
+    <p>In all of the above, if <em>object</em> is a primitive, it will be automatically boxed
+    in a <a href="http://chipstips.com/?tag=synvar">Var</a></p>.
+    <h4>Examples of list composition</h4>
+    <code>
+    ls.of(1) | 2 | "fred" | an_object | a_list
+    </code>
+    <p>Creates a one-dimensional list from three primitives (which are boxed as Vars), an object, and
+    the members of another list</p>
+    <pre><code>
+    ls.of("1a") &amp; "1b" &amp;
+    &amp;     (ls.of("2a") &amp;
+    &amp;           (ls.of("3a") &amp; "3b"))
+    </code></pre>
+    <p>Creates a tree with three top nodes: "1a", "1b", and another list that contains
+    two nodes: "2a" and another list that contains two nodes: "3a" and "3b".  Note that the
+    ampersands on the left side are Synergy/DE line-continuation characters.</p>
+    <p>Why didn't I use "&lt;&lt;" for append, and reserve "|" and "&amp;" for union and
+    intersection, respectively?  Synergy/DE does not provide an override for "&lt;&lt;".  I didn't want to use
+    just "&lt;" in case I add comparison operators later, and intersection and union seem like
+    rare enough operations that requiring them to be spelled out should not be onerous.</p>
+    </div>
+  </div>
+  <div id="ref-car" class="ref">
+    <h3>property car</h3>
+    <code>
+      <em>ls</em>.car =&gt; <em>object</em><br/>
+      <em>ls</em>.car = <em>object</em>
+    </code>
+    <div class="description">
+      Property for referencing the first element of a list.  Because this is a property, auto-boxing of
+      primitives does not occur.  In the first form, if the list is empty, ^null is returned.
+      In the second form, if the list is empty, then <em>object</em> is added.
+    </div>
+  </div>
+  <div id="ref-cdr" class="ref">
+    <h3>property cdr</h3>
+    <code>
+      <em>ls</em>.cdr =&gt; <em>ls</em><br/>
+      <em>ls</em>.cdr = <em>ls2</em>
+    </code>
+    <div class="description">
+      Property for referencing the second and following elements of a list.  When retrieved, a new
+      <em>ls</em> containing the second through last items is returned.  When set, the second through
+      last elements of the list are removed and replaced with the elements of <em>ls2</em>.
+    </div>
+  </div>
+  <div id="ref-chop" class="ref">
+    <h3>methods chop, chop$</h3>
+    <code>
+      <em>ls</em>.chop(<em>int</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.chop$(<em>int</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Both of these methods truncate the list at the length specified by <em>int</em> (in other words,
+      removing items from that index to the end).  The <code>chop</code> method returns a truncated copy of the
+      original list, leaving the original unmodified, while <code>chop$</code> modifies and returns the
+      original list.
+    </div>
+  </div>
+  <div id="ref-compact" class="ref">
+    <h3>methods compact, compact$</h3>
+    <code>
+      <em>ls</em>.compact() =&gt; <em>ls2</em><br/>
+      <em>ls</em>.compact$() =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Both of these methods remove null elements from a list.  The <code>compact$</code> method modifies and
+      returns the original list, while <code>compact</code> returns a modified shallow copy, leaving the original
+      untouched.
+    </div>
+  </div>
+  <div id="ref-contains" class="ref">
+    <h3>method contains</h3>
+    <code>
+      <em>ls</em>.contains(<em>object</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Returns true if <em>object</em> is a member of the list, otherwise false.  This test uses IndexOf, which
+      in turn invokes the Equals() method to compare objects.  To determine whether a
+      list is a subset of another list, see <a href="#ref-issubsetof">issubsetof</a> and
+      <a href="#ref-issupersetof">issupersetof</a>.
+    </div>
+  </div>
+  <div id="ref-copy" class="ref">
+    <h3>method copy</h3>
+    <code>
+      <em>ls</em>.copy() =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Returns a shallow copy of a list (members are copied by reference).
+    </div>
+  </div>
+  <div id="ref-countif" class="ref">
+    <h3>method countif</h3>
+    <code>
+      <em>ls</em>.countif(<em>mapboolean</em>) =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      Returns the count of the number of elements in the list that, when passed to <em>mapboolean</em>'s
+      <code>test</code> method, return true.  See <a href="#ref-mapboolean">MapBoolean</a>.
+    </div>
+  </div>
+  <div id="ref-deepcopy" class="ref">
+    <h3>method deepcopy</h3>
+    <code>
+      <em>ls</em>.deepcopy() =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Copies all members of all nested lists.  Unlike <a href="#ref-copy">copy</a>, which copies
+      all members by reference even if they are lists, deepcopy makes a copy of any member that
+      is a list, recursively.
+    </div>
+  </div>
+  <div id="ref-empty" class="ref">
+    <h3>static method empty</h3>
+    <code>
+      ls.empty() =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Creates and returns a new empty list.  This method is provided because the syntax
+      <code>new ls()</code> is not valid in all contexts where the result of a method can
+      be used instead.
+    </div>
+  </div>
+  <div id="ref-equals" class="ref">
+    <h3>override method Equals</h3>
+    <code>
+      <em>ls</em>.Equals(<em>object</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Override of object.Equals() to specialize the comparison of an ls and any ArrayList.
+      The two lists are considered equal if they have the same Count, and invoking Equals() 
+      on each of the members of ls returns true when passed the corresponding member of
+      <em>object</em> (or both are ^null).
+    </div>
+  </div>
+  <div id="ref-find" class="ref">
+    <h3>method find</h3>
+    <code>
+      <em>ls</em>.find(<em>mapboolean</em>) =&gt; <em>object</em>
+    </code>
+    <div class="description">
+      Returns the first element of <em>ls</em> for which <em>mapboolean</em>.test()
+      returns true.  If no objects match, ^null is returned.
+    </div>
+  </div>
+  <div id="ref-findall" class="ref">
+    <h3>method findall</h3>
+    <code>
+      <em>ls</em>.findall(<em>mapboolean</em>) =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Returns a list of all elements of <em>ls</em> for which <em>mapboolean</em>.test()
+      returns true.  If no objects match, an empty list is returned.
+    </div>
+  </div>
+  <div id="ref-flatten" class="ref">
+    <h3>method flatten</h3>
+    <code>
+      <em>ls</em>.flatten() =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Returns a copy of a list in which all members that are ArrayLists are recursively
+      replaced by their members.  The result is a flat list of all non-ArrayList members.
+    </div>
+  </div>
+  <div id="ref-from" class="ref">
+    <h3>static method from</h3>
+    <code>
+      ls.from(<em>arraylist</em>) =&gt; <em>ls</em><br/>
+      ls.from(<em>hash</em>) =&gt; <em>ls</em><br/>
+      ls.from(<em>array</em>) =&gt; <em>ls</em><br/>
+      ls.from(<em>realarray</em>) =&gt; <em>ls</em>&nbsp;&nbsp;&nbsp;<strong>*** Synergy/DE 9.3 and above ***</strong>
+    </code>
+    <div class="description">
+      <p>Creates a new <em>ls</em> from <em>arraylist</em>, <em>hash</em>, or <em>array</em>.  Members are copied by reference.</p>
+      <p>For <em>hash</em>, an alist will be created in which each element is a pair composed from the key value
+      and associated object from the <a href="hash.html">Hash</a>.  See <a href="#ref-keyfind">keyfind</a>.</p>
+      <p>For <em>array</em>, up to 3 dimensions are supported for dynamic object arays ([#,#,#]@<em>class</em>),
+      and those dimensions will be preserved as lists within lists. Note that no automatic type
+      conversions will occur.  In particular, strings are not converted to
+      VarAlpha. Use the <a href="#ref-map">map</a> method to perform these conversions, if desired.  For
+      instance, to convert a multi-dimensioned array of strings to a list of lists of VarAlpha:</p>
+      <p><code>ls.from(<em>array</em>).map(new MapDeep(new MapAlpha()))</code></p>
+      <p>Real arrays of primitive types ([*]<em>type</em>) only work on Synergy/DE version 9.3 and above, due to a
+      compiler bug (tr#30719).  If you try to use real arrays with this method in Synergy/DE version 9.1*
+      or even in the 9.2.1 beta, it will crash the Synergy/DE runtime.  This method only supports
+      real arrays of one dimension, because I got tired of fighting with the compiler.  The primitive
+      values will be boxed as Vars.</p>
+      <p>Note also that since arrays are 1-based while ArrayLists are 0-based, the indices of members
+      in the resulting list will be one less than their indices in the original array.  That goes for
+      both <em>array</em> and <em>realarray</em></a>
+    </div>
+  </div>
+  <div id="ref-issubsetof" class="ref">
+    <h3>method issubsetof</h3>
+    <code>
+      <em>ls</em>.issubsetof(<em>ls2</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Returns true if every member of <em>ls</em> can be found in <em>ls2</em>, otherwise false.
+    </div>
+  </div>
+  <div id="ref-issupersetof" class="ref">
+    <h3>method issupersetof</h3>
+    <code>
+      <em>ls</em>.issupersetof(<em>arraylist</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Returns true if every member of <em>arraylist</em> can be found in <em>ls</em>, otherwise false.
+    </div>
+  </div>
+  <div id="ref-join" class="ref">
+    <h3>method join</h3>
+    <code>
+      <em>ls</em>.join(<em>string</em>) =&gt; <em>string2</em>
+    </code>
+    <div class="description">
+      Returns a string composed of the return value of the ToString() method of each non-null element in
+      the list, separated by <em>string</em>.
+    </div>
+  </div>
+  <div id="ref-keyadd" class="ref">
+    <h3>method keyadd</h3>
+    <code>
+      <em>ls</em>.keyadd(<em>object</em>, <em>object2</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Adds <em>object2</em> to the association for key <em>object</em>.  If <em>object</em> or
+      <em>object2</em> are primitives, they will be boxed as Vars.  Unlike method
+      <a href="#ref-keyset">keyset</a>, this method does not delete any previous association
+      with the key, it merely adds another object to the sublist for the association.  This allows for multiple
+      objects associated with the same key, as in a
+      <a href="http://en.wikipedia.org/wiki/Multimap_(data_structure)">multimap.</a>.  Use the
+      method <a href="#ref-keygetl">keygetl</a> to retrieve all associations for a key as an ls.
+    </div>
+  </div>
+  <div id="ref-keydel" class="ref">
+    <h3>method keydel</h3>
+    <code>
+      <em>ls</em>.keydel(<em>object</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Removes the entire first association in the list whose key matches <em>object</em>.  See
+      <a href="#ref-keyfind">keyfind</a> for details.  If <em>object</em> is a primitive, it will
+      be automatically boxed in a Var.
+    </div>
+  </div>
+  <div id="ref-keyfind" class="ref">
+    <h3>method keyfind</h3>
+    <code>
+      <em>ls</em>.keyfind(<em>object</em>) =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Finds a member of an alist using <em>object</em> as a key.  For each element of <em>ls</em>,
+      if that element is also an <em>ls</em> with at least one member, <em>object</em>'s Equal() method is invoked
+      to test for a match against the first element of that <em>ls</em>.  If it returns true, the
+      <em>ls</em> is returned.  If the key is a primitive, it is automatically boxed as a Var.
+      This supports the alist construct in which elements of a list are
+      themselves lists in which the first element is treated as a key.  This implementation is a bit
+      naive and underperforms for large arrays (O(n*(n/2)) to randomly access all elements).  For a much
+      faster version that is limited to alphanumeric keys and does not provide many of the features of ls,
+      try <a href="http://chipstips.com/?tag=synhash">Hash</a>.
+    </div>
+  </div>
+  <div id="ref-keyget" class="ref">
+    <h3>method keyget, property Indexer get</h3>
+    <code>
+      <em>ls</em>.keyget(<em>object</em>) =&gt; <em>object2</em><br/>
+      <em>ls</em>[<em>object</em>] => <em>object2</em>
+    </code>
+    <div class="description">
+      Gets the value <em>object2</em> associated with a key <em>object</em> in an alist.
+      If no such key exists in the alist, ^null is returned.  If <em>object</em> is a primitive,
+      it is automatically boxed as a Var, except for numeric types passed to the Indexer (in order
+      to avoid hiding ArrayList.Indexer).  If more than one value is associated with the key,
+      they are returned in an ls.
+    </div>
+  </div>
+  <div id="ref-keygetl" class="ref">
+    <h3>method keygetl</h3>
+    <code>
+      <em>ls</em>.keygetl(<em>object</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Gets the list of values associated with key <em>object</em> in an alist.  If <em>object</em>
+      is primitive, it will be boxed in a Var.  If the key is not found, an empty ls is returned.
+    </div>
+  </div>
+  <div id="ref-keyset" class="ref">
+    <h3>method keyset, property Indexer set</h3>
+    <code>
+      <em>ls</em>.keyset(<em>object</em>, <em>object2</em>) =&gt; <em>ls</em><br/>
+      <em>ls</em>[<em>object</em>] = <em>object2</em>
+    </code>
+    <div class="description">
+      Sets the value <em>object2</em> associated with a key <em>object</em> in an alist.
+      If the alist already contains an association for the specified key, then that association
+      sublist's <a href="#ref-cdr">cdr</a> is replaced by <em>object2</em>.  Otherwise,
+      a new sublist is added to <em>ls</em> containing the pair <em>object</em>, <em>object2</em>.
+      If either object is a primitive, it is automatically boxed as a Var, except for numeric
+      types passed to the Indexer (in order to avoid hiding ArrayList.Indexer).
+    </div>
+  </div>
+  <div id="ref-intersection" class="ref">
+    <h3>method intersection</h3>
+    <code>
+      <em>ls</em>.intersection(<em>arraylist</em>) =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Returns a new list containing all of the members of the original list that are also
+      found in <em>arraylist</em> (which can be another ls).  Because of the implementation of
+      ls.Equals(), elements that are instances of ls and contain the same members will be
+      treated as identical.
+    </div>
+  </div>
+  <div id="ref-last" class="ref">
+    <h3>property last</h3>
+    <code>
+      <em>ls</em>.last =&gt; <em>object</em><br/>
+      <em>ls</em>.last = <em>object</em>
+    </code>
+    <div class="description">
+      Accesses the last member of <em>ls</em>.  If the list contains no elements, the get
+      method returns ^null, while the set method adds an element.
+    </div>
+  </div>
+  <div id="ref-of" class="ref">
+    <h3>static method of</h3>
+    <code>
+      ls.of(<em>object</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Creates a new single-element <em>ls</em> containing <em>object</em>.  if <em>object</em> is a
+      primitive, it will be automatically boxed in a <a href="http://chipstips.com/?tag=synvar">Var</a>.
+    </div>
+  </div>
+  <div id="ref-makepair" class="ref">
+    <h3>macro make_pair</h3>
+    <code>
+      make_pair(<em>object</em>, <em>object2</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      This macro provides an alternative syntax for creating a list containing two objects.  If
+      either object is primitive, it will be boxed as a Var.  This macro is exactly
+      equivalent to <code>ls.of(<em>object</em>) &amp; <em>object2</em></code>
+    </div>
+  </div>
+  <div id="ref-map" class="ref">
+    <h3>methods map, map$</h3>
+    <code>
+      <em>ls</em>.map(<em>mapobject</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.map$(<em>mapobject</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      These methods map each object in the list to another object, which is the result of passing the
+      original object to <em>mapobject</em>'s <code>map</code> method.  The ls method <code>map</code> produces
+      a new list, while <code>map$</code> replaces each item in the original list.  See
+      <a href="#ref-mapobject">MapObject</a>.
+    </div>
+  </div>
+  <div id="ref-mapnonull" class="ref">
+    <h3>method mapnonull</h3>
+    <code>
+      <em>ls</em>.mapnonull(<em>mapobject</em>) =&gt; <em>ls2</em><br/>
+    </code>
+    <div class="description">
+      This method operates like <a href="#ref-map">map</a>, except that any ^null that results
+      from calling <em>mapobject</em>.map will not be included in the resulting list.
+    </div>
+  </div>
+  <div id="ref-merge" class="ref">
+    <h3>methods merge, merge$</h3>
+    <code>
+      <em>ls</em>.merge(<em>arraylist</em>, <em>compare</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.merge$(<em>arraylist</em>, <em>compare</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      <p>Assumes that both lists are sorted, and returns a merged list.  The two methods use
+      different algorithms, with <code>merge$</code> inserting items from <em>arraylist</em> into <em>ls</em>,
+      while <code>merge</code> appends items from each list to the new <em>ls2</em>.  Method <code>mergesort</code>
+      uses the <code>merge</code>, which performs slightly better with large lists.</p>
+      <p>Comparisons between the members of the two lists are performed by calling the <code>test</code>
+      method of <em>compare</em>.  See <a href="#compare">Compare functors</a>.
+    </div>
+  </div>
+  <div id="ref-mergesort" class="ref">
+    <h3>method mergesort</h3>
+    <code>
+      <em>ls</em>.mergesort(<em>compare</em>) =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Sorts the list, using <em>compare</em>, and returns a new list (leaving <em>ls</em> unmodified).
+      See <a href="#compare">Compare functors</a>.  MergeSort appears from testing to be faster
+      than <a href="#ref-quicksort">QuickSort</a> when the list contains more than circa 100,000 elements.  Therefore, <a href="#ref-sort">sort</a> uses a combination of the two, depending on
+      the size of each segment.
+    </div>
+  </div>
+  <div id="ref-pop" class="ref">
+    <h3>method pop</h3>
+    <code>
+      <em>ls</em>.pop() =&gt; <em>object</em>
+    </code>
+    <div class="description">
+      Removes and returns the first element of the list.  If the list is empty, returns ^null.
+    </div>
+  </div>
+  <div id="ref-poplast" class="ref">
+    <h3>method poplast</h3>
+    <code>
+      <em>ls</em>.pop() =&gt; <em>object</em>
+    </code>
+    <div class="description">
+      Removes and returns the last element of the list.  If the list is empty, returns ^null.
+      There is no push_last method, because that functionality is already supplied by the
+      methods add (ArrayList) and <a href="#ref-append">add$</a>.
+    </div>
+  </div>
+  <div id="ref-push" class="ref">
+    <h3>method push</h3>
+    <code>
+      <em>ls</em>.push(<em>object</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Inserts <em>object</em> at the front of the list, returning the modified list.
+    </div>
+  </div>
+  <div id="ref-quicksort" class="ref">
+    <h3>methods quicksort, quicksort$</h3>
+    <code>
+      <em>ls</em>.quicksort(<em>compare</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.quicksort$(<em>compare</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      <p>
+      Sorts the list, using <em>compare</em>.  See <a href="#compare">Compare functors</a>.
+      Both methods use the in-place QuickSort algorithm, but <code>quicksort</code> copies the list first,
+      while <code>quicksort$</code> modifies <em>ls</em>.  QuickSort appears from testing to be faster
+      than <a href="#ref-mergesort">MergeSort</a> when the list contains fewer than circa 100,000 elements.
+      Therefore, <a href="#ref-sort">sort</a> uses a combination of both, based on the size
+      of each segment.
+      </p>
+      <p>
+      This QuickSort algorithm reverts to an Insertion sort when the number of elements is
+      less than 5.  When doing a QuickSort, the middle item is used as a pivot --
+      experimentation with optimizing the pivot value (median of 3, or pseudomedian of 9)
+      yielded no improvements.  The "collapse the walls" algorithm was adopted for speed,
+      but note that this means the sort is not stable (i.e., the order of duplicates is
+      not preserved).
+      </p>
+    </div>
+  </div>
+  <div id="ref-reduce" class="ref">
+    <h3>methods reduce, reduceRight</h3>
+    <code>
+      <em>ls</em>.reduce(<em>Reducer</em>) =&gt; <em>object</em><br/>
+      <em>ls</em>.reduce(<em>Reducer</em>, <em>object2</em>) =&gt; <em>object</em><br/>
+      <em>ls</em>.reduceRight(<em>Reducer</em>) =&gt; <em>object</em><br/>
+      <em>ls</em>.reduceRight(<em>Reducer</em>, <em>object2</em>) =&gt; <em>object</em><br/>
+    </code>
+    <div class="description">
+      <p>These methods implement the equivalent of reduce, fold, inject, or accumulate in other
+      languages.  They iterate over the members of the list, invoking <em>Reducer</em>'s
+      reduce method, passing it the accumulator object and he list member.  What <em>Reducer</em>
+      returns becomes the new accumulator object, the final value of which is returned.</p>
+      <p>The methods reduce and reduceRight differ in the order in which members are
+      processed.  The reduce method goes lowest index to highest, while reduceRight does
+      the reverse.</p>
+      <p>If <em>object2</em> is passed, it is treated as an initial value, and the first
+      call to <em>Reducer</em> will pass that as the accumulator.  If <em>object2</em> is not
+      passed, then the first call to <em>Reducer</em> will pass the first (or last) member of
+      the list as the accumulator, and will begin with the second member as the member
+      argument.</p>
+      <p>If <em>object2</em> is a primitive, it will automatically be boxed as a
+      <a href="var.html">Var</a>.</p>
+    </div>
+  </div>
+  <div id="ref-remove" class="ref">
+    <h3>methods remove, remove$; operator -</h3>
+    <code>
+      <em>ls</em>.remove(<em>object</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.remove$(<em>object</em>) =&gt; <em>ls</em><br/>
+      <em>ls</em> - <em>object</em> =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Removes all occurences of <em>object</em> from <em>ls</em>, returning either a new ls (in
+      the case of <code>remove</code> and the operator -), or the modified receiver (in the case
+      of <code>remove$</code>).  If <em>object</em> is not a member of <em>ls</em>, no error occurs.
+      if <em>object</em> is primitive, it will be boxed in a Var so that Var comparisons will apply.
+      See <a href="#ref-subtract">subtract</a> for a method to remove
+      all elements of one list from another.
+    </div>
+  </div>
+  <div id="ref-removeif" class="ref">
+    <h3>methods removeif, removeif$</h3>
+    <code>
+      <em>ls</em>.removeif(<em>mapboolean</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.removeif$(<em>mapboolean</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Removes objects from a list that return true when passed to <em>mapboolean</em>'s test method.
+      See <a href="#ref-mapboolean">MapBoolean</a>.  The method <code>removeif</code> leaves <em>ls</em>
+      unmodified, while <code>removeif$</code> modifies and returns <em>ls</em>.
+    </div>
+  </div>
+  <div id="ref-reverse" class="ref">
+    <h3>method reverse</h3>
+    <code>
+      <em>ls</em>.reverse() =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Creates and returns a copy of the original list with the order of its members reversed.
+    </div>
+  </div>
+  <div id="ref-rotate" class="ref">
+    <h3>method rotate$</h3>
+    <code>
+      <em>ls</em>.rotate$(<em>int</em>...) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Swaps members of a list by index.  At least one index is required.  The element at the first specified
+      index will be moved to the last specified index.  The member at the second specified index (if any)
+      will be moved to the first specified index, and so forth.  Returns the modified list.
+    </div>
+  </div>
+  <div id="ref-sort" class="ref">
+    <h3>methods sort, sort$</h3>
+    <code>
+      <em>ls</em>.sort(<em>compare</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.sort$(<em>compare</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Sorts a list, using <em>compare</em>.  See <a href="#compare">Compare functors</a>.
+      The method <code>sort$</code> uses <a href="#ref-quicksort">QuickSort</a> to
+      sort the list in-place, while <code>sort</code> creates a sorted copy of the list.  For <code>
+      sort</code>, <a href="#ref-mergesort">MergeSort</a> is used for lists containing
+      100,000 elements or more, but when any segment within the sort contains fewer than
+      100,000 elements, QuickSort is used to sort that segment.
+    </div>
+  </div>
+  <div id="ref-subseq" class="ref">
+    <h3>method subseq</h3>
+    <code>
+      <em>ls</em>.subseq(<em>int</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.subseq(<em>int</em>, <em>int2</em>) =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Returns a list containing the members of the original list beginning at the index specified
+      by <em>int</em>, up to and including the index specified by <em>int2</em>.  If <em>int2</em>
+      is omitted, the last element in the list is assumed.
+    </div>
+  </div>
+  <div id="ref-subtract" class="ref">
+    <h3>methods subtract, subtract$; operator -</h3>
+    <code>
+      <em>ls</em>.subtract(<em>arraylist</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.subtract$(<em>arraylist</em>) =&gt; <em>ls</em><br/>
+      <em>ls</em> - <em>arraylist</em> =&gt; <em>ls2</em>
+    </code>
+    <div class="description">
+      Removes all the elements of <em>arraylist</em> from <em>ls</em>.  In the case of
+      <code>subtract</code> and the operator -, the <em>ls</em> is unmodified and a new
+      list is returned -- while <code>subtract$</code> modifies and returns its receiver.
+      If an element in <em>arraylist</em> does not occur in <em>ls</em>, no error occurs.
+      See <a href="#ref-remove">remove</a> for removing objects from a list.
+    </div>
+  </div>
+  <div id="ref-tohash" class="ref">
+    <h3>method ToHash</h3>
+    <code>
+      <em>ls</em>.ToHash() =&gt; <em>hash</em><br/>
+      <em>ls</em>.ToHash(<em>boolean</em>) =&gt; <em>hash</em>
+    </code>
+    <div class="description">
+      <p>Creates a new <a href="hash.html">Hash</a> from this list.  If <em>boolean</em>
+      is passed, it specifies whether the new Hash has case-sensitive keys.  If not passed,
+      case-sensitivity is true by default.</p>
+      <p>Not all elements in a list may qualify for inclusion in the new Hash.  To be included,
+      they must conform to the model of an alist with a unique alphanumeric key for each object.
+      In other words, only elements that are themselves an ls containing at least two elements
+      where the first two elements are non-null will be considered.  The first element's string
+      representation will be used as the hash key, and the second element will be stored as
+      the associated object.</p>
+    </div>
+  </div>
+  <div id="ref-tostring" class="ref">
+    <h3>override method ToString</h3>
+    <code>
+      <em>ls</em>.ToString() =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      Override of object.ToString() to specialize the string representation of lists.
+      the list is represented as a "[" followed by the result of ToString() on each of
+      its elements (separated by commas), followed by a closing "]".  Null elements are
+      represented as "^null".
+    </div>
+  </div>
+  <div id="ref-union" class="ref">
+    <h3>methods union, union$</h3>
+    <code>
+      <em>ls</em>.union(<em>arraylist</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.union$(<em>arraylist</em>) =&gt; <em>ls</em><br/>
+      <em>ls</em>.union(<em>object</em>) =&gt; <em>ls2</em><br/>
+      <em>ls</em>.union$(<em>object</em>) =&gt; <em>ls</em><br/>
+    </code>
+    <div class="description">
+      Returns a list containing all of the members of the original list and all of the members in
+      <em>arraylist</em> (which can be another ls).  If <em>object</em> is passed (i.e., a non-ArrayList object),
+      it will be treated as a list of one object -- and if it is primitive it will be boxed as a Var.
+      The <code>union</code> method returns a new list, while <code>union$</code> modifies the receiver.
+      Unlike <a href="#ref-append">append</a>, any element found in both lists
+      is not duplicated.  You can therefore use this method to add objects uniquely, as in a set.
+      Because of the implementation of
+      ls.Equals(), elements that are instances of ls and contain the same members will be
+      treated as identical.
+    </div>
+  </div>
+  <div id="ref-uniq" class="ref">
+    <h3>methods uniq, uniq$</h3>
+    <code>
+      <em>ls</em>.uniq() =&gt; <em>ls2</em><br/>
+      <em>ls</em>.uniq$() =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Both of these methods remove duplicates from a list (based on the element's Equals method).  The
+      <code>uniq</code> method returns a uniq'd copy of the list, while <code>uniq$</code> modifies
+      and returns the original list.
+    </div>
+  </div>
+</div>
+<div id="compare">
+<h2>Compare functors</h2>
+<h3>Introduction</h3>
+<p>The abstract class Compare provides a pattern for functors used in comparisons.  It's a poor man's
+excuse for lambdas, and about the only way to provide a lazy callback that can handle objects in
+Synergy/DE.</p>
+<p>Derived classes must implement one method:  test, which takes two object arguments and returns an
+integer.  If the first object is greater than the second, return 1.  If equal, return 0, If less than,
+return -1.  The method must be able to handle null objects.<p>
+<p>Derived classes may implement other members as needed.  For instance, a number of the provided
+classes (detailed below) implement constructors that take parameters to control their behavior.</p>
+<p>Some Compare classes take a Compare as an argument.  These are intended to modify the comparison
+operation in some way.  For instance, to compare objects as lists of strings in descending order, you
+could create a combined functor like: <code>new CompareDesc(new CompareList(new CompareString()))</code>.
+CompareDesc will reverse the sense of the return value from CompareList, which will call CompareString
+to compare each member of the lists contained within the list.  A good combination to use for sorting
+an associative list by key value (if the keys are strings) would be <code>new CompareCar(new CompareVarAlpha())
+</code>.</p>
+<p>Compare functors also provide overloads for the comparison operators (==, !=, &gt;, &lt;, &gt;=, and
+&lt;=), each of which produce a MapBoolean object that performs the specified lazy comparison against the
+right-hand term (MapCompareEqual, MapCompareNotEqual, MapCompareGreaterThan, MapCompareLessThan,
+MapCompareGreaterThanOrEqual, MapCompareLessThanOrEqual).  See <a href="#ref-mapboolean">MapBoolean</a>.
+If the right-hand term is primitive, it will be automatically boxed as a
+<a href="http://chipstips.com/?tag=synvar">Var</a>.  Thus, for example, to create a lazy evaluation
+functor for testing Vars as greater than 5, use <code>new CompareVar() &gt; 5</code>, which
+produces a MapBoolean that performs that test against the object passed to its <code>test</code> method.</p>
+<p>The following derived classes are provided:</p>
+<div id="ref-CompareCar" class="ref">
+  <h3>CompareCar</h3>
+  <code>
+    new CompareCar(<em>compare</em>)
+  </code>
+  <div class="description">
+    <p>If either of the objects is a list, its first element will be used -- otherwise the object itself.
+    If that first element is a list, its first element will be used, and so on recursively until a
+    non-list is encountered.  Then the result returned from invoking <em>compare</em>'s test method for
+    those two objects will be returned.</p>
+    <p>This Comparer is useful for sorting associative lists by key.  An associative list (or alist)
+    is one in which each element is itself a list, comprised of a key and data.
+    See <a href="#ref-keyfind">keyfind</a>.</p>
+  </div>
+</div>
+<div id="ref-CompareDesc" class="ref">
+  <h3>CompareDesc</h3>
+  <code>
+    new CompareDesc(<em>compare</em>)
+  </code>
+  <div class="description">
+    Reverses the order provided by <em>compare</em>.
+  </div>
+</div>
+<div id="ref-CompareList" class="ref">
+  <h3>CompareList</h3>
+  <code>
+    new CompareList(<em>compare</em>)
+  </code>
+  <div class="description">
+    This comparer treats each object as a list.  if either of the objects is not a list,
+    then it is automatically wrapped in a list.  Each list is then compared (using <em>compare</em>)
+    element by element until not equal, or the end of a list is reached.  If one of the lists
+    then contains more elements, it is treated as greater -- if the same, they're equal.
+  </div>
+</div>
+<div id="ref-CompareMap1" class="ref">
+  <h3>CompareMap1</h3>
+  <code>
+    new CompareMap1(<em>mapobject</em>, <em>compare</em>)
+  </code>
+  <div class="description">
+    Uses <em>mapobject</em> to map only the first of the two objects to be compared before
+    passing both to <em>compare</em>'s test method.  This comparer should not be used in a sort, but it
+    may be useful in other contexts, such as the ls methods <code>countif</code> or <code>removeif</code>.
+  </div>
+</div>
+<div id="ref-CompareMap2" class="ref">
+  <h3>CompareMap2</h3>
+  <code>
+    new CompareMap2(<em>mapobject</em>, <em>compare</em>)
+  </code>
+  <div class="description">
+    Uses <em>mapobject</em> to map both of the objects to be compared before
+    passing them to <em>compare</em>'s test method.  This comparer should be used when mapping objects
+    for sorting.
+  </div>
+</div>
+<div id="ref-CompareString" class="ref">
+  <h3>CompareString</h3>
+  <code>
+    new CompareString()<br/>
+    new CompareString(<em>boolean</em>, <em>boolean2</em>)<br/>
+    TestNatural(<em>string</em>, <em>string2</em>) =&gt; <em>int</em>
+  </code>
+  <div class="description">
+    <p>Compares the result of ToString() on both objects.  ^null is considered equal to "".</p>
+    <p>When the constructor is invoked without
+    arguments, defaults to case-insensitive, <a href="http://sourcefrog.net/projects/natsort/">natural order</a>.
+    If called with arguments, <em>boolean</em> is true for case-sensitive, <em>boolean2</em> is
+    true for natural order or false for alphanumeric order.</p>
+    <p>This class also provides the static method <code>TestNatural</code> that compares two
+    strings according to <a href="http://sourcefrog.net/projects/natsort/">natural order rules</a>.</p>
+  </div>
+</div>
+<div id="ref-CompareVar" class="ref">
+  <h3>CompareVar</h3>
+  <code>
+    new CompareVar()
+  </code>
+  <div class="description">
+    Compares <a href="http://chipstips.com/?tag=synvar">Var</a> objects using Var's built-in comparisons.
+    Non-Vars are treated as greater than Vars, and their order relative to each other is undefined.
+  </div>
+</div>
+<div id="ref-CompareVarAlpha" class="ref">
+  <h3>CompareVarAlpha</h3>
+  <code>
+    new CompareVarAlpha()
+  </code>
+  <div class="description">
+    Compares <a href="http://chipstips.com/?tag=synvar">Var</a> objects, casting them to alphanumeric.
+    Non-Vars are treated as greater than Vars, and their order relative to each other is undefined.
+  </div>
+</div>
+<div id="ref-CompareVarDec" class="ref">
+  <h3>CompareVarDec</h3>
+  <code>
+    new CompareVarDec()
+  </code>
+  <div class="description">
+    Compares <a href="http://chipstips.com/?tag=synvar">Var</a> objects, casting them to decimal.
+    Non-Vars are treated as greater than Vars, and their order relative to each other is undefined.
+  </div>
+</div>
+<div id="ref-CompareVarInt" class="ref">
+  <h3>CompareVarInt</h3>
+  <code>
+    new CompareVarInt()
+  </code>
+  <div class="description">
+    Compares <a href="http://chipstips.com/?tag=synvar">Var</a> objects, casting them to integer.
+    Non-Vars are treated as greater than Vars, and their order relative to each other is undefined.
+  </div>
+</div>
+</div>
+<div id="mapper">
+<h2>Mapper functors</h2>
+<h3>Introduction</h3>
+Mappers are used to map one object to another object or value.  Currently there are two types of mappers,
+which correspond to the two abstract classes <a href="#ref-mapobject">MapObject</a> and
+<a href="#ref-mapboolean">MapBoolean</a>.
+<div id="ref-mapobject" class="ref">
+  <h3>MapObject</h3>
+  MapObject maps one object to another.  Derived classes must override method map, which takes
+  an object as argument and returns an object.  The following derived classes may provide what you need:
+  <div id="ref-mapassoc" class="ref">
+    <h3>MapAssoc</h3>
+    <code>
+      new MapAssoc(<em>ls</em>)
+    </code>
+    <div class="description">
+      Maps objects as keys in an alist (<em>ls</em>), returning their associated object.
+    </div>
+  </div>
+  <div id="ref-mapdeep" class="ref">
+    <h3>MapDeep</h3>
+    <code>
+      new MapDeep(<em>mapobject</em>)
+    </code>
+    <div class="description">
+      <p>Recursively maps all sublists using <em>mapobject</em>.
+      For each object passed to this mapper's <code>map</code> method, if that object is not an
+      <em>ls</em>, the result is the result of mapping that object using <em>mapobject</em>'s map method.
+      If the object is an <em>ls</em>, then the result is a new <em>ls</em> containing the
+      results of mapping each of the original members of that sublist using MapDeep and <em>mapobject</em>.</p>
+      <p>This mapper if useful for mapping only the leaf nodes in a tree, where branches are
+      represented by lists within lists</p>.
+    </div>
+  </div>
+  <div id="ref-mapif" class="ref">
+    <h3>MapIf</h3>
+    <code>
+      new MapIf(<em>mapboolean</em>, <em>object</em>)<br/>
+      new MapIf(<em>mapboolean</em>, <em>object</em>, <em>object2</em>)
+    </code>
+    <div class="description">
+      Maps objects to <em>object</em> or <em>object2</em>, depending on the result of passing
+      each incoming object to <em>mapboolean</em>'s map method:  if true, <em>object</em>, else <em>object2</em>.
+      If <em>object2</em> is not given, then the original object is returned instead.
+      See <a href="#ref-mapboolean">MapBoolean</a>.  If the resulting object is also a MapObject, the
+      incoming object is passed to its map method to produce the final result.  Thus, nested ifs and elses
+      can be achieved, as well as conditional mapping functors per object.
+    </div>
+  </div>
+  <div id="ref-mapkey" class="ref">
+    <h3>MapKey</h3>
+    <code>
+      new MapKey(<em>mapobject</em>)
+    </code>
+    <div class="description">
+      Creates key =&gt; value pairs from objects, using <em>mapobject</em> to produce the key.
+      The resulting object is an ls containing the key and the original object.  Thus, passing
+      a MapKey to the ls methods map or map$ produces an alist.
+    </div>
+  </div>
+  <div id="ref-mapvar" class="ref">
+    <h3>MapVar</h3>
+    <code>
+      new MapVar()
+    </code>
+    <div class="description">
+      <p>Treats each object as a Var.  Non-Vars are returned as-is.  This class is most useful for its derived classes
+      and the operators it provides, which create derived class instances to perform lazy operations
+      on each mapped object.</p>
+      <p>For instance, <code>new MapVar() + 12</code> creates a MapVarAdd object (derived from MapVar)
+      that will add 12 to each object being mapped.  MapVar provides
+      operations for addition, subtraction, multiplication, division, and unary negation.</p>
+      <p>If either operand in an expression is a MapVar, it will be passed the object to map until a non-MapVar
+      is returned.  Thus it is possible to substitute the object being mapped at multiple points
+      in a mathematical operation.  For instance,
+      <code>integer(100) - integer(100) / new MapInt() * new MapInt()</code> provides a poor man's
+      modulo function (100 mod x, where x is the object being mapped).  Of course, a simpler
+      approach is to use MapVar's modulo method:
+      <code>MapVar.modulo(100, new MapInt())</code></p>
+      <p>Some derived classes of MapVar may be instantiated directly:</p>
+    </div>
+    <div id="ref-mapalpha" class="ref">
+      <h3>MapAlpha</h3>
+      <code>
+        new MapAlpha()<br/>
+        new MapAlpha(<em>case</em>)
+      </code>
+      <div class="description">
+        Maps objects to their ToString() representation, optionally manipulating case.  Case is an
+        enumeration of Case.NoChange (the default), Case.Upper, or Case.Lower.  The resulting string
+        is boxed in a Var.  Null objects are mapped to "".
+      </div>
+    </div>
+    <div id="ref-mapdec" class="ref">
+      <h3>MapDec</h3>
+      <code>
+        new MapDec()<br/>
+      </code>
+      <div class="description">
+        Maps objects to a decimal Var (VarDec).  If the incoming object is a Var, it is merely cast
+	as decimal and re-boxed.  Otherwise, the object's ToString() representation is boxed as
+	a VarAlpha and then cast as decimal and re-boxed -- resulting in an alpha to decimal conversion,
+	with any non-decimal string returning 0.  Null objects are also mapped to 0.
+      </div>
+    </div>
+    <div id="ref-mapint" class="ref">
+      <h3>MapInt</h3>
+      <code>
+        new MapInt()<br/>
+      </code>
+      <div class="description">
+        Maps objects to an integer Var (VarInt).  If the incoming object is a Var, it is merely cast
+	as integer and re-boxed.  Otherwise, the object's ToString() representation is boxed as
+	a VarAlpha and then cast as integer and re-boxed -- resulting in an alpha to integer conversion,
+	with any non-decimal string returning 0.  Null objects are also mapped to 0.
+      </div>
+    </div>
+    <div id="ref-mapreplace" class="ref">
+      <h3>MapReplace</h3>
+      <code>
+        new MapReplace(<em>regex</em>, <em>a</em>)<br/>
+      </code>
+      <div class="description">
+        Performs Regular Expression replacement on the string representation of objects mapped,
+	resulting in a VarAlpha.  The matching portion of the string will be replaced by
+	<em>a</em>, which may contain escaped references to portions of the string such as
+	sub-expression matches.  See the Regex documentation for the <a href="regex-reference.html#ref-replace">replace</a> method.
+      </div>
+    </div>
+  </div>
+</div>
+<div id="ref-mapboolean" class="ref">
+  <h3>MapBoolean</h3>
+  <p>MapBoolean maps an object to a boolean value.  Derived classes must override method test, which
+  takes an object as argument and returns a boolean.</p>
+  <p>MapBoolean includes operator overloads for .and. (&amp;&amp;), .or. (||) and .xor. comparisons
+  against other MapBooleans, each yielding a new MapBoolean that combines the two lazy tests (MapAnd,
+  MapOr, and MapXor, respectively).  Synergy/DE optimizations apply -- that is, if the first operation
+  in an .and. yields false, the second operation will not be tested, etc.  Grouping with parentheses
+  works as expected.  An overload for the .not. operator (!) is also provided, which yields a MapBoolean
+  object that reverses the result of its argument (MapNot).</p>
+  <p>Most of the provided derived classes are instantiated through the use of operators on either the
+  MapBoolean or <a href="#compare">Compare</a> classes.  But you may create your own derived classes
+  to perform other tests.</p>
+  <p>The following additional derived classes are provided:</p>
+  <div id="ref-mapmatches" class="ref">
+    <h3>MapMatches</h3>
+    <code>
+      new MapMatches(<em>regex</em>)
+    </code>
+    <div class="description">
+      Maps objects to true if their string representation matches the Regular Expression
+      <em>regex</em>.  See the Regex documentation under the <a href="regex-reference.html#ref-match">match</a> method.
+    </div>
+  </div>
+  <div id="ref-mapnonnull" class="ref">
+    <h3>MapNonNull</h3>
+    <code>
+      new MapNonNull()
+    </code>
+    <div class="description">
+      Maps objects to true if they're not equal to ^null, otherwise false.
+    </div>
+  </div>
+  <div id="ref-mapnull" class="ref">
+    <h3>MapNull</h3>
+    <code>
+      new MapNull()
+    </code>
+    <div class="description">
+      Maps objects to true if they're equal to ^null, otherwise false.
+    </div>
+  </div>
+</div>
+</div>
+<div id="reducer">
+  <h2>Reducer functors</h2>
+  <p>Reducers are passed to ls's <a href="#ref-reduce">reduce and reduceRight</a> methods
+  to provide the reduction algorithm to employ.</p>
+  <div id="ref-reducer" class="ref">
+    <h3>abstract Reducer</h3>
+    <div class="description">
+      <p>
+      All reducers must be derived from this class, and must override the method
+      reduce, which has the following signature:
+      </p>
+      <p><code><em>Reducer</em>.reduce(<em>object</em>, <em>object2</em>) =&gt; <em>object3</em>
+      </code></p>
+      <p>where:</p>
+      <ul>
+        <li><em>object</em> is the accumulator object.  On the first call, this will be either
+	the initial value passed to ls.reduce/reduceRight, or the first/last element of the
+	list if no initial value was passed.  On subsequent calls, it will be the result of
+	the previous call.</li>
+	<li><em>object2</em> is the next member of the list.</li>
+	<li><em>object3</em> is the new value for the accumulator.</li>
+      </ul>
+      <p>You may derive your own reducer class to implement whatever reduction you need,
+      but the following classes are provided.</p>
+      <div id="ref-reducesum" class="ref">
+        <h3>ReduceSum</h3>
+	<code>new ReduceSum()</code>
+	<div class="description">
+	  Adds all members that are <a href="var.html">Vars</a>, according to
+	  <a href="var.html#ref-add">Var rules for addition</a>, and returns a Var.
+	  The initial value, if supplied, must also be a Var or it will be ignored.
+	</div>
+      </div>
+      <div id="ref-reducedifference" class="ref">
+        <h3>ReduceDifference</h3>
+	<code>new ReduceDifference()</code>
+	<div class="description">
+	  Subtracts all members that are <a href="var.html">Vars</a>, according to
+	  <a href="var.html#ref-subtract">Var rules for subtraction</a>, and returns a Var.
+	  The initial value, if supplied, must also be a Var or it will be ignored.
+	  On each iteration, the next element is subtracted from the accumulator.
+	</div>
+      </div>
+      <div id="ref-reduceproduct" class="ref">
+        <h3>ReduceProduct</h3>
+	<code>new ReduceProduct()</code>
+	<div class="description">
+	  Multiplies all members that are <a href="var.html">Vars</a>, according to
+	  <a href="var.html#ref-multiply">Var rules for multiplication</a>, and returns a Var.
+	  The initial value, if supplied, must also be a Var or it will be ignored.
+	</div>
+      </div>
+      <div id="ref-reducequotient" class="ref">
+        <h3>ReduceQuotient</h3>
+	<code>new ReduceQuotient()</code>
+	<div class="description">
+	  Divides all members that are <a href="var.html">Vars</a>, according to
+	  <a href="var.html#ref-divide">Var rules for division</a>, and returns a Var.
+	  The initial value, if supplied, must also be a Var or it will be ignored.
+	  On each iteration, the accumulator is divided by the next member.
+	</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

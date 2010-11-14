@@ -1,0 +1,138 @@
+<html>
+<head>
+<title>ElapsedTime class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class ElapsedTime</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides an elapsed time clock.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-ctor">(constructor)</a> - start an elapsed timer</li>
+    <li><a href="#ref-datetime_struct">datetime_struct</a> - structure of the result of %datetime</li>
+    <li><a href="#ref-nseconds">nSeconds</a> - number of seconds since StartTime</li>
+    <li><a href="#ref-overhead">Overhead</a> - number of seconds to omit</li>
+    <li><a href="#ref-reset">reset</a> - reset the start time</li>
+    <li><a href="#ref-starttime">StartTime</a> - the starting time for this timer</li>
+    <li><a href="#ref-tostring">ToString</a> - string representation of the elapsed time</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-ctor" class="ref">
+    <h3>constructor</h3>
+    <code>
+      new ElapsedTime() =&gt; <em>elapsedtime</em>
+    </code>
+    <div class="description">
+      This creates a new ElapsedTime with <a href="#ref-starttime">StartTime</a> set to the current time,
+      and <a href="#ref-overhead">Overhead</a> set to 0.
+    </div>
+  </div>
+  <div id="ref-datetime_struct" class="ref">
+    <h3>structure datetime_struct</h3>
+    <pre><code>
+    public structure datetime_struct
+        group date, d8		;Date portion
+            yyyy,d4		;Year with century
+            mm  ,d2		;Month
+            dd  ,d2		;Day
+        endgroup
+        group tm, d9		;Time portion
+            hr  ,d2		;Hour (0-23)
+            min ,d2		;Minute
+            sec ,d2		;Second
+            msec,d3		;Millisecond
+        endgroup
+    endstructure
+    </code></pre>
+    <div class="description">
+      This structure is used internally by ElapsedTime, and also as the value of the
+      <a href="#ref-starttime">StartTime</a> property.  You can fill this structure
+      with the current date and time by assigning it the result of %datetime.
+    </div>
+  </div>
+  <div id="ref-nseconds" class="ref">
+    <h3>property nSeconds</h3>
+    <code>
+      <em>elapsedtime</em>.nSeconds =&gt; <em>decimal</em>
+    </code>
+    <div class="description">
+      This read-only property yields the number of seconds elapsed, which is the difference
+      between the current time and <a href="#ref-starttime">StartTime</a>, minus
+      <a href="#ref-overhead">Overhead</a>.
+    </div>
+  </div>
+  <div id="ref-overhead" class="ref">
+    <h3>property Overhead</h3>
+    <code>
+      <em>elapsedtime</em>.Overhead =&gt; <em>decimal</em><br/>
+      <em>elapsedtime</em>.Overhead = <em>decimal</em>
+    </code>
+    <div class="description">
+      This property is the number of seconds to omit from the result of <a href="#ref-nseconds">nSeconds</a> or
+      <a href="#ref-tostring">ToString()</a>.
+    </div>
+  </div>
+  <div id="ref-reset" class="ref">
+    <h3>method reset</h3>
+    <code>
+      <em>elapsedtime</em>.reset()
+    </code>
+    <div class="description">
+      Resets <a href="#ref-starttime">StartTime</a> to the current time.
+    </div>
+  </div>
+  <div id="ref-starttime" class="ref">
+    <h3>property StartTime</h3>
+    <code>
+      <em>elapsedtime</em>.StartTime =&gt; <em>datetime_struct</em><br/>
+      <em>elapsedtime</em>.StartTime = <em>datetime_struct</em>
+    </code>
+    <div class="description">
+      This property represents the date and time used as the starting time for
+      computing the elapsed time.
+    </div>
+  </div>
+  <div id="ref-tostring" class="ref">
+    <h3>override method ToString</h3>
+    <code>
+      <em>elapsedtime</em>.ToString() =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      <p>This method returns a string representation of the elapsed time since <a href="#ref-starttime">StartTime</a>,
+      minus <a href="#ref-overhead">Overhead</a>, as follows:</p>
+      <p>If the elapsed time is less than 24 hours, the result is "HH:MM:SS.mmm", where HH is the number of hours,
+      MM is the number of minutes, SS is the number of seconds, and mmm is the number of milliseconds.</p>
+      <p>If the elapsed time is 24 hours or more, then the number of whole days is returned as either "1 day + " or
+      "N days + " (where N is the number of days) followed by the remainder formatted as above for less than 24 hours.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

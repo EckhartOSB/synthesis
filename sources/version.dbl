@@ -1,0 +1,166 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+  public class Version
+
+  ; Represents a version number, but provides comparisons and some static members
+
+    public const Synthesis_Version, a*, "2.1.4"
+    public const Synthesis_WhatString, a*, make_what("Synthesis Library", Synthesis_Version)
+
+    public static property Synthesis, @Version
+      method get
+      proc
+        if (s_ver == ^null)
+	  s_ver = new Version(Synthesis_Version)
+	mreturn s_ver
+      end
+    endproperty
+
+    public static property SynergyDE, @Version
+      method get
+      proc
+        if (s_synver == ^null)
+	  s_synver = new Version(%versn)
+	mreturn s_synver
+      end
+    endproperty
+
+    public static property Toolkit, @Version
+      method get
+      proc
+        if ((s_tkver == ^null) && (%GotToolkit(D_NO_START) == D_TOOLKIT_STARTED))
+	  begin
+	    data ver, a20
+	    xsubr("u_version", ver)
+	    s_tkver = new Version(ver)
+	  end
+	mreturn s_tkver
+      end
+    endproperty
+
+    public Primary, int
+    public Major, int
+    public Minor, int
+    public Letter, string
+
+    public method Version
+    D_INARG ver, int	;Primary version number
+    D_INARG majr, int	;Major version
+    D_INARG minr, int	;Minor version
+    D_INARG ltr, a	;Letter version (blank or "" for none)
+    proc
+      Primary = ver
+      Major = majr
+      Minor = minr
+      Letter = ltr
+    end
+
+    public method Version
+    D_INARG vers, a	;Version string in the format Ver.Maj.Minlet
+    record
+    	m	,@MatchData
+    proc
+        m = version_regex.match(vers)
+	if (m.start) then
+	  begin
+	    Primary = m[1].matched	;This has to be there
+	    Major = m[3].matched	;If not matched, "" will zero
+	    Minor = m[5].matched
+	    Letter = m[6].matched	; or blank
+	  end
+	else
+	  begin
+	    clear Primary, Major, Minor
+	    Letter = ""
+	  end
+    end
+
+    .define COMPARE_CLASS, Version
+    .include "MIXINS:comparable"
+
+    protected static method cmp, int
+    D_INARG v1, int
+    D_INARG v2, int
+    proc
+    	if (v1 > v2)
+	  mreturn 1
+	if (v1 < v2)
+	  mreturn -1
+	mreturn 0
+    end
+
+    protected static method cmp, int
+    D_INARG v1, a
+    D_INARG v2, a
+    proc
+    	if (v1 .gts. v2)
+	  mreturn 1
+	if (v1 .lts. v2)
+	  mreturn -1
+	mreturn 0
+    end
+
+    public static method compare, int
+    ;
+    ; The guts of the comparison operators
+    ;
+    D_INARG v1, @Version
+    D_INARG v2, @Version
+
+    record
+    	rslt	,int
+    proc
+	if ((rslt = cmp(v1.Primary, v2.Primary)) == 0)
+	  if ((rslt = cmp(v1.Major, v2.Major)) == 0)
+	    if ((rslt = cmp(v1.Minor, v2.Minor)) == 0)
+	      rslt = cmp(v1.Letter, v2.Letter)
+        mreturn rslt
+    end
+
+    .define COMPARE_TYPE2, a
+    .include "MIXINS:comparable"
+
+    public static method compare, int
+    D_INARG v1, @Version
+    D_INARG v2, a
+    proc
+    	mreturn compare(v1, new Version(v2))
+    end
+
+    public static method op_Explicit, a
+    D_INARG v, @Version
+    proc
+        mreturn v.ToString()
+    end
+
+    public static method op_Explicit, @Version
+    D_INARG str, a
+    proc
+        mreturn new Version(str)
+    end
+
+    public override method ToString, string
+    proc
+        mreturn string(Primary) + '.' + string(Major) +
+	&	'.' + string(Minor) + Letter
+    end
+
+    private static property version_regex, @Regex
+      method get
+      proc
+        if (s_rgx == ^null)
+	  s_rgx = R$('/(\d+)(\.(\d+)(\.(\d+))?)?([^\s\d]*)/')	;compile it once, on demand
+	mreturn s_rgx
+      end
+    endproperty
+
+    private static s_rgx, @Regex
+    private static s_ver, @Version
+    private static s_synver, @Version
+    private static s_tkver, @Version
+
+  endclass
+
+endnamespace

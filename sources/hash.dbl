@@ -1,0 +1,222 @@
+.include "SYNTHESIS:synthesis.def"
+
+import System.Collections
+
+.include "DBLDIR:namspc.def"
+
+namespace Synthesis
+	
+	class Hash
+	    ; Hash or dictionary class for Synergy/DE
+	    ;
+	    ; Usage:
+	    ;
+	    ;	myhash = new Hash()
+	    ;   myhash.CaseSensitive = boolean (default is false)
+	    ;   myhash['key'] = anyobject
+	    ;   anyobject = myhash['key']
+	    ;
+	    ;	^null is returned for any key not found,
+	    ;	so set an element to ^null to clear
+	    
+	    public method Hash
+	    proc
+	        clear m_dict, m_flags, m_count
+	    endmethod
+
+	    method ~Hash		;Destructor
+	    proc
+		if (m_dict)		;Release the symbol table
+		  Dispose()
+	    endmethod
+
+	    public method Dispose, void
+	    proc
+		if (m_dict)		;Release the symbol table
+		  begin
+		    nspc_close(m_dict)
+		    clear m_dict, m_array	; and the array
+		  end
+	    end
+	    
+	    public property Indexer, @*
+		; Simulated array access
+		D_INARG name	,string	;Name as index
+		method get
+		    record
+			ndx	,int	;Index in array-list
+		proc
+		    if (m_dict && nspc_find(m_dict, name, ndx))
+		      mreturn m_array[ndx]	;Found it
+		    mreturn ^null	;Nothing added yet, or not found
+		endmethod
+		method set
+		    record
+			ndx	,int
+		proc
+		    if (!m_dict)	;Nothing added yet?
+		      begin
+			m_dict = nspc_open(m_flags)	;Create symbol table
+			m_array = new ArrayList()	; and array
+		      end
+		    if (nspc_find(m_dict, name, ndx)) then	;Do we have this one? 
+		      begin
+			if ((m_array[ndx] == ^null) && (value != ^null)) then 
+			  incr m_count			;Replacing null with something
+			else if ((m_array[ndx] != ^null) && (value == ^null))
+			  decr m_count			;Replacing something with null
+		        m_array[ndx] = value		;Yes, just replace the object
+		      end
+		    else if (value != ^null)		;Don't add if null				
+		      begin
+			incr m_count			;Adding something
+			ndx = m_array.Add(value)	;Append to the array
+			nspc_add(m_dict, name, ndx)	; and store index in symbol table
+		      end
+		endmethod
+	    endproperty
+	    
+	    public property Count, int			;Count of non-null items
+		method get
+		proc
+		    mreturn m_count			;Read-only count
+		endmethod
+	    endproperty
+	    
+	    public property CaseSensitive, boolean	;Match keys case-sensitively?
+		method get
+		proc
+		    mreturn (m_flags & D_NSPC_CASE) != 0
+		endmethod
+		method  set
+		proc
+		    if (m_dict)
+		      throw new System.Exception("Cannot change case-sensitivity after adding items")
+		    if (value) then 
+		      m_flags |= D_NSPC_CASE
+		    else
+		      m_flags &= ~D_NSPC_CASE
+		endmethod
+	    endproperty
+	    
+	    public class Iterator
+		; Class to iterate through the non-null values
+		
+		public method Iterator
+		    D_INARG a_hash	,@Hash		;Hash to iterate over
+		    D_INARG a_sorted	,boolean	;Sort by key?
+		proc
+		    m_hash = a_hash
+		    m_index = -1		;No index to start with, so Next
+						;  will go to 0
+		    m_sorted = a_sorted
+		endmethod
+
+		public method Iterator
+		    D_INARG a_hash	,@Hash
+		    this(a_hash, false)
+		proc
+		end
+		
+		public method Next, @*		;Get next hash item, or ^null
+		    out opt a_key	,a	;Optional returned key value
+		proc
+		    mreturn SelectNode(Select.Next, a_key)
+		endmethod
+		
+		public method Prev, @*		;Get previous hash item, or ^null
+		    out opt a_key	,a	;Optional returned key value
+		proc
+		    mreturn SelectNode(Select.Prev, a_key)
+		endmethod
+		
+		public method First, @*		;Get first hash item, or ^null
+		    out opt a_key	,a	;Optional returned key value
+		proc
+		    mreturn SelectNode(Select.First, a_key)
+		endmethod
+		
+		public method Last, @*		;Get last hash item, or ^null
+		    out opt a_key	,a	;Optional returned key value
+		proc
+		    mreturn SelectNode(Select.Last, a_key)
+		endmethod
+
+		public property Sorted, boolean
+		    method  get
+		    proc
+			mreturn m_sorted
+		    endmethod
+		    method  set
+		    proc
+			m_sorted = value
+			m_index = -1		;Reset index
+		    endmethod
+		endproperty
+
+		private m_index	,int		;Current index into the ArrayList
+		private m_hash, @Hash		;Hash we're iterating over
+		private m_sorted, boolean	;Sort by key?
+		
+		;Enumeration for SelectNode
+		private enum Select
+		    Next
+		    Prev
+		    First
+		    Last
+		endenum
+	    
+		private method SelectNode	,@*
+		    D_INARG a_ctl	,Select
+		    out opt a_key	,a
+		    record
+			obj	,@*
+			ctl	,Select
+			ndx	,int
+		proc
+		    if (^passed(a_key))
+		      clear a_key
+		    if (!m_hash.m_dict)
+		      mreturn ^null
+		    ctl = a_ctl
+		    do
+		      begin
+			using ctl select
+			(Select.Next),	
+					incr m_index
+			(Select.Prev),	
+					decr m_index
+			(Select.First),	
+					begin
+					  m_index = 0
+					  ctl = Select.Next
+					end
+			(Select.Last),  
+					begin
+					  m_index = m_hash.m_array.Count-1
+					  ctl = Select.Prev
+					end
+			endusing
+			if ((m_index < 0) || (m_index > m_hash.m_array.Count-1))
+			  mreturn ^null
+			if (m_sorted) then 
+			  ndx = nspc_stoa(m_hash.m_dict, m_index+1)-1	;Convert sorted index to real index
+			else
+			  ndx = m_index		;Just use the real index
+		      end
+		    until ((obj = m_hash.m_array[ndx]) != ^null)
+		    if (^passed(a_key))
+		      nspc_getdata(m_hash.m_dict, ndx+1, ndx, a_key)
+		    mreturn obj
+		endmethod
+		
+	    endclass
+	    
+	    private m_array, @ArrayList		;Array of objects
+	    private m_dict, int			;Symbol table name => index
+	    private m_flags, int		;Symbol table creation flags
+	    private m_count, int		;Count of non-null items
+	    
+	endclass
+	
+endnamespace

@@ -1,0 +1,281 @@
+<html>
+<head>
+<title>Telnet class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Telnet</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides Telnet protocol communications over a supplied transport, which must
+be a member of a class derived from <a href="transport.html">Transport</a> -- typically a
+<a href="socket.html">Socket</a>.  While Telnet is not a secure protocol for business
+applications, it is used by the Synergy/DE remote debugger -- which is why I created this
+class and its extensions.  The <a href="coverage.html">CodeCoverage</a> class uses a Telnet connection to the Synergy/DE
+debugger to sample code coverage.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-ctor">(constructor)</a></li>
+    <li><a href="#ref-getchar">GetChar</a> - get the next character sent by the peer</li>
+    <li><a href="#ref-getline">GetLine</a> - get the next line of text sent by the peer</li>
+    <li><a href="#ref-ready">Ready</a> - is the connection ready for additional characters to be sent?</li>
+    <li><a href="#ref-send">Send</a> - send text over the transport</li>
+    <li><a href="#ref-sendline">SendLine</a> - send text over the transport, with line termination</li>
+  </ol>
+<li><a href="#related">Related classes</a>
+  <ol>
+    <li><a href="#ref-telnetclient">TelnetClient</a> - a Telnet client over TCP/IP
+      <ol>
+        <li><a href="#ref-client-ctor">(constructors)</a></li>
+        <li><a href="#ref-client-run">Run</a> - process a client session</li>
+      </ol>
+    </li>
+    <li><a href="#ref-telnetinputhandler">TelnetInputHandler</a> - handler for Telnet input events
+      <ol>
+        <li><a href="#ref-onconnect">OnConnect</a> - respond to connection event</li>
+        <li><a href="#ref-ondisconnect">OnDisconnect</a> - respond to disconnection event</li>
+        <li><a href="#ref-oninput">OnInput</a> - respond to input received</li>
+        <li><a href="#ref-onready">OnReady</a> - respond to a ready state</li>
+      </ol>
+    </li>
+    <li><a href="#ref-telnetserver">TelnetServer</a> - a Telnet server over TCP/IP
+      <ol>
+        <li><a href="#ref-server-ctor">(constructor)</a></li>
+        <li><a href="#ref-server-run">Run</a> - process a server session</li>
+      </ol>
+    </li>
+  </ol>
+</li>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-ctor" class="ref">
+    <h3>constructor</h3>
+    <code>
+      new Telnet(<em>transport</em>) =&gt; <em>telnet</em>
+    </code>
+    <div class="description">
+      Creates a telnet session (client or server) using the provided transport, which must already be connected.
+      Negotiation of Telnet options is initiated immediately.
+    </div>
+  </div>
+  <div id="ref-getchar" class="ref">
+    <h3>method GetChar</h3>
+    <code>
+      <em>telnet</em>.GetChar() =&gt; <em>a</em>
+    </code>
+    <div class="description">
+      <p>
+      Returns the next character received from the peer, excluding Telnet command characters (which are processed
+      automatically).  Text is received from the peer in chunks of up to 1024 bytes, but is buffered until
+      requested by this method or the <a href="#ref-getline">GetLine</a> method.
+      </p>
+      <p>
+      Three Telnet commands return characters from this method:  EC (erase character) returns a char(8) (backspace),
+      EL (erase line) returns a char(21) (Ctrl+U), and GA (go ahead) returns a char(0) (NULL).
+      </p>
+    </div>
+  </div>
+  <div id="ref-getline" class="ref">
+    <h3>method GetLine</h3>
+    <code>
+      <em>telnet</em>.GetLine(<em>a</em>) =&gt; <em>i</em>
+    </code>
+    <div class="description">
+      Returns the next line of text received from the peer in <em>a</em>, which must be writable.  The number of
+      characters returned in <em>a</em> is returned as <em>i</em>.  This will be the lesser
+      of the size of <em>a</em> or the index of an appropriate terminator (which is included in the returned
+      text).  Note that carriage-return is not considered a terminator, but line-feed is -- because the standard
+      line termination for Telnet is a CR/LF pair.  Here are all the special case characters:
+      <ul>
+	<li>NULL (char(0)) - not returned, but treated as a line terminator.</li>
+	<li>Backspace (char(8)) - not returned.  If not the first character in the buffer, removes the previous character.</li>
+	<li>Ctrl+U (char(21)) - not returned.  Erases all text up to this point in the buffer and begins anew.</li>
+	<li>Carriage-return (char(13)) - returned as a normal character.</li>
+	<li>All other control characters (char(1) thru char(31)) - returned and treated as a line terminator.</li>
+      </ul>
+    </div>
+  </div>
+  <div id="ref-ready" class="ref">
+    <h3>property Ready</h3>
+    <code>
+      <em>telnet</em>.Ready =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This read-only property indicates whether the Telnet peer has sent a Go-Ahead authorization (GA) since
+      our last transmission.  Note that if the peer has requested to suppress go-ahead, this property will always
+      be false.  This implementation prefers to enable go-ahead, and attempts to negotiate such.
+    </div>
+  </div>
+  <div id="ref-send" class="ref">
+    <h3>method Send</h3>
+    <code>
+      <em>telnet</em>.Send(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Sends the text in <em>a</em> over the transport associated with this connection, returning true if
+      successful.  Note that success does not imply that the peer has received the characters, merely that they
+      were sent successfully.  They could be buffered pending receipt.
+    </div>
+  </div>
+  <div id="ref-sendline" class="ref">
+    <h3>method SendLine</h3>
+    <code>
+      <em>telnet</em>.SendLine(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Same as <a href="#ref-send">Send</a>, but automatically appends a carriage-return and line-feed character
+      to the end of <em>a</em>.
+    </div>
+  </div>
+</div>
+<div id="related">
+  <h2>Related classes</h2>
+  <div id="ref-telnetclient" class="ref">
+    <h3>class TelnetClient</h3>
+    <div class="description">
+      This class implements a line-oriented Telnet client using a TCP/IP stream socket for transport.
+    </div>
+    <div id="ref-client-ctor" class="ref">
+      <h3>constructors</h3>
+      <code>
+        new TelnetClient(<em>i</em>, <em>i2</em>) =&gt; <em>telnetclient</em><br/>
+	new TelnetClient(<em>a</em>, <em>i2</em>) =&gt; <em>telnetclient</em>
+      </code>
+      <div class="description">
+        Creates a Telnet client connection over a socket.  The first argument is the host
+	to which to connect, which can be specified as either an integer IP address (<em>i</em>) or
+	an alphanumeric host name (<em>a</em>).  The second argument (<em>i2</em>) specifies the
+	port number.  A <a href="socket.html#ref-socketexception">SocketException</a> may be thrown
+	if the connection cannot be established.
+      </div>
+    </div>
+    <div id="ref-client-run" class="ref">
+      <h3>method Run</h3>
+      <code>
+	<em>telnetclient</em>.Run(<em>telnetinputhandler</em>) =&gt; <em>int</em>
+      </code>
+      <div class="description">
+        This method runs a client session, returning only when one of the methods of
+	<em>telnetinputhandler</em> (which must be a <a href="#ref-telnetinputhandler">TelnetInputHandler</a>
+	or a member of a derived class) returns non-zero.  That value is then returned as <em>int</em>.
+      </div>
+    </div>
+  </div>
+  <div id="ref-telnetinputhandler" class="ref">
+    <h3>class TelnetInputHandler</h3>
+    <div class="description">
+      This class can be extended to provide methods for handling various input
+      events for the Run method of either a <a href="#ref-telnetclient">TelnetClient</a> or
+      <a href="#ref-telnetserver">TelnetServer</a>.  Derived classes may override each
+      of the methods listed below, or use the default implementation.
+    </div>
+    <div id="ref-onconnect" class="ref">
+      <h3>virtual method OnConnect</h3>
+      <code>
+        <em>telnetinputhandler</em>.OnConnect(<em>telnet</em>) =&gt; <em>int</em>
+      </code>
+      <div class="description">
+        This method is called when the Telnet connection is established for <em>telnet</em>.
+	If this method returns a non-zero value, then the session will
+	exit, returning that value.  Otherwise, the session will proceed.  The default
+	implementation returns 0.
+      </div>
+    </div>
+    <div id="ref-ondisconnect" class="ref">
+      <h3>virtual method OnDisconnect</h3>
+      <code>
+        <em>telnetinputhandler</em>.OnDisconnect(<em>telnet</em>, <em>int</em>) =&gt; <em>int2</em>
+      </code>
+      <div class="description">
+        This method is called when the Telnet connection is broken for <em>telnet</em>.  The
+	argument <em>int</em> is the transport-specific status code for the cause of the
+	dropped connection.
+	If this method returns a non-zero value, then the session will
+	exit, returning that value.  Otherwise, the session will attempt to proceed.  The default
+	implementation returns <em>int</em>.
+      </div>
+    </div>
+    <div id="ref-oninput" class="ref">
+      <h3>virtual method OnInput</h3>
+      <code>
+        <em>telnetinputhandler</em>.OnInput(<em>telnet</em>, <em>a</em>, <em>i</em>) =&gt; <em>int</em>
+      </code>
+      <div class="description">
+        This method is called when <em>telnet</em> has received a line of input via its
+	<a href="#ref-getline">GetLine</a> method.
+	If this method returns a non-zero value, then the session will
+	exit, returning that value.  Otherwise, the session will proceed.  The default
+	implementation returns 0.
+      </div>
+    </div>
+    <div id="ref-onready" class="ref">
+      <h3>virtual method OnReady</h3>
+      <code>
+        <em>telnetinputhandler</em>.OnReady(<em>telnet</em>) =&gt; <em>int</em>
+      </code>
+      <div class="description">
+        This method is called when <em>telnet</em> has received a go-ahead notification
+	from its peer.
+	If this method returns a non-zero value, then the session will
+	exit, returning that value.  Otherwise, the session will proceed.  The default
+	implementation returns 0.
+      </div>
+    </div>
+  </div>
+  <div id="ref-telnetserver" class="ref">
+    <h3>class TelnetServer</h3>
+    <div class="description">
+      This class implements a line-oriented Telnet server listening on a TCP/IP socket.
+    </div>
+    <div id="ref-server-ctor" class="ref">
+      <h3>constructor</h3>
+      <code>
+        new TelnetServer(<em>i</em>) =&gt; <em>telnetserver</em>
+      </code>
+      <div class="description">
+        Creates a Telnet server, listening for connections on port <em>i</em>.
+	A <a href="socket.html#ref-socketexception">SocketException</a> may be thrown
+	if the port is inaccessible.
+      </div>
+    </div>
+    <div id="ref-server-run" class="ref">
+      <h3>method Run</h3>
+      <code>
+	<em>telnetserver</em>.Run(<em>telnetinputhandler</em>) =&gt; <em>int</em>
+      </code>
+      <div class="description">
+        This method accepts and processes client connections, returning only when one of the methods of
+	<em>telnetinputhandler</em> (which must be a <a href="#ref-telnetinputhandler">TelnetInputHandler</a>
+	or a member of a derived class) returns non-zero.  That value is then returned as <em>int</em>.
+	If a disconnect occurs and <em>telnetinputhandler</em>'s <a href="#ref-ondisconnect">OnDisconnect</a>
+	method returns 0, then the server will wait for another connection.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

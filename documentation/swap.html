@@ -1,0 +1,47 @@
+<html>
+<head>
+<title>Swap macro reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Macros swapo, swapi, swapd, swapa, swapv</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>These macros allow you to swap the values of two variables.</p>
+</div>
+<div class="ref">
+<h2>Syntax</h2>
+<pre><code>
+	swapo(<em>var1</em>, <em>var2</em>, <em>type</em>) =&gt; true
+	swapo(<em>var1</em>, <em>var2</em>) =&gt; true
+	swapi(<em>var1</em>, <em>var2</em>) =&gt; true
+	swapa(<em>var1</em>, <em>var2</em>) =&gt; true
+	swapd(<em>var1</em>, <em>var2</em>) =&gt; true
+	swapv(<em>var1</em>, <em>var2</em>) =&gt; true
+</code></pre> 
+<p>where:</p>
+<ul>
+  <li><em>var1</em> and <em>var2</em> are variables whose contents are to be swapped</li>
+  <li><em>type</em> is a type modifier</li>
+</ul>
+</div>
+<div class="ref">
+<h2>Discussion</h2>
+<p>
+If <em>type</em> is passed, then the type of both variables must be compatible with
+receiving an instance of that type.  Otherwise, for swapo each variable must be able
+to receive an untyped object; for swapi an integer; for swapa an alpha value; for
+swapd a decimal value; and for swapv a <a href="var.html">Var</a>.
+</p>
+<p>
+<em>type</em> may be a type cast such as (MyClass), a multiple cast such as
+(i)(var), or it can even be a method or function name that will be used to return
+the proper type.  In the latter case, the routine must accept an argument of type object (@*).
+</p>
+<p>These macros provide a good example of the usefulness of <a href="let.html">let</a> and
+<a href="progn.html">progn</a> together.</p>
+</div>
+</body>
+</html>

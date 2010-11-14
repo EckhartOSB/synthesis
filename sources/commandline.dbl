@@ -1,0 +1,129 @@
+.include "SYNTHESIS:synthesis.def"
+;
+; CommandLine - class for processing the command line
+;
+namespace Synthesis
+
+    public class CommandLine
+
+	public static SwitchPrefix, a1, ' '
+
+    	public static property Text, a
+	  method get
+	  proc
+	      if (s_init)
+	        Initialize()
+	      mreturn s_cmdlin(1:s_cmdlen)
+	  end
+	endproperty
+
+	public static property Args, @ls
+	  method get
+	  proc
+	      if (s_init)
+		Initialize()
+	      mreturn s_args
+	  end
+	endproperty
+
+	public static method HasSwitch, boolean
+	;
+	; Determine whether a switch is present
+	;
+	D_INARG switch, a		;Switch name (without - or /)
+	;
+	proc
+	    if (s_init)
+	      Initialize()
+	    mreturn s_args.contains(SwitchPrefix + switch)
+	end
+
+	public static method SwitchArgs, @ls
+	;
+	; Return the arguments to a switch
+	;
+	D_INARG switch, a		;Switch name (without prefix)
+	;
+	record
+	    ndx, int
+	    l,	@ls
+	    arg, a1
+	proc
+	    if (s_init)
+	      Initialize()
+	    l = new ls()
+	    clear ndx
+	    while ((ndx < s_args.Count) &&
+	    &      ((ndx = s_args.IndexOf(SwitchPrefix + switch, ndx)) >= 0))
+	      begin
+	        while ((ndx += 1) < s_args.count)
+		  begin
+		    arg = s_args[ndx].ToString()
+		    if (arg == SwitchPrefix)
+		      exitloop
+		    l.add(s_args[ndx])
+		  end
+	      end
+	    mreturn l
+	end
+
+	private static method Initialize, void
+	record
+	    r	,@Regex
+	    m   ,@MatchData
+	    skip,int
+	    opt	,a1
+	    group sw, a3
+	      sw1, a1
+	      sw2, a2
+	    endgroup
+	    
+	proc
+	    s_init = false
+	    cmdln(s_cmdlin)
+	    s_cmdlen = %trim(s_cmdlin)
+	    if (!SwitchPrefix)
+	      begin
+		if (option(34)) then
+		  SwitchPrefix = '/'
+		else
+		  SwitchPrefix = '-'
+	      end
+	    r = R$('/\G(^|\s)(?(?=(?P<q>["'']))(?P=q)(?P<arg>.*?)(?P=q)|(?P<arg>\S+))(?=\s|$)/')
+	    s_args = new ls()
+.ifndef D_VMS
+	    skip = 2	;dbr and program name
+.endc
+	    if (option(34)) then
+	      opt = '/'
+	    else
+	      opt = '-'
+	    repeat
+	      begin
+		m = r.match(s_cmdlin(1,s_cmdlen))
+		if (!m.start)
+		  exitloop
+		if (skip) then
+		  begin
+		    sw = m['arg'].matched
+		    if (sw1 == opt) then
+		      begin
+		        if (sw2 == 'rd')
+			  incr skip			;port:timeout
+		      end
+		    else
+		      decr skip
+		  end
+		else
+		  s_args.add(Var.Box(m['arg'].matched))
+	      end
+	end
+
+        private static s_cmdlin, a65535
+	private static s_cmdlen, int
+	private static s_init, boolean, true
+	private static s_args, @ls
+
+    endclass
+
+endnamespace

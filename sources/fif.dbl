@@ -1,0 +1,77 @@
+.ifndef FIF_TYPE
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+	class Fif_
+
+; Generate methods for each type of argument/return value:
+
+.define FIF_TYPE, int
+.include "fif"			;int handles all precisions of integer
+.define FIF_TYPE, decimal
+.include "fif"			;decimal handles numeric literals and implied
+.define FIF_TYPE, a
+.include "fif"			;a handles alphanumeric expressions and strings
+.define FIF_TYPE, @*
+.include "fif"			;object handles all other classes
+.define FIF_TYPE, @Var
+.include "fif"			;except for Var, which is special
+
+.ifdef DBLNET
+.define FIF_TYPE, i		;Different from int in .NET
+.include "fif"
+.define FIF_TYPE, d.		;Different from decimal in .NET
+.include "fif"
+.define FIF_TYPE, boolean	;Different from int or i in .NET
+.include "fif"
+.endc
+
+	endclass
+
+endnamespace
+
+.else
+.ifndef FIF_TEST_TYPE
+.define FIF_TEST_TYPE, int
+.include "fif"			;int handles all precisions of integer and boolean on std
+.define FIF_TEST_TYPE, decimal
+.include "fif"			;decimal handles numeric literals and implied
+.define FIF_TEST_TYPE, a
+.include "fif"			;a handles alphanumeric expressions and strings
+.define FIF_TEST_TYPE, @Var
+.include "fif"			;Var knows boolean
+
+.ifdef DBLNET
+.define FIF_TEST_TYPE, i	;Different from int in .NET
+.include "fif"
+.define FIF_TEST_TYPE, d.	;Different from decimal in .NET
+.include "fif"
+.define FIF_TEST_TYPE, boolean	;Different from int or i in .NET
+.include "fif"
+.endc
+
+.undefine FIF_TYPE
+
+.else
+	public static method Test, FIF_TYPE
+	;
+	; Description:  Functional If test (a la C's ternary ?: operator)
+	;
+	; Arguments:
+	;
+		D_INARG a_test		,FIF_TEST_TYPE	;Expression to test
+
+		D_INARG a_iftrue	,FIF_TYPE	;Returned if a_test is true
+
+		D_INARG a_iffalse	,FIF_TYPE	;Returned if a_test is false
+
+	proc
+		if (a_test)
+		  mreturn a_iftrue
+		mreturn a_iffalse
+	endmethod
+.undefine FIF_TEST_TYPE
+
+.endc
+.endc

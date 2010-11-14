@@ -1,0 +1,323 @@
+.include "SYNTHESIS:synthesis.def"
+
+import System.Collections
+
+main test_json
+record
+	j	,@json
+	h	,@Hash
+	h2	,@Hash
+	l	,@ls
+	str	,string
+proc
+	j = new json()
+	h = new Hash()
+	h.CaseSensitive = true
+	assert_equal("{}", j.emit(h))
+	l = new ls()
+	h['list'] = l
+	assert_equal('{"list":[]}', j.emit(h))
+	l.add((@boolean)true)
+	h['bool'] = new json.Bool(false)
+	h['bool2'] = (@boolean)false
+.ifdef DBLNET
+	assert_equal('{"list":["True"],"bool":false,"bool2":"False"}', j.emit(h))
+	h['vardec'] = (Var)1.1
+	assert_equal('{"list":["True"],"bool":false,"bool2":"False","vardec":1.1}', j.emit(h))
+	l.add((@d)(-1))
+	assert_equal('{"list":["True","-1"],"bool":false,"bool2":"False","vardec":1.1}', j.emit(h))
+	l.add(new VarInt(2))
+	assert_equal('{"list":["True","-1",2],"bool":false,"bool2":"False","vardec":1.1}', j.emit(h))
+	h['i'] = (@i4)3
+	assert_equal('{"list":["True","-1",2],"bool":false,"bool2":"False","vardec":1.1,"i":"3"}', j.emit(h))
+	h['a string'] = new VarAlpha('Test "quotes"/slashes\' + char(8) + char(9) + char(10) + char(12) + char(13) + char(26))
+	str = j.emit(h)
+	assert_equal('{"list":["True","-1",2],"bool":false,"bool2":"False","vardec":1.1,"i":"3","a string":"Test \"quotes\"\/slashes\\\b\t\n\f\r\u001A"}', str)
+	j.AddMapper(new nomap())
+	str = j.emit(h)
+	assert_equal('{"list":["True","-1",2],"bool":false,"bool2":"False","vardec":1.1,"i":"3","a string":"Test \"quotes\"\/slashes\\\b\t\n\f\r\u001A"}', str)
+.else
+	assert_equal('{"list":[true],"bool":false,"bool2":false}', j.emit(h))
+	h['vardec'] = (Var)1.1
+	assert_equal('{"list":[true],"bool":false,"bool2":false,"vardec":1.1}', j.emit(h))
+	l.add((@d)(-1))
+	assert_equal('{"list":[true,-1],"bool":false,"bool2":false,"vardec":1.1}', j.emit(h))
+	l.add(new VarInt(2))
+	assert_equal('{"list":[true,-1,2],"bool":false,"bool2":false,"vardec":1.1}', j.emit(h))
+	h['i'] = (@i4)3
+	assert_equal('{"list":[true,-1,2],"bool":false,"bool2":false,"vardec":1.1,"i":3}', j.emit(h))
+	h['a string'] = new VarAlpha('Test "quotes"/slashes\' + char(8) + char(9) + char(10) + char(12) + char(13) + char(26))
+	str = j.emit(h)
+	assert_equal('{"list":[true,-1,2],"bool":false,"bool2":false,"vardec":1.1,"i":3,"a string":"Test \"quotes\"\/slashes\\\b\t\n\f\r\u001A"}', str)
+	j.AddMapper(new nomap())
+	str = j.emit(h)
+	assert_equal('{"list":[true,-1,2],"bool":false,"bool2":false,"vardec":1.1,"i":3,"a string":"Test \"quotes\"\/slashes\\\b\t\n\f\r\u001A"}', str)
+.endc
+
+	h = (Hash)j.parse(str)	;Run it back in
+	assert(h['list'] .is. ls)
+	l = (ls)h['list']
+.ifdef DBLNET
+	assert(l.Equals(ls.of("True")|-1|2))
+.else
+	assert(l.Equals(ls.of(true)|-1|2))
+.endc
+	assert(h['bool'] .is. json.Bool)
+	assert(!(json.Bool)h['bool'])
+	assert(h['vardec'] .is. VarDec)
+	assert(((VarDec)h['vardec']) == 1.1)
+	assert(h['a string'] .is. VarAlpha)
+	assert(((VarAlpha)h['a string']) == 'Test "quotes"/slashes\' + char(8) + char(9) + char(10) + char(12) + char(13) + char(26))
+
+	;Fill in test cases
+	h = new Hash()
+	h.CaseSensitive = true
+	h['l'] = ls.of(^null)
+	h['n'] = json.Null.instance
+	str = j.emit(h)
+	assert_equal('{"l":[null],"n":null}', str)
+	h = (Hash)j.parse(str)
+	assert(h['l'] .is. ls)
+	l = (ls)h['l']
+	assert(l[0] .is. json.Null)
+	assert(h['n'] .is. json.Null)
+
+	;Note truncation of unicode to (& 0xFF)
+	assert_equal('{"x":"A"}', j.emit(j.parse('{"x":"\uFF41"}')))
+
+	l = (ls)j.parse('[null]')
+	assert_equal(1, l.count)
+	assert(l[0] .is. json.Null)
+
+	h = (Hash)j.parse('{ "sub" : '
+	&		  '    { "sub1" : '
+	&		  '	  { "x" : 1.1e-2,'
+	&		  '	    "y" : 2.2e+3,'
+	&		  '	    "z" : 5E12'
+	&		  '	  }'
+	&		  '    }'
+	&	          '}')
+	assert(h['sub'] .is. Hash)
+	h2 = (Hash)h['sub']
+	assert(h2['sub1'] .is. Hash)
+	h = (Hash)h2['sub1']
+	assert(h['x'] .is. VarDec)
+	assert(((VarDec)h['x']) == 0.011)
+	assert(h['y'] .is. VarDec)
+	assert(((VarDec)h['y']) == 2200.0)
+	assert(h['z'] .is. VarDec)
+	assert(((VarDec)h['z']) == 5000000000000.0)
+	h = (Hash)j.parse('{"x":""}')
+	assert(h['x'] .is. VarAlpha)
+	assert(((VarAlpha)h['x']) == '')
+
+	begin
+	  data jb1, @json.Bool
+	  data jb2, @json.Bool
+
+	  jb1 = new json.Bool(true)
+	  jb2 = new json.Bool(true)
+	  assert(jb1 == jb2)
+	  assert(jb1.Equals(jb2))
+	  jb2 = new json.Bool(false)
+	  assert(jb1 != jb2)
+	  assert(!jb1.Equals(jb2))
+	  assert(jb1 > false)
+	  assert(jb1 == true)
+	  assert(jb2 < true)
+.ifndef DBLNET
+	  assert(jb1.Equals((@boolean)true))
+.endc
+	  assert(jb1.ToString() == "true")
+	  assert(jb2.ToString() == "false")
+
+	  assert(!jb1.Equals(ls.empty()))
+	  assert(!jb1.Equals(^null))
+	end
+
+	assert_equal(0, json.applyExponent(1, 29))	;Overflows decimal
+	assert_equal(0, json.applyExponent(1, -29))	;Underflows decimal
+
+	assert_throws(json.ParserException, "test_json_empty")
+	assert_throws(json.ParserException, "test_json_trailesc")
+	assert_throws(json.ParserException, "test_json_trailu")
+	assert_throws(json.ParserException, "test_json_badu")
+	assert_throws(json.ParserException, "test_json_badhash")
+	assert_throws(json.ParserException, "test_json_badhash2")
+	assert_throws(json.ParserException, "test_json_badhash3")
+	assert_throws(json.ParserException, "test_json_badval")
+	assert_throws(json.ParserException, "test_json_badexp")
+	assert_throws(json.ParserException, "test_json_badexp2")
+	assert_throws(json.ParserException, "test_json_badexp3")
+	assert_throws(json.ParserException, "test_json_badnum")
+	assert_throws(json.ParserException, "test_json_eol")
+	assert_throws(json.ParserException, "test_json_missing")
+
+	;Now let's try overriding the mapper
+	begin
+	  data t, @test
+	  j = new json(test.jsonMapper)
+	  t = (test)j.parse('{ "bool": true, "number": 12, "alpha": "fred",'
+	  &	            '  "array": [ 4, null, "five", false ] }')
+	  assert(t.bool)
+	  assert_equal(12, t.number)
+	  assert_equal("fred", t.alpha)
+	  assert_equal(4, (int)(Var)t.array[0])
+	  assert_null(t.array[1])
+	  assert_equal("five", (a)(Var)t.array[2])
+	  assert(!((json.Bool)t.array[3]))
+
+	  assert_equal('{ "number": 12, "alpha": "fred", "array": [4,null,"five",false], "bool": true}', j.emit(t))
+	end
+
+	pass()
+end
+
+subroutine test_json_empty
+proc
+	json.Default.parse('')
+	xreturn
+end
+
+subroutine test_json_trailesc
+proc
+	json.Default.parse('{"x":"esc\')
+	xreturn
+end
+
+subroutine test_json_trailu
+proc
+	json.Default.parse('{"x":"\u222')
+	xreturn
+end
+
+subroutine test_json_badu
+proc
+	json.Default.parse('{"x":"\u000X"}')
+	xreturn
+end
+
+subroutine test_json_badhash
+proc
+	json.Default.parse('{"x" "y"}')
+	xreturn
+end
+
+subroutine test_json_badhash2
+proc
+	json.Default.parse('{x : "y"}')
+	xreturn
+end
+
+subroutine test_json_badhash3
+proc
+	json.Default.parse('{x : "y"')
+	xreturn
+end
+
+subroutine test_json_badval
+proc
+	json.Default.parse('{"x": G}')
+	xreturn
+end
+
+subroutine test_json_badexp
+proc
+	json.Default.parse('{"x":1.2e}')
+	xreturn
+end
+
+subroutine test_json_badexp2
+proc
+	json.Default.parse('{"x":1.2e+x}')
+	xreturn
+end
+
+subroutine test_json_badexp3
+proc
+	json.Default.parse('{"x":1.2ea}')
+	xreturn
+end
+
+subroutine test_json_badnum
+proc
+	json.Default.parse('{"x":12a}')
+	xreturn
+end
+
+subroutine test_json_eol
+proc
+	json.Default.parse('{"x":  ')
+	xreturn
+end
+
+subroutine test_json_missing
+proc
+	json.Default.parse('{"x": , "y":}')
+	xreturn
+end
+
+namespace testing
+   public class test
+     public number, int
+     public alpha, string
+     public array, @ArrayList
+     public bool, boolean
+     public static property jsonMapper, @json.Mapper
+       method get
+       proc
+          mreturn new testMapper()
+       end
+     endproperty
+     private class testMapper extends json.Mapper
+       public override method emit, string
+       D_INARG a_json, @json
+       D_INARG a_obj, @*
+       proc
+	 if (a_obj .is. test)
+	   begin
+	     data t, @test
+
+	     t = (test)a_obj
+	     mreturn '{ "number": ' + a_json.emit(Var.Box(t.number)) +
+	     &	     ', "alpha": ' + a_json.emit(Var.Box(t.alpha)) +
+	     &	     ', "array": ' + a_json.emit(t.array) +
+	     &	     ', "bool": ' + a_json.emit(new json.Bool(t.bool)) +
+	     &	     '}'
+	   end
+       	 mreturn Next.emit(a_json, a_obj)
+       end
+       public override method createObject, @*
+       proc
+         mreturn new test()
+       end
+       public override method addPair, void
+       D_INARG obj, @*
+       D_INARG name, a
+       D_INARG val, @*
+       record
+       	 me, @test
+       proc
+         me = (test)obj
+	 using name select
+	 ("number"),	me.number = (int)(Var)val
+	 ("alpha"),	me.alpha = (a)(Var)val
+	 ("array"),	me.array = (Arraylist)val
+	 ("bool"),	me.bool = ((json.Bool)val).truth()
+	 endusing
+       end
+       public override method nullValue, @*
+       proc
+         mreturn ^null
+       end
+     endclass
+   endclass
+
+   public class nomap extends json.Mapper
+   ;
+   ; Just to test that all methods get forwarded to Next
+   ;
+   endclass
+
+endnamespace
+

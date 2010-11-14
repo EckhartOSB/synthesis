@@ -1,0 +1,37 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	v1	,@Version
+	v2	,@Version
+proc
+	assert_equal(Version.Synthesis_Version, (a)(Version.Synthesis))
+	assert_equal(Version.Synthesis_Version, Version.Synthesis.ToString())
+	assert(Version.Synthesis == Version.Synthesis_Version)
+	assert(Version.Synthesis_Version == Version.Synthesis)
+	assert(instr(1,%versn,(a)Version.SynergyDE))
+	assert_null(Version.Toolkit)
+	GotToolkit(D_START_ANYWAY)
+	assert_not_null(Version.Toolkit)
+	Console.WriteLine("Synthesis Version " + (a)Version.Synthesis)
+	Console.WriteLine("Synergy/DE Version " + (a)Version.SynergyDE)
+	Console.WriteLine("UI Toolkit Version " + (a)Version.Toolkit)
+	v1 = new Version("5.10.2a")
+	v2 = new Version(5,2,3,"")
+	assert(v1 > v2)
+	assert(v2 < v1)
+	assert(v1 == (Version)"005.010.002a")
+	assert_equal("5.2.3",(a)v2)
+	assert_equal(5,v1.Primary)
+	assert_equal(10,v1.Major)
+	assert_equal(2,v1.Minor)
+	assert_equal('a',v1.Letter)
+	assert((Version)"1.1.1a" < (Version)"1.1.1b")
+	assert((Version)"1.1.1b+" > (Version)"1.1.1b")
+	v1 = (Version)"xyzzy"	;Invalid version format
+	assert_equal(0,v1.Primary)
+	assert_equal(0,v1.Major)
+	assert_equal(0,v1.Minor)
+	assert(v1.Letter.Length == 0)
+	pass()
+end

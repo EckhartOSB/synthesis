@@ -1,0 +1,67 @@
+;-----------------------------------------------------------------------------
+;
+; htmlcover.dbl		Utility to create HTML source marked up for coverage
+;
+; Chip Camden		November, 2009
+;
+; usage:  dbs htmlcover -o 'htmlfile' -r 'dbrname [args]' ... [-t 'title']
+;
+; where:
+;
+;	htmlfile	is the name of the HTML file to create
+;	dbrname		is the name of a program to run
+;	args		are optional arguments to that process
+;	title		is the title for the report
+;
+; The program dbrname will be executed in remote debug and driven
+; by a Telnet session on localhost port 2499.
+;
+;-----------------------------------------------------------------------------
+;
+.include "SYNTHESIS:synthesis.def"
+
+main coverage
+record
+	lhtml	,@ls
+	lrun	,@ls
+	run	,@Var
+	srun	,string
+	html	,string
+	title	,string
+proc
+	flags(01001010,1)
+	lhtml = CommandLine.SwitchArgs('o')
+	lrun = CommandLine.SwitchArgs('r')
+	if ((lhtml.Count == 1) && (lrun.Count > 0)) then
+	  begin
+	    data cc, @CodeCoverage
+	    data badfiles, @ls
+	    data prog, @CodeCoverage.ProgressStdOut
+
+	    cc = new CodeCoverage()
+	    prog = new CodeCoverage.ProgressStdOut()
+	    foreach run in lrun
+	      begin
+		srun = run.ToString()
+		Console.WriteLine(%char(13) + "Sampling " + srun + "             ")
+		cc.Sample(srun, prog)
+	      end
+	    Console.WriteLine(%char(13) + "Analyzing source files...             ")
+	    badfiles = cc.AnalyzeAll(prog)
+	    if (badfiles.Count > 0)
+	      Console.WriteLine(%char(13) + "Could not open files: " + badfiles.join(' '))
+	    run = (Var)lhtml[0]
+	    html = run.ToString()
+	    Console.WriteLine(%char(13) + "Generating HTML to " + html)
+	    lhtml = CommandLine.SwitchArgs("title")
+	    if (lhtml.Count > 0) then
+	      title = lhtml.join(" ")
+	    else
+	      title = "Coverage for " + lrun[0].ToString()
+	    cc.MarkupAll(html, title, prog)
+	    Console.WriteLine("")
+	  end
+	else
+	  Console.WriteLine("usage: dbs htmlcover -o 'htmlfile' -r 'dbrname [args]' ... [-t 'title']")
+	stop
+end

@@ -1,0 +1,10 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+proc
+	assert(%GotToolkit() == D_NO_TOOLKIT)
+	assert(%GotToolkit(D_NO_START) == D_NO_TOOLKIT)
+	assert(%GotToolkit(D_START) == D_NO_TOOLKIT)
+	assert(%GotToolkit(D_START_ANYWAY) == D_TOOLKIT_STARTED)
+	pass()
+end

@@ -1,0 +1,178 @@
+.include "SYNTHESIS:synthesis.def"
+
+main test_assertions
+
+record
+	str	,string
+	
+proc
+	;First the positives
+	assert(TRUE)
+	assert_equal(1,1)
+	assert_equal("A","A")
+	assert_equal(1.0,1.0)
+	assert_not_equal(1,0)
+	assert_not_equal("A","Z")
+	assert_not_equal(1.0,1.1)
+	assert_in_delta(3,5,2)
+	assert_in_delta(1.1, 1.0, 0.1)
+	str = ^null
+	assert_null(str)
+	str = "abcde"
+	assert_not_null(str)
+	assert_kind_of(string, str)
+	assert_kind_of(object, str)
+	assert_throws(Synergex.synergyde.RoutineNotFound, "thisroutinedoesnotexist")
+	
+	;Now negatives, with and without message specified
+	assert_fails_with('test1', "Assertion failed")
+	assert_fails_with('test2', "Assertion failed: test argument")
+	assert_fails_with('test3', "Assertion failed: 1 does not equal 2")
+	assert_fails_with('test4', "Assertion failed: A does not equal B")
+	assert_fails_with('test5', "Assertion failed: 1 does not equal 2")
+	assert_fails_with('test6', "Assertion failed: 1 does equal 1")
+	assert_fails_with('test7', "Assertion failed: A does equal A")
+	assert_fails_with('test8', "Assertion failed: 1 does equal 1")
+	assert_fails_with('test9', "Assertion failed: 6 is not within range of 3 delta 2")
+	assert_fails_with('test10', "Assertion failed: 2.2 is not within range of 1 delta 1.1")
+	assert_fails('test11')
+	assert_fails('test12')
+	assert_fails_with('test13', "Assertion failed: object is not a member of class string")
+	assert_fails_with('test14', "Assertion failed: Expected exception type Synergex.synergyde.RoutineNotFound not thrown")
+	assert_fails('test15')	;meta!
+	assert_fails_with('test16', "Assertion failed: Exception message does not match: this doesn't match")
+	assert_fails_with('test17', "Assertion failed: 2 != 1")
+	assert_fails_with('test18', "Assertion failed: 1 == 1")
+	assert_fails_with('test19', "Assertion failed: 6 differs from 3 by more than 2")
+	assert_fails_with('test20', "Assertion failed: not an instance of string")
+	pass()
+end
+
+subroutine test1
+proc
+	assert(FALSE)
+	xreturn
+end
+
+subroutine test2
+proc
+	assert(FALSE, "test argument")
+	xreturn
+end
+
+subroutine test3
+proc
+	assert_equal(2,1,"%a does not equal %a")
+	xreturn
+end
+
+subroutine test4
+proc
+	assert_equal("B","A","%a does not equal %a")
+	xreturn
+end
+
+subroutine test5
+proc
+	assert_equal(2.0,1.0,"%a does not equal %a")
+	xreturn
+end
+
+subroutine test6
+proc
+	assert_not_equal(1,1,"%a does equal %a")
+	xreturn
+end
+
+subroutine test7
+proc
+	assert_not_equal("A", "A", "%a does equal %a")
+	xreturn
+end
+
+subroutine test8
+proc
+	assert_not_equal(1.0, 1.0, "%a does equal %a")
+	xreturn
+end
+
+subroutine test9
+proc
+	assert_in_delta(3, 6, 2, "%a is not within range of %a delta %a")
+	xreturn
+end
+
+subroutine test10
+proc
+	assert_in_delta(1.0, 2.2, 1.1, "%a is not within range of %a delta %a")
+	xreturn
+end
+
+subroutine test11
+record
+	str	,string
+proc
+	str = "hello"
+	assert_null(str)
+	xreturn
+end
+
+subroutine test12
+proc
+	assert_not_null(^null)
+	xreturn
+end
+
+subroutine test13
+record
+	str	,string
+proc
+	assert_kind_of(string, str, "object is not a member of class %a")
+	xreturn
+end
+
+subroutine test14
+proc
+	assert_throws(Synergex.synergyde.RoutineNotFound, "test14a")
+	xreturn
+end
+
+subroutine test14a
+proc
+	xreturn
+end
+
+subroutine test15
+proc
+	assert_fails('test14a')		;which doesn't
+	xreturn
+end
+
+subroutine test16
+proc
+	assert_fails_with('test1', "this doesn't match")
+	xreturn
+end
+
+subroutine test17
+proc
+	assert_equal(1, 2)
+end
+
+subroutine test18
+proc
+	assert_not_equal(1,1)
+end
+
+subroutine test19
+proc
+	assert_in_delta(3, 6, 2)
+end
+
+subroutine test20
+record
+	l	,@System.Collections.ArrayList
+proc
+	l = new System.Collections.ArrayList()
+	assert_kind_of(string, l)
+end

@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>Comparable mixin reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Mixin Comparable</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This mixin adds the comparison conditional operators to your class, so that
+whenever an instance of your class is one or more of the operands in a comparison test,
+the comparison is performed consistently.  Comparison operations include:</p>
+<table>
+<tr><th>Test</th><th>Operators</th><th>Examples</th></tr>
+<tr><td>Equality</td><td>==, .eq.</td><td><code>if (myobj == other)<br/>if (other == myobj)</code></td></tr>
+<tr><td>Inequality</td><td>!=, .ne.</td><td><code>if (myobj != other)<br/>if (other != myobj)</code></td></tr>
+<tr><td>Greater Than</td><td>&gt;, .gt.</td><td><code>if (myobj &gt; other)<br/>if (other &gt; myobj)</code></td></tr>
+<tr><td>Less Than</td><td>&lt;, .lt.</td><td><code>if (myobj &lt; other)<br/>if (other &lt; myobj)</code></td></tr>
+<tr><td>Greater Than or Equal</td><td>&gt;=, .ge.</td><td><code>if (myobj &gt;= other)<br/>if (other &gt;= myobj)</code></td></tr>
+<tr><td>Less Than or Equal</td><td>&lt;=, .le.</td><td><code>if (myobj &lt;= other)<br/>if (other &lt;= myobj)</code></td></tr>
+</table>
+</div>
+<div class="ref">
+<h2>Usage</h2>
+<p>To use this mixin, you must define the identifier COMPARE_CLASS as the class under compilation and then include the module.  For example:</p>
+<pre><code>
+class myclass
+.define COMPARE_CLASS, myclass
+.include "MIXINS:Comparable"
+
+static method compare, int
+in req obj1, @COMPARE_CLASS
+in req obj2, @COMPARE_CLASS
+proc
+    ;Return -1, 0, or 1
+end
+</code></pre> 
+<p>You must supply the static method "compare" shown above, which may be public, private, or protected.
+This method will be invoked whenever one of the comparison operations shown above needs to compare your object
+to another instance of the same class.  If obj1 is less than obj2, return -1.  If they're equal, return 0.
+Otherwise, return 1.
+</p>
+<p>If the only thing your "compare" method does is to compare members of each instance (fields, properties, or
+even method results), you can make use of another shortcut.  Define the identifier COMPARE_MEMBER to be the
+member that should be compared, and the "compare" method will be automatically generated.  For example:</p>
+
+<pre><code>
+class myIntegerWrapper
+.define COMPARE_CLASS, myIntegerWrapper
+.define COMPARE_MEMBER, m_intval
+.include "MIXINS:Comparable"
+
+private m_intval, int
+</code></pre>
+
+<p>To create comparisons against other types, define the identifier COMPARE_TYPE2 as the type to compare
+against, include the module, and provide another version of the "compare" method to handle that comparison:</p>
+
+<pre><code>
+.define COMPARE_TYPE2, int
+.include "MIXINS:Comparable"
+
+static method compare, int
+in req obj1, @COMPARE_CLASS
+in req obj2, COMPARE_TYPE2
+proc
+end
+</code></pre>
+<p>When COMPARE_TYPE2 does not equal @COMPARE_CLASS, the operators for both orders of operands will
+be generated automatically.</p>
+<p>You may also define COMPARE_MEMBER2 to specify the member of COMPARE_TYPE2 that should be compared
+against COMPARE_CLASS's COMPARE_MEMBER member.  If you define COMPARE_TYPE2 and COMPARE_MEMBER, but
+dont' define COMPARE_MEMBER2, then COMPARE_MEMBER must exist in both classes.</p>
+</div>
+</body>
+</html>

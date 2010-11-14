@@ -1,0 +1,1861 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	r1	,@Regex
+	r2	,@Regex
+	i	,int
+proc
+	;Instantiation tests
+
+	r1 = new Regex("/a/")
+	assert(r1.ToString() == "/a/")
+	assert((a)r1 .eqs. "/a/")
+	assert(r1.LastMatch == ^null)
+	r1 = new Regex(Var.Box("/b/"))
+	assert((a)r1 .eqs. "/b/")
+	r1 = r$("/c/")
+	assert(r1.ToString() == "/c/")
+	r1 = r$((string)"/d/")
+	assert((a)r1 .eqs. "/d/")
+	r1 = r$(Var.Box("/d/"))
+	assert((a)r1 .eqs. "/d/")
+
+	;Matching tests
+
+	r1 = r$('/a/')
+	assert(r1.match('alligator').start == 1)
+	assert(r1.LastMatch.start == 1)
+	assert(r1.LastMatch.end == 1)
+	assert(r1.LastMatch.length == 1)
+	assert(r1.LastMatch.matched == "a")
+	assert(r1.LastMatch.before == "")
+	assert(r1.LastMatch.after == "lligator")
+	assert(r1.LastMatch.Count == 1)		;No sub-expressions
+	assert(r1.LastMatch.ToString() == "1:1")
+	r1 = r$('/b')		;Note trailing delimiter missing but assumed
+	assert(r1.match('alligator').start == 0)
+	assert(r1.LastMatch.end == 0)
+	assert(r1.LastMatch.matched == "")
+	assert_null(r1.LastMatch.before)
+	assert_null(r1.LastMatch.after)
+	assert(r$('/r/').match('alligator').start == 9)
+	assert(r$('/li/').match('alligator').start == 3)
+	assert(r$('/alligator/').match('alligator').start == 1)
+	assert(r$('/alligators/').match('alligator').start == 0)
+
+	;Anchors
+	r1 = r$('/^al/')
+	assert(r1.match('alligator').start == 1)
+	assert(r1.match('gal').start == 0)
+	r1 = r$('/or$/')
+	i = r1.match('alligator').start
+	assert_equal(8, i)
+	assert(r1.match('alligators').start == 0)
+	r1 = r$('/^/')
+	assert(r1.match('alligator').start == 1)
+	assert_equal(0, r1.LastMatch.length)
+	assert_equal(0, r1.LastMatch.end)
+	assert((a)r1.LastMatch.matched .eqs. "")
+	assert((a)r1.LastMatch.before .eqs. "")
+	assert((a)r1.LastMatch.after .eqs. "alligator")
+	r1 = r$('/$/')
+	assert_equal(10, r1.match('alligator').start)
+	assert(r1.LastMatch.length == 0)
+	assert(r1.LastMatch.end == 9)
+	assert((a)r1.LastMatch.matched .eqs. "")
+	assert((a)r1.LastMatch.before .eqs. "alligator")
+	assert((a)r1.LastMatch.after .eqs. "")
+	r1 = r$('/\Aal/')
+	assert_equal(1, r1.match('alligator').start)
+	assert(r1.match('gal').start == 0)
+	r1 = r$('/\`al/')
+	assert(r1.match('alligator').start == 1)
+	assert(r1.match('gal').start == 0)
+	r1 = r$('/or\z/')
+	assert(r1.match('alligator').start == 8)
+	assert(r1.match('alligators').start == 0)
+	r1 = r$('/or\Z/')
+	assert(r1.match('alligator').start == 8)
+	assert(r1.match('alligators').start == 0)
+	r1 = r$("/or\'/")
+	assert(r1.match('alligator').start == 8)
+	assert(r1.match('alligators').start == 0)
+	r1 = r$('/\z/')
+	assert_equal(11, r1.match('alligator' + %char(10)).start)
+	r1 = r$('/\Z/')
+	assert(r1.match('alligator' + %char(10)).start == 10)
+	r1 = r$('/\A/')
+	assert(r1.match('alligator').start == 1)
+	assert_equal(0, r1.LastMatch.length)
+	assert_equal(0, r1.LastMatch.end)
+	assert((a)r1.LastMatch.matched .eqs. "")
+	assert((a)r1.LastMatch.before .eqs. "")
+	assert((a)r1.LastMatch.after .eqs. "alligator")
+	r1 = r$('/$/')
+	assert(r1.match('alligator').start == 10)
+	assert(r1.LastMatch.length == 0)
+	assert(r1.LastMatch.end == 9)
+	assert((a)r1.LastMatch.matched .eqs. "")
+	assert((a)r1.LastMatch.before .eqs. "alligator")
+	assert((a)r1.LastMatch.after .eqs. "")
+
+	;Options
+	r1 = r$('/a/i')
+	assert(r1.IgnoreCase == true)
+	assert(r1.match('Alligator').start == 1)
+	r1.IgnoreCase = false
+	assert(r1.match('Alligator').start == 6)
+	r1 = r$('/A/i')
+	assert(r1.match('alligator').start == 1)
+	r1.IgnoreCase = false
+	assert(r1.match('alligator').start == 0)
+	r1 = r$('/^x/m')
+	assert_equal(5, r1.match('abc' + %char(10) + 'xyz').start)
+	r1 = r$('/\Ax/m')
+	assert_equal(0, r1.match('abc' + %char(10) + 'xyz').start)
+	r1 = r$('/^y/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 0)
+	r1 = r$('/x/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 5)
+	r1 = r$('/c\A/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 0)
+	r1 = r$('/b^/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 0)
+	r1 = r$('/$\nx/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 4)
+	r1 = r$('/\Zx/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 0)
+	r1 = r$('/\z/m')
+	assert(r1.match('abc' + %char(10) + 'abc' + %char(10)).start == 9)
+	r1 = r$('/\Z/m')
+	assert(r1.match('abc' + %char(10) + 'abc' + %char(10)).start == 8)
+	r1 = r$('/c$/mg')
+	assert(r1.replace('tic' + %char(10) + 'tac' + %char(10) + 'toc', 'p') ==
+	&	'tip' + %char(10) + 'tap' + %char(10) + 'top')
+	r1.GlobalSearch = false
+	assert(r1.replace('tic' + %char(10) + 'tac' + %char(10) + 'toc', 'p') ==
+	&	'tip' + %char(10) + 'tac' + %char(10) + 'toc')
+	assert(r$('/^x/g').replace('xxxxx','y') .eqs. 'yxxxx')
+	assert(r$('/^x/gm').replace('xxxxx'+%char(10)+'xxxxx','y') .eqs.
+	&	'yxxxx'+%char(10)+'yxxxx')
+	r1 = r$('/c\Z/mg')
+	assert(r1.replace('tic' + %char(10) + 'tac' + %char(10) + 'toc', 'p') ==
+	&	'tic' + %char(10) + 'tac' + %char(10) + 'top')
+	assert_equal(4, r$('/^a/m').match('ax' + %char(10) + 'ax', 4).start)
+	assert(r$('/^fred$/gm').replace('fred' + %char(10) + 'fred' + %char(10) + 'fred', 'wilma') ==
+	&	'wilma' + %char(10) + 'wilma' + %char(10) + 'wilma')
+	r1 = r$('/abcx/m')
+	assert(r1.match('abc' + %char(10) + 'xyz').start == 0)	;not across lines
+	r1 = r$('/ab.c/')
+	assert_equal(0, r1.match('ab' + %char(10) + 'c').start)	;By default, not singleline
+	r1.DotMatchesNewline = true
+	assert_equal(1, r1.match('ab' + %char(10) + 'c').start)
+	r1 = r$('/ab$.c/ms')
+	assert(r1.DotMatchesNewline)
+	assert_equal(1, r1.match('ab' + %char(10) + 'c').start)
+	r1.DotMatchesNewline = false
+	assert_equal(0, r1.match('ab' + %char(10) + 'c').start)
+	begin
+	  data match, @MatchData
+
+	  r1 = r$('/(a(b))(c)/n')
+	  assert(r1.ExplicitCapture)
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(0, match[1].start)	;No capture
+
+	  r1 = r$('/(a(b))(?P<c>c)/n')
+	  match = r1.match('abc')
+	  assert_equal(3, match[1].start)
+	  assert_equal(1, match[1].length)
+	  assert(object.ReferenceEquals(match[1], match['c']))
+	end
+
+	r1 = r$('/a/x # comment')
+	assert(r1.Extended)
+	assert(r1.match('alligator').start == 1)
+	r1 = r$('/^	# start of line' + char(10) +
+	&	'a	# an a'		 + char(10) +
+	&	'/x	# extended mode' + char(10) +
+	&	'g      # global search')
+	assert(r1.match('alligator').start == 1)
+	assert(r1.GlobalSearch)
+	r1 = r$('/^'	; start of line
+	&	'a '	; an 'a'
+	&	'/ '	; end delimter
+	&	'x ')	; extended mode
+	assert(r1.match('alligator').start == 1)
+
+	;*
+	assert_equal(1, r$('/g*/').match('alligator').start)	;matches empty string at beginning
+	assert(r$('/x*/').match('alligator').start == 1)
+	assert(r$('/^g*/').match('alligator').start == 1)	;matches ^
+	assert(r$('/^g+/').match('alligator').start == 0)
+	assert(r$('/g*$/').match('alligator').start == 10)	;matches $
+	assert(r$('/g+$/').match('alligator').start == 0)
+	assert(r$('/^a*/').match('alligator').start == 1)
+	assert(r$('/r*$/').match('alligator').start == 9)
+	assert(r$('/l*i/').match('alligator').start == 2)	;Matches the first l
+	assert(r$('/l*g/').match('alligator').start == 5)	;Matches the g
+	assert(r$('/g*a/').match('alligator').start == 1)	;Matches the first a (zero g's)
+	assert(r$('/at*/').match('alligator').start == 1)	;Matches the first a
+	assert(r$('/at*o/').match('alligator').start == 6)	;The o forces to the second a
+	assert(r$('/al*i/').match('alligator').start == 1)	;The l* matching both l's
+	assert(r$('/al*li/').match('alligator').start == 1)	;The l* matching only one l
+	assert(r$('/al*lli/').match('alligator').start == 1)	;The l* matching zero l's
+
+	;|
+	assert(r$('/g|i/').match('alligator').start == 4)
+	assert(r$('/i|g/').match('alligator').start == 4)
+	assert_equal(5, r$('/g|z/').match('alligator').start)
+	assert(r$('/z|i/').match('alligator').start == 4)
+	assert(r$('/m|z/').match('alligator').start == 0)
+	assert(r$('/l*i|z/').match('alligator').start == 2)
+	assert(r$('/x|a*t/').match('alligator').start == 6)
+	assert(r$('/l|i|g/').match('alligator').start == 2)
+	assert(r$('/i|g|l/').match('alligator').start == 2)
+	assert(r$('/g|l|i/').match('alligator').start == 2)
+	assert(r$('/li|tor/').match('alligator').start == 3)
+
+	;+
+	assert(r$('/l+i/').match('alligator').start == 2)	;On the first l
+	assert(r$('/m+i/').match('alligator').start == 0)
+	assert(r$('/ig+/').match('alligator').start == 4)
+	assert(r$('/l*a+/').match('alligator').start == 1)	;zero l's, one a
+
+	;?
+	assert_equal(3, r$('/li?g/').match('alligator').start)
+	assert(r$('/lx?g/').match('alligator').start == 0)
+	assert(r$('/lx?i/').match('alligator').start == 3)
+	assert(r$('/l?i/').match('alligator').start == 3)
+	assert(r$('/ll?i/').match('alligator').start == 2)
+	assert(r$('/lll?i/').match('alligator').start == 2)	;third l optional
+
+	;\char
+	assert(r$('/\//').match('a//igator').start == 2)
+	assert(r$('/\\/').match('a\\igator').start == 2)
+	assert(r$('/t\*r/').match('alligat*r').start == 7)
+	assert(r$('/\a/').match('Bell: ' + %char(7)).start == 7)
+	assert(r$('/a[\b]b/').match('ha' + %char(8) + 'bby').start == 2)	;Backspace
+	assert(r$('/a[\B]b/').match('haBby').start == 2)			;Just a B
+	assert(r$('/\cC/').match(%char(3)).start == 1)
+	assert(r$('/\cz/').match(%char(26)).start == 1)
+	assert(r$('/\t\n\v\f\r/').match(%char(9)+
+	&	%char(10)+%char(11)+%char(12)+%char(13)).start == 1)
+	assert(r$('/\d/').match("bl1nk").start == 3)
+	assert(r$('/\D/').match("123floor").start == 4)
+	assert(r$('/\e/').match('ESC: ' + %char(27)).start == 6)
+	assert(r$('/\s/').match("alligator rock").start == 10)
+	assert(r$('/\S/').match(' ' + %char(9) + %char(10) +
+	&	%char(11) + %char(12) + %char(13) + "n").start == 7)
+	assert(r$('/\w/').match(' !hi').start == 3)
+	assert(r$('/\W/').match('hi!').start == 3)
+	assert(r$('/\w\W/').match('hi!').start == 2)
+
+	;.
+	assert(r$('/a.*r/').match("alligator").start == 1)
+	assert(r$('/t.*r/').match("alligator").start == 7)
+	assert(r$('/.*a/').match("alligator").length == 6)
+	assert(r$('/t.*/').match("alligator").length == 3)
+
+	;[]
+	assert(r$('/[abc]/').match("hey baby").start == 5)
+	assert(r$('/[\sx]/').match("a x").start == 2)
+	assert(r$('/[\sx]/').match("aix").start == 3)
+	assert(r$('/[h-l]/').match("j").start == 1)
+	assert(r$('/a[ilg]*a/').match("alligator").start == 1)
+	assert(r$('/a[g-il]*a/').match("alligator").start == 1)
+	assert(r$('/a[tg-il]*/').match("alligator").start == 1)
+	assert(r$('/a[tg-ila]*/').match("alligator").length == 7)
+	assert(r$('/[\147]/').match('alligator').start == 5)	;g
+	assert(r$('/[\8]/').match('5678').start == 4)		;not octal, just an 8
+	assert(r$('/[\x61-\x6C]*/').match('alligator').length == 6)
+	assert(r$('/[^a-l]/').match('alligator').start == 7)
+	assert(r$('/[c^]/').match('allig^tor').start == 6)	;^ after first pos is literal
+	assert(r$('/[\A\Z\z]+/').match('abcZAzde').start == 4)	;\A, \Z, and \z are just characters in a class
+	;set subtraction
+	assert(r$('/[a-z-[aeiou]]/ig').replace('Hello world!', '+') == "+e++o +o+++!")
+	assert(r$('/[\d-[57]]/g').replace('9876543210 blastoff!', '') == '75 blastoff!')
+	assert(r$('/[a-z-[k-o-[lm]]]/g').replace("the joke's on me",'') == " ok' on ")		;nested
+	assert(r$('/[a-z-[k-o]-[th]]/g').replace("the joke's on me",'') == "th ok' on m")	;serial
+
+	;()
+	assert(r$('/(a|l)l/').match('alligator').start == 1)
+	assert(r$('/(a|l)i/').match('alligator').start == 3)
+	assert_equal(1, r$('/(a|l)+i/').match('alligator').start)
+	assert(r$('/g(t|a)/').match('alligator').start == 5)
+	assert(r$('/x*(t|a)/').match('alligator').start == 1)	;zero x's
+	assert(r$('/l+(i|g)/').match('alligator').start == 2)
+	assert(r$('/(ll|al)/').match('alligator').start == 1)
+	assert(r$('/(l+|(al+))i/').match('alligator').start == 1)
+	assert(r$('/.*a/').match('alligator').start == 1)
+	assert_equal(1, r$('/()*/').match('alligator').start)	;zero-length match, test for infinite loop
+
+	;replace
+	assert(r$('/l/g').replace("alligator", "g") == "aggigator")
+	assert(r$('/l/').replace("alligator", "g") == "agligator")
+	assert(r$('/l/').replace("alligator", "g", 3) == "algigator")
+	assert(r$('/l*/').replace("alligator", "fr") == "fralligator")
+	assert(r$('/l+/').replace("alligator", "fr") == "afrigator")
+
+	;subexpressions
+	begin
+	  data match, @MatchData
+	  data rgx, @Regex
+
+	  match = r$('/a(l)/').match('alligator')
+	  assert(match.start == 1)
+	  assert(match.length == 2)
+	  assert(match.end == 2)
+	  assert(match.matched == "al")
+	  assert(match[0] == match)
+	  assert(match[1].start == 2)
+	  assert(match[1].length == 1)
+	  assert(match[1].end == 2)
+	  assert(match[1].matched == "l")
+	  assert(match[1].before == "a")
+	  assert(match[1].after == "ligator")
+	  assert(match[2].start == 0)
+	  assert(match.ToString() == "1:2,\1=>2:1")
+
+	  match = r$('/(l+|(al+))i/').match('alligator')
+	  assert(match.start == 1)
+	  assert(match.length == 4)
+	  assert(match.end == 4)
+	  assert(match.matched .eqs. "alli")
+	  assert(match.before .eqs. "")
+	  assert(match.after .eqs. "gator")
+	  assert(match[1].start == 1)
+	  assert(match[1].length == 3)
+	  assert(match[1].matched == "all")
+	  assert(match[2].start == 1)
+	  assert(match[2].length == 3)
+	  assert(match[2].matched == "all")
+	  assert(match.ToString() == "1:4,\1=>1:3,\2=>1:3")
+	  
+	  match = r$('/((lig.*)|(gat))(o.)/').match("alligator")
+	  assert(match.start == 3)
+	  assert(match.length == 7)
+	  assert_equal(5, match.Count)	;4 sub-expressions
+	  assert_equal(3, match[1].start)
+	  assert_equal(5, match[1].length)
+	  assert(match[1].matched == "ligat")
+	  assert(match[2].start == 3)
+	  assert(match[2].length == 5)
+	  assert(match[2].matched == "ligat")
+	  assert(match[3].start == 0)
+	  assert(match[3].length == 0)
+	  assert(match[3].matched .eqs. "")
+	  assert(match[4].start == 8)
+	  assert(match[4].length == 2)
+	  assert(match[4].matched == "or")
+	  assert(match.ToString() == "3:7,\1=>3:5,\2=>3:5,\3=>0:0,\4=>8:2")
+
+	  match = r$('/(x(y)z)*/').match('xyzxyz')
+	  assert(match.start == 1)
+	  assert(match.length == 6)
+	  assert_equal(4, match[1].start)
+	  assert(match[1].length == 3)
+	  assert(match[2].start == 5)
+	  assert(match[2].length == 1)
+	  assert(match.count == 3)
+
+	  match = r$('/.*(a)/').match('alligator')
+	  assert(match.start == 1)
+	  assert(match.length == 6)	;second a -- greedy
+	  assert(match[1].start == 6)
+	  assert(match[1].length == 1)
+
+	  match = r$('/(.*a)/').match('alligator')
+	  assert(match.start == 1)
+	  assert(match.length == 6)	;second a -- greedy
+	  assert(match[1].start == 1)
+	  assert(match[1].length == 6)
+
+	  ;Back-references
+	  match = r$('/(gator)\1/').match('alligatorgator')
+	  assert_equal(5,match.start)
+	  assert_equal(10,match.length)
+	  assert_equal(5,match[1].start)
+	  assert_equal(5,match[1].length)
+
+	  match = r$('/(gator)\1\1/').match('alligatorgatorgator')
+	  assert_equal(5,match.start)
+	  assert_equal(15,match.length)
+	  assert_equal(5,match[1].start)
+	  assert_equal(5,match[1].length)
+
+	  rgx = r$('/([a-c])x\1x\1/')
+	  match = rgx.match('axaxa')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+	  match = rgx.match('bxbxb')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+	  match = rgx.match('cxcxc')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+
+	  rgx = r$('/all(z*)igat\1/')
+	  match = rgx.match('allzzigatzz')
+	  assert_equal(1,match.start)
+	  assert_equal(11,match.length)
+	  match = rgx.match('alligat')	;empty match
+	  assert_equal(1,match.start)
+	  assert_equal(7,match.length)
+
+	  match = r$('/(all)i\2gat/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(7, match.length)	;ignores non-captured group
+
+	  match = r$('/(\2(.))*/').match('aabbc')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+
+	  match = r$('/(\1[a-z])*/').match('aababcabcd')
+	  assert_equal(1, match.start)
+	  assert_equal(10, match.length)
+	  assert_equal(7, match[1].start)
+	  assert_equal(4, match[1].length)
+
+	  match = r$('/(A)-\1/i').match('xA-a')
+	  assert_equal(2, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/(A)-\1/i').match('xa-A')
+	  assert_equal(2, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/\0/').match('202')
+	  assert_equal(2, match.start)	;Just a zero
+
+	  match = r$('/(a?)*/').match('aaa')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/(a*b*)*/').match('abbbbaabbbxx')
+	  assert_equal(1, match.start)
+	  assert_equal(10, match.length)
+	  assert_equal(11, match[1].start)
+	  assert_equal(0, match[1].length)
+	end
+
+	;replace with \ tokens
+	assert(r$('/li(gat)or/').replace('alligator','\1') == "algat")
+	assert(r$('/(x(y)z)/g').replace('xyzxyz','\2') == "yy")
+	assert(r$('/(flip)\s*(flop)/').replace('flip  flop', '\2 \1') == 'flop flip')
+	assert(r$('/hare/').replace('a cute hare', '\& kare') == 'a cute hare kare')
+	assert(r$('/[A-Z]:\\windows/i').replace("c:\Windows","\&\\sucks") == "c:\Windows\sucks")
+	assert(r$('/c#/i').replace('Screw C#, use Synergy/DE','I said \`\&')
+	&	== 'Screw I said Screw C#, use Synergy/DE')
+	assert(r$('/me /').replace('me first', "\' \&") == "first me first")
+	assert(r$('/((a)|(b)|(c))*/g').replace("abba","\+") == "b")	;didn't match c
+	assert(r$('/l+/').replace("alligator", "\") == "a\igator")	;\ at the end is a character
+	assert_equal("my alligator", r$('/^al/').replace("alligator", "my \0"))
+	assert_equal("alligater", r$('/o/').replace("alligator", "\x65"))
+	assert_equal("alligatxgtr", r$('/o/').replace("alligator", "\xgt"))
+	assert_equal("alligatx5r", r$('/o/').replace("alligator", "\x5"))
+	assert_equal("alligatxr", r$('/o/').replace("alligator", "\x"))
+
+	;replace with $ tokens
+	assert_equal("algat", r$('/li(gat)or/').replace('alligator','$1'))
+	assert(r$('/(x(y)z)/g').replace('xyzxyz','${2}') == "yy")
+	assert(r$('/(flip)\s*(flop)/').replace('flip  flop', '$2 \1') == 'flop flip')
+	assert(r$('/hare/').replace('a cute hare', '$& kare') == 'a cute hare kare')
+	assert(r$('/[A-Z]:\\windows/i').replace("c:\Windows","$&\\sucks") == "c:\Windows\sucks")
+	assert(r$('/c#/i').replace('Screw C#, use Synergy/DE','I said $`$&')
+	&	== 'Screw I said Screw C#, use Synergy/DE')
+	assert(r$('/me /').replace('me first', "$' \&") == "first me first")
+	assert(r$('/((a)|(b)|(c))*/g').replace("abba","$+") == "b")	;didn't match c
+	assert(r$('/l+/').replace("alligator", "$") == "a$igator")	;$ alone
+	assert_equal("my alligator", r$('/^al/').replace("alligator", "my $0"))
+	assert_equal('$1500', r$('/#/').replace('#500', '$$1'))
+	assert_equal('$1500', r$('/#/').replace('#500', '\$1'))
+	assert_equal('$a500', r$('/#/').replace('#500', '$a'))
+	assert_equal('${', r$('/a/').replace('a', '${'))
+	assert_equal('', r$('/a/').replace('a', '${}'))
+	assert_equal('a', r$('/b(?P<name>a)/').replace('ba', '${name}'))
+	assert_equal('', r$('/b(?P<name>a)/').replace('ba', '${naem}'))
+	assert_equal('k', r$('/a(b(c(d(e(f(g(h(i(j(k))))))))))/').replace('abcdefghijk', '${10}'))
+
+	;Var's match and replace methods
+	assert(Var.Box("hello").match(r$('/l+/')).length == 2)
+	assert(Var.Box(1247).replace(r$('/[2-4]/g'),3) == 1337)
+	assert(Var.Box("Regexen are hard").replace(r$('/hard/'),'cool') == "Regexen are cool")
+
+	;MapMatches and MapReplace
+	begin
+	  data ls1, @ls
+	  ls1 = ls.of(1).add$('a').add$(5).add$('p5').findall(new MapMatches(r$('/^[\d.]*$/')))
+	  assert(ls1.Equals(ls.of(1) & 5))
+	  ls1.map$(new MapReplace(r$('/\d*/'),'0'))
+	  assert(ls1.Equals(ls.of('0') & '0'))
+	end
+
+	;Version number test
+	begin
+	  data m, @MatchData
+	  m = R$('/(\d+)(\.(\d+)(\.(\d+))?)?([^\s\d]*)/').match('1.0.1')
+	  assert_equal(1,m.start)
+	  assert_equal(5,m.length)
+	  assert_equal(1,m[1].start)
+	  assert_equal(1,m[1].length)
+	  assert_equal(2,m[2].start)
+	  assert_equal(4,m[2].length)
+	  assert_equal(3,m[3].start)
+	  assert_equal(1,m[3].length)
+	  assert_equal(4,m[4].start)
+	  assert_equal(2,m[4].length)
+	  assert_equal(5,m[5].start)
+	  assert_equal(1,m[5].length)
+	  assert_equal(6,m[6].start)	;Matches end of string
+	  assert_equal(0,m[6].length)
+	end
+
+	assert(r$('/(^g|r)/').match('g').start == 1)
+	assert(r$('/(g|r$)/').match('r').start == 1)
+	assert(r$('/(^g$)/').match('g').start == 1)
+	assert_equal(1, r$('/^\s*(a|(b|co)$)/').match('co').start)
+	begin
+	  data r, @Regex
+	  
+	  r = R$('/^\s*(data|(do|else)$)/i')
+	  assert_equal(1, r.match('else').start)
+	  assert_equal(1, r.match(char(9)+'else').start)
+	end
+
+	;This is an impossible case to get with a Regex without plugging the MatchData, but we'll test it anyway
+	begin
+	  data m, @MatchData
+	  m = new MatchData("hello", 1, 12)	;Length off the end
+	  assert(m.matched.Length == 5)
+	  assert((a)(m.matched) .eqs. "hello")
+	end
+
+	;Another case that doesn't lend itself to testing under normal conditions:
+	begin
+	  data s, @Regex.State
+	  s = new Regex.State()
+	  assert_not_null(s.GetState())
+	end
+
+	;(?:)
+	begin
+	  data m, @MatchData
+	  m = r$('/(?:a)/').match('alligator')
+	  assert_equal(1, m.start)
+	  assert_equal(1, m.length)
+	  assert_equal(0, m[1].start)	;No back-reference
+	  m = r$('/(?:b|l)/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(1, m.length)
+	  assert_equal(0, m[1].start)
+	  m = r$('/(l)i(?:ga)(t.*)/').match('alligator')
+	  assert_equal(3, m.start)
+	  assert_equal(7, m.length)
+	  assert_equal(3, m[1].start)
+	  assert_equal(7, m[2].start)
+	  assert_equal(3, m[2].length)
+	  assert_equal(0, m[3].length)
+	  m = r$('/(?:a|l)*(.*)tor/').match('alligator')
+	  assert_equal(1, m.start)
+	  assert_equal(9, m.length)
+	  assert_equal(4, m[1].start)
+	  assert_equal(3, m[1].length)
+	  assert_equal(0, m[2].start)
+	  m = r$('/li(?:ga(t.*))r/').match('alligator')
+	  assert_equal(3, m.start)
+	  assert_equal(7, m.length)
+	  assert_equal(7, m[1].start)
+	  assert_equal(2, m[1].length)
+	  assert_equal(0, m[2].start)
+	  m = r$('/li(ga(?:t.*)(r))/').match('alligator')
+	  assert_equal(3, m.start)
+	  assert_equal(7, m.length)
+	  assert_equal(5, m[1].start)
+	  assert_equal(5, m[1].length)
+	  assert_equal(9, m[2].start)
+	  assert_equal(1, m[2].length)
+	  assert_equal(0, m[3].start)
+	end
+
+	;(?#)
+	begin
+	  data m, @MatchData
+	  m = r$('/(?# just a comment)/').match('alligator')
+	  assert_equal(1, m.start)	;Empty string matches first position
+	  assert_equal(0, m.length)
+	  m = r$('/(?# just a comment)l/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(1, m.length)
+	  m = r$('/l(?# just a comment)/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(1, m.length)
+	  m = r$('/l(?# just a comment)l/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(2, m.length)
+	  m = r$('/l(?# just a comment)*/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(1, m.length)	;* repeats the null operation of the comment
+	  m = r$('/l*(?# just a comment)i/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(3, m.length)
+	  m = r$('/l ( # extended mode comment ' + char(10) +
+	  &	 ' ?# just a comment ) l/x').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(2, m.length)
+	  m = r$('/l(?# unterminated comment/').match('alligator')
+	  assert_equal(2, m.start)
+	  assert_equal(1, m.length)
+	end
+
+	;(?P<group>) and (?P=group)
+	begin
+	  data match, @MatchData
+	  match = r$('/a(?P<els>l*)/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(2, match['els'].start)
+	  assert_equal(2, match['els'].length)
+	  assert(Object.ReferenceEquals(match['els'],match[1]))
+	  assert_equal(0, match['elss'].start)
+	  assert_equal(0, match['el'].start)
+
+	  match = r$('/a(?P<anel>l)\1/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/a(?P<anel>l)(?P=anel)i/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(4, match.length)
+	  assert_equal(2, match['anel'].start)
+	  assert_equal(1, match['anel'].length)
+
+	  match = r$('/al(?P=nope)li/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(4, match.length)
+	  assert_equal(0, match['nope'].start)
+	  assert_equal(0, match[1].start)
+
+	  match = r$('/(al)(?P=nope)li/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(4, match.length)
+	  assert_equal(0, match['nope'].start)
+	  assert_equal(1, match[1].start)
+	  assert_equal(0, match[2].start)
+
+	  match = r$('/a(?P<el>l)(?P=l)l/').match('alligator')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(2, match['el'].start)
+	  assert_equal(1, match['el'].length)
+	  assert_equal(0, match['l'].start)
+
+	  match = r$('/(?P<a>A)-(?P=a)/i').match('xA-a')
+	  assert_equal(2, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/((?P=rep)(?P<rep>[abc]))*/').match('aabbccd')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+	  assert_equal(5, match['rep'].start)
+	  assert_equal(1, match['rep'].length)
+	  assert(object.ReferenceEquals(match['rep'], match[2]))
+
+	  match = r$('/(?P<quote>[''"]).*?(?P=quote)/').match('I said, "She''s a witch"')
+	  assert_equal(9, match.start)
+	  assert_equal(15, match.length)
+
+	  match = r$('/(xyz(?P<a>abc(def)))/').match('xyzabcdef')
+	  assert_equal(1, match.start)
+	  assert_equal(9, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(9, match[1].length)
+	  assert_equal(4, match[2].start)
+	  assert_equal(6, match[2].length)
+	  assert_equal(4, match['a'].start)
+	  assert_equal(6, match['a'].length)
+	  assert_equal(7, match[3].start)
+	  assert_equal(3, match[3].length)
+
+	  ; Duplicate group name
+
+	  match = r$('/(?P<x>a)(b)(?P<y>c)(?P<x>d)/').match('abcd')
+	  assert_equal(1, match.start)
+	  assert_equal(4, match.length)
+	  assert_equal(4, match[1].start)	;Matched 'd', but x is the first group
+	  assert_equal(2, match[2].start)	;'b'
+	  assert_equal(3, match[3].start)	;'c'
+	  assert_equal(0, match[4].start)	;There is no 4
+	  assert_equal(4, match['x'].start)
+	  assert_equal(3, match['y'].start)
+
+	  ; Prove last one matched, not last one parsed
+	  r1 = r$('/a(?P<x>\d)|b(?P<x>\w)/')
+	  match = r1.match('a5')
+	  assert_equal('5', match['x'].matched)
+	  match = r1.match('bd')
+	  assert_equal('d', match['x'].matched)
+
+	  ; replace and \g<group>
+
+	  assert_equal('aillgator', r$('/(?P<els>l+)(?P<nextchar>.)/').replace('alligator', '\g<nextchar>\g<els>'))
+	  assert_equal('agigator', r$('/l+/').replace('alligator', '\g'))		;No group name
+	  assert_equal('agloligator', r$('/l+/').replace('alligator', '\glol'))		;No group name
+	  assert_equal('a*lligator', r$('/(?P<els>l+)/').replace('alligator', '*\g<els'))	;Lenient off the end
+	  assert_equal('aigator', r$('/(?P<els>l+)/').replace('alligator', '\g<>'))	;Empty group name
+	  assert_equal('aigator', r$('/(?P<els>l+)/').replace('alligator', '\g<el>'))	;Non-existent group name
+	end
+
+	;{n,m}
+	begin
+	  data match, @MatchData
+
+	  match = r$('/a{3}/').match('axaaxaaaxaaaax')
+	  assert_equal(6, match.start)
+	  assert_equal(3, match.length)
+	  match = r$('/a{3}/').match('aaaaxaaaxaax')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r$('/a{3,}/').match('aaxaaaaxaaax')
+	  assert_equal(4, match.start)
+	  assert_equal(4, match.length)
+	  match = r$('/a{,3}/').match('aaxaaaa')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r$('/a{,3}/').match('aaaaxaa')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r$('/a{2,3}/').match('aaxaaaa')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r$('/a{2,3}/').match('aaaaxaa')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r$('/a{3,2}/').match('aaaaaa')	;No match here
+	  assert_equal(0, match.start)
+
+	  match = r$('/(a{1,2}b{3,4}){2}/').match('xxabbbbaabbbxx')
+	  assert_equal(3, match.start)
+	  assert_equal(10, match.length)
+	  assert_equal(8, match[1].start)
+	  assert_equal(5, match[1].length)
+	end
+
+	;Greediness
+	begin
+	  data match, @MatchData
+
+	  match = r$('/a.*a/').match('abracadabra')
+	  assert_equal(1, match.start)
+	  assert_equal(11, match.length)	;Greedy by default
+
+	  match = r$('/a.*?a/').match('abracadabra')
+	  assert_equal(1, match.start)
+	  assert_equal(4, match.length)
+
+	  match = r$('/a.*?a/').match('aaa')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)	;.* optional, and non-greedy
+
+	  match = r$('/<(?P<tag>\w*)[^>]*>(?P<value>.*?)<\/(?P=tag)>/m').match("<head><title>hello</title></head><head></head>")
+	  assert_equal(7, match['value'].start)
+	  assert_equal(20, match['value'].length)
+
+	  match = r$('/a.+?a/').match('aaaa')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/a??/').match('a')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)	;Non-greedy, optional
+
+	  match = r$('/a{3,}?/').match('aaxaaaaxaaax')
+	  assert_equal(4, match.start)
+	  assert_equal(3, match.length)
+	  match = r$('/a{,3}?/').match('aaxaaaa')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+	  match = r$('/a{,3}?/').match('aaaaxaa')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+	  match = r$('/a{2,3}?/').match('aaaaxaa')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	end
+
+	;\b and \B
+	begin
+	  data match, @MatchData
+
+	  match = r$('/\babc\b/').match('abc')	;Test \b at begin and end
+	  assert_equal(1,match.start)
+	  assert_equal(3,match.length)
+
+	  match = r$('/\babc\b/').match('hello abc, world')
+	  assert_equal(7,match.start)
+	  assert_equal(3,match.length)
+
+	  assert_equal(0, r$('/abc\b/').match('abcde').start)
+
+	  match = r$('/abc\B/').match('abcde')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  assert_equal(0, r$('/abc\B/').match('abc').start)
+
+	  match = r$('/\s\b/').match('    a')
+	  assert_equal(4, match.start)
+	  assert_equal(1, match.length)
+
+	  match = r$('/\b/').match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+
+	  match = r$('/\b/').match(' abc ')
+	  assert_equal(2, match.start)
+	  assert_equal(0, match.length)
+
+	  match = r$('/\B/').match('abc')
+	  assert_equal(2, match.start)
+	  assert_equal(0, match.length)
+
+	  match = R$('/\B/').match(' abc')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+	end
+
+	;\y and \Y
+	begin
+	  data match, @MatchData
+
+	  match = r$('/\yabc\y/').match('abc')	;Test \b at begin and end
+	  assert_equal(1,match.start)
+	  assert_equal(3,match.length)
+
+	  match = r$('/\yabc\y/').match('hello abc, world')
+	  assert_equal(7,match.start)
+	  assert_equal(3,match.length)
+
+	  assert_equal(0, r$('/abc\y/').match('abcde').start)
+
+	  match = r$('/abc\Y/').match('abcde')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  assert_equal(0, r$('/abc\Y/').match('abc').start)
+
+	  match = r$('/\s\y/').match('    a')
+	  assert_equal(4, match.start)
+	  assert_equal(1, match.length)
+
+	  match = r$('/\y/').match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+
+	  match = r$('/\y/').match(' abc ')
+	  assert_equal(2, match.start)
+	  assert_equal(0, match.length)
+
+	  match = r$('/\Y/').match('abc')
+	  assert_equal(2, match.start)
+	  assert_equal(0, match.length)
+
+	  match = R$('/\Y/').match(' abc')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+
+	  r1 = r$('/[\y\Y]/g')
+	  assert_equal("xz", r1.replace('xyYz', ''))
+	end
+
+	;\m and \M
+	begin
+	  data match, @MatchData
+
+	  match = r$('/\mabc\M/').match('abc')	;Test \b at begin and end
+	  assert_equal(1,match.start)
+	  assert_equal(3,match.length)
+
+	  match = r$('/\mabc\M/').match('hello abc, world')
+	  assert_equal(7,match.start)
+	  assert_equal(3,match.length)
+
+	  assert_equal(0, r$('/abc\M/').match('abcde').start)
+
+	  match = r$('/abc\M/').match('abcde')
+	  assert_equal(0, match.start)
+
+	  match = r$('/\s\m/').match('    a')
+	  assert_equal(4, match.start)
+	  assert_equal(1, match.length)
+
+	  match = r$('/\m/').match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+
+	  match = r$('/\m/').match(' abc ')
+	  assert_equal(2, match.start)
+	  assert_equal(0, match.length)
+
+	  match = r$('/\M/').match('abc')
+	  assert_equal(4, match.start)
+	  assert_equal(0, match.length)
+
+	  match = R$('/\M/').match(' abc')
+	  assert_equal(5, match.start)
+	  assert_equal(0, match.length)
+
+	  match = R$('/\m/').match(' ')
+	  assert_equal(0, match.start)
+
+	  match = R$('/\M/').match(' ')
+	  assert_equal(0, match.start)
+
+	  r1 = r$('/[\m\M]/g')
+	  assert_equal("ln", r1.replace('lmMn', ''))	;just m's
+	end
+
+	;\Q..\E
+	begin
+	  data match, @MatchData
+
+	  match = r$('/\Q.*\E./').match('abcd.e.*f')
+	  assert_equal(7, match.start)
+	  assert_equal(3, match.length)
+
+	  match = r$('/\Q*/').match('Q*')	;Lenient about missing \E
+	  assert_equal(2, match.start)
+	  assert_equal(1, match.length)
+
+	  match = r$('/y\Q/').match('anything')	;Really lenient
+	  assert_equal(3, match.start)
+	  assert_equal(1, match.length)
+
+	  match = r$('/[\Q\E]+/').match('QED')	;Just letters
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	end
+
+	;(?-imnsx)
+	begin
+	  data match, @MatchData
+
+	  r1 = r$('/case(?i)nOcAse(?-i)case/')
+	  assert_equal(1, r1.match('caseNOCaSecase').start)
+	  assert_equal(0, r1.match('caSeNOCaSecase').start)
+	  assert_equal(0, r1.match('caseNOCaSecasE').start)
+
+	  r1 = r$('/case(?i:nOcAse)case/')
+	  assert_equal(1, r1.match('caseNOCaSecase').start)
+	  assert_equal(0, r1.match('caSeNOCaSecase').start)
+	  assert_equal(0, r1.match('caseNOCaSecasE').start)
+
+	  r1 = r$('/NoCaSe(?-i:case)nocase/i')
+	  assert_equal(1, r1.match('nOcasecaseNoCase').start)
+	  assert_equal(0, r1.match('nocasecAseNocase').start)
+
+	  r1 = r$('/case(?i:nocase(?-i:case)nocase)case/')
+	  assert_equal(1, r1.match('caseNoCasecasenOCasecase').start)
+	  assert_equal(0, r1.match('caseNoCasecasEnocasecase').start)
+	  assert_equal(0, r1.match('casenocasecasenocasecasE').start)
+
+	  r1 = r$('/^a(?m)b\n^c(?-m)\n/')
+	  assert_equal(1, r1.match('ab' + %char(10) + 'c' + %char(10)).start)
+	  r1 = r$('/^a(?m:b\n^c)\n/')
+	  assert_equal(1, r1.match('ab' + %char(10) + 'c' + %char(10)).start)
+	  r1 = r$('/a$\n(?-m:c$)/m')
+	  assert_equal(1, r1.match('a' + %char(10) + 'c').start)
+	  assert_equal(0, r1.match('a' + %char(10) + 'c' + %char(10) + 'd').start)
+	  r1 = r$('/a$\n(?-m:c)$/m')
+	  assert_equal(1, r1.match('a' + %char(10) + 'c').start)
+	  assert_equal(1, r1.match('a' + %char(10) + 'c' + %char(10) + 'd').start)
+	  r1 = r$('/a$\n(?-m:^b)/m')
+	  assert_equal(0, r1.match('a' + %char(10) + 'b').start)
+	  r1 = r$('/a$\n(?m:^b)/')
+	  assert_equal(0, r1.match('a' + %char(10) + 'b').start)
+	  r1 = r$('/a\Z\n(?m:^)/')
+	  assert_equal(1, r1.match('a' + %char(10)).start)
+
+	  r1 = r$('/(a)(?n)(b)(?-n)(c)/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(3, match[2].start)	;(b) not counted
+	  assert_equal(0, match[3].start)	;There is no 3
+
+	  r1 = r$('/(a)(?n:(b))(c)/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(3, match[2].start)	;(b) not counted
+	  assert_equal(0, match[3].start)	;There is no 3
+
+	  r1 = r$('/(a)(?n:((b)))(c)/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(3, match[2].start)	;(b) not counted
+	  assert_equal(0, match[3].start)	;There is no 3
+
+	  r1 = r$('/a.(?s)b.(?-s)c./')
+	  assert_equal(1, r1.match('axb' + %char(10) + 'cx').start)
+	  assert_equal(0, r1.match('a' + %char(10) + %char(10) + 'cx').start)
+	  assert_equal(0, r1.match('axb' + %char(10) + 'c' + %char(10)).start)
+	  r1 = r$('/a.(?s:b.)c./')
+	  assert_equal(1, r1.match('axb' + %char(10) + 'cx').start)
+	  assert_equal(0, r1.match('a' + %char(10) + %char(10) + 'cx').start)
+	  assert_equal(0, r1.match('axb' + %char(10) + 'c' + %char(10)).start)
+
+	  r1 = r$('/xx (?x)x x (?-x) x/')
+	  assert_equal(1, r1.match('xx xx x').start)
+	  assert_equal(0, r1.match('xxxx x').start)
+	  assert_equal(0, r1.match('xx x x  x').start)
+	  assert_equal(0, r1.match('xx xxx').start)
+
+	  r1 = r$('/xx (?x:x x ) x/')
+	  assert_equal(1, r1.match('xx xx x').start)
+	  assert_equal(0, r1.match('xxxx x').start)
+	  assert_equal(0, r1.match('xx x x  x').start)
+	  assert_equal(0, r1.match('xx xxx').start)
+
+	  r1 = r$('/xx (?x:x x # ignore all those spaces' + %char(10) + ') x/')
+	  assert_equal(1, r1.match('xx xx x').start)
+	  assert_equal(0, r1.match('xxxx x').start)
+	  assert_equal(0, r1.match('xx x x  x').start)
+	  assert_equal(0, r1.match('xx xxx').start)
+
+	  r1 = r$('/x # comment' + %char(10) + 'x (?-x:# )x #/x')
+	  assert_equal(1, r1.match('xx# x').start)
+
+	  ;Now mix em up
+	  r1 = r$('/^(ab) (?i-xm-ns)(a) $.(?-ix-mn-s)(a) $/xn')
+	  match = r1.match('abA ' + %char(10) + 'a')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match[1].start)
+	  assert_equal(2, match.Count)
+	  r1 = r$('/^(ab) (?i-xm-ns:(a) $.)(a) $/xn')
+	  match = r1.match('abA ' + %char(10) + 'a')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match[1].start)
+	  assert_equal(2, match.Count)
+
+	  r1 = r$('/(?i   #ignore case' + %char(9) + %char(13) + %char(10) +
+	  &	  '   :   abc)/x')
+	  assert_equal(1, r1.match('ABC').start)
+
+	  r1 = r$('/a(?i/')	;Lenient off the end
+	  match = r1.match('abc')
+	  assert_equal(0, match.start)	;We never get out of the subexpression
+
+	  r1 = r$('/(?i)/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)	;Zero-length match
+
+	  ;Verify that runtime options happen at runtime
+	  r1 = r$('/\b([a-z](?-i))+\b/i')	;Match a word, where only the first character may be captialized
+	  assert_equal(6, r1.match('WELL Hello').start)
+	  assert_equal(1, r1.match('uncaptialized').start)
+	  assert_equal(4, r1.match('ME I YOU').start)	;Only the I qualifies
+	end
+
+	;Look-ahead
+	begin
+	  data match, @MatchData
+
+	  r1 = r$('/(?=[^_])\w/')		;Match all word characters except _
+	  assert_equal(0, r1.match('_').start)
+	  assert_equal(1, r1.match('a').start)
+
+	  r1 = r$('/(?!_)\w/')			;Same thing, expressed as a negative lookahead
+	  assert_equal(0, r1.match('_').start)
+	  assert_equal(1, r1.match('a').start)
+
+	  r1 = r$('/(?!.*\d)\w+')		;Word characters not followed by a digit
+	  match = r1.match('wa3d4ec')
+	  assert_equal(6, match.start)
+	  assert_equal(2, match.length)
+
+	  r1 = r$('/(?=.*(7))\d+')		;Match all digits, capture the last 7
+	  match = r1.match('13579')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+	  assert_equal(4, match[1].start)
+	  assert_equal(1, match[1].length)
+	  match = r1.match('777')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(3, match[1].start)
+	  assert_equal(1, match[1].length)
+
+	  r1 = r$('/(?=.*?(7))\d+')		;Match all digits, capture the first 7
+	  match = r1.match('777')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(1, match[1].length)
+
+	  ;Nested lookahead
+	  r1 = r$('/(?!\d(?=[^_]))\w/')		;Not a digit followed by a non-underscore
+	  match = r1.match('123_a')
+	  assert_equal(3, match.start)		;Followed by underscore
+	  assert_equal(1, match.length)
+	  match = r1.match('1a2_')
+	  assert_equal(2, match.start)		;Not a digit
+	  assert_equal(1, match.length)
+
+	  ;Beginning with a group
+	  r1 = r$('/ab(?=(.))/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  assert_equal(3, match[1].start)
+	  assert_equal(1, match[1].length)
+	end
+
+	;Look-behind
+	begin
+	  data match, @MatchData
+
+	  r1 = r$('/(?<=John )Smith/')
+	  match = r1.match("John Smith")
+	  assert_equal(6, match.start)
+	  assert_equal(5, match.length)
+	  match = r1.match("Mr. John Smith")
+	  assert_equal(10, match.start)
+	  assert_equal(5, match.length)
+	  match = r1.match('Ms. Jane Smith')
+	  assert_equal(0, match.start)
+
+	  r1 = r$('/(?<!\d)[a-z]/')
+	  match = r1.match("42ab")
+	  assert_equal(4, match.start)
+	  r1 = r$('/(?<=(?P<first_name>fred) )flintstone/')
+	  match = r1.match("fred flintstone")
+	  assert_equal(6, match.start)
+	  assert_equal(10, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(4, match[1].length)
+	  assert_equal(1, match['first_name'].start)
+	  assert_equal(4, match['first_name'].length)
+	  match = r1.match(" fred flintstone")
+	  assert_equal(7, match.start)
+	  assert_equal(10, match.length)
+	  assert_equal(2, match[1].start)
+	  assert_equal(4, match[1].length)
+	  assert_equal(2, match['first_name'].start)
+	end
+
+	;Conditionals
+	begin
+	  data match, @MatchData
+
+	  r1 = r$('/(a)*b(?(1)c)/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r1.match('ab')
+	  assert_equal(2, match.start)		;Starting with b
+	  assert_equal(1, match.length)
+	  match = r1.match('b')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)
+
+	  r1 = r$('/^(a)*b(?(1)c)/')
+	  match = r1.match('ab')
+	  assert_equal(0, match.start)		;Forced to include the 'a', doesn't have 'c'
+
+	  r1 = r$('/((?(2)ab)(x))+/')
+	  match = r1.match('xabxabxabx')
+	  assert_equal(1, match.start)
+	  assert_equal(10, match.length)
+
+	  r1 = r$('/((?(got_x)ab)(?P<got_x>x))+/')	;Test named group
+	  match = r1.match('xabxabxabx')
+	  assert_equal(1, match.start)
+	  assert_equal(10, match.length)
+
+	  r1 = r$('/(?P<a>a)(?(b)b)/')			;Undefined group
+	  match = r1.match('ab')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)			;Don't include the b
+
+	  r1 = r$('/^(a)?(?(1)b|c)/')			;ab|c, in so many words
+	  match = r1.match('ab')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r1.match('bc')
+	  assert_equal(0, match.start)			;Because of ^
+	  match = r1.match('c')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)
+
+	  r1 = r$('/^(a)?(?(1)(b|c))/')			;The extra parens keep | a union
+	  match = r1.match('ab')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r1.match('ac')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r1.match('b')
+	  assert_equal(1, match.start)			;a is optional
+	  assert_equal(0, match.length)			;doesn't match the b
+
+	  r1 = r$('/^(a?)(?(1)b|c)/')			;Test matching an empty string
+	  match = r1.match('ab')
+	  assert_equal(1, match.start)
+	  assert_equal(2, match.length)
+	  match = r1.match('ac')
+	  assert_equal(0, match.start)
+	  match = r1.match('b')
+	  assert_equal(1, match.start)			;a is optional
+	  assert_equal(1, match.length)			;group is included, so b matches
+
+	  r1 = R$('/((?(dot)\.)(?P<dot>\d{1,3})){4}/')	;An IP address
+	  match = r1.match('10.1.1.105')
+	  assert_equal(1, match.start)
+	  assert_equal(10, match.length)
+
+	  r1 = R$('/(?:(x)|y) = (?(1)0|-1)/')
+	  assert_equal(1, r1.match('x = 0').start)
+	  assert_equal(0, r1.match('x = -1').start)
+	  assert_equal(0, r1.match('y = 0').start)
+	  assert_equal(1, r1.match('y = -1').start)
+
+	  r1 = R$('/(?:(x)|(y)|z) = (?(1)0|(?(2)-1|1))/')
+	  assert_equal(1, r1.match('x = 0').start)
+	  assert_equal(0, r1.match('x = -1').start)
+	  assert_equal(0, r1.match('x = 1').start)
+	  assert_equal(0, r1.match('y = 0').start)
+	  assert_equal(1, r1.match('y = -1').start)
+	  assert_equal(0, r1.match('y = 1').start)
+	  assert_equal(0, r1.match('z = 0').start)
+	  assert_equal(0, r1.match('z = -1').start)
+	  assert_equal(1, r1.match('z = 1').start)
+
+	  r1 = r$('/(?(?=a).)/')
+	  match = r1.match('a')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)
+	  match = r1.match('b')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+
+	  r1 = r$('/(?(?=.*7)1|0)/')
+	  match = r1.match('1070')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)
+	  match = r1.match('1080')
+	  assert_equal(2, match.start)
+	  assert_equal(1, match.length)
+
+	  r1 = r$('/(?(?=.*7)(1|0))/')		;Nested union, no else
+	  match = r1.match('1070')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)
+	  match = r1.match('1080')
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)		;Zero-length match
+
+	  r1 = r$('/ab(?(?!c).*|.)/')
+	  match = r1.match('abcdef')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r1.match('abdefg')
+	  assert_equal(1, match.start)
+	  assert_equal(6, match.length)
+
+	  r1 = r$('/(?(?=\A)[A-Z]|[a-z])+/')
+	  match = r1.match('Hello')
+	  assert_equal(1, match.start)
+	  assert_equal(5, match.length)
+
+	  r1 = r$('/^(?(?!$)(.))/ms')	;/^.?/m, in so many words
+	  match = r1.match(%char(10))
+	  assert_equal(1, match.start)
+	  assert_equal(0, match.length)
+	  match = r1.match('x')
+	  assert_equal(1, match.start)
+	  assert_equal(1, match.length)
+
+	  r1 = r$('/a.(?(?<=b)c|y)/')
+	  match = r1.match('abc')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r1.match('any')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  match = r1.match('aby')
+	  assert_equal(0, match.start)
+	  match = r1.match('anc')
+	  assert_equal(0, match.start)
+
+	  r1 = r$('/\d{3}(?(?<!(5+))5)/')
+	  match = r1.match('555')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(1, match[1].start)
+	  assert_equal(3, match[1].length)
+	  match = r1.match('345')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(3, match[1].start)
+	  assert_equal(1, match[1].length)
+	  match = r1.match('111')
+	  assert_equal(0, match.start)
+	  assert_equal(0, match[1].start)
+	  match = r1.match('1115')
+	  assert_equal(1, match.start)
+	  assert_equal(4, match.length)
+	  assert_equal(0, match[1].start)
+	end
+
+	;\G
+	begin
+	  r1 = r$('/\G\w/')
+	  assert_equal(1, r1.match('test this').start)
+	  assert_equal(2, r1.match('test this').start)
+	  assert_equal(3, r1.match('test this').start)
+	  assert_equal(4, r1.match('test this').start)
+	  assert_equal(0, r1.match('test this').start)
+	  assert_equal(1, r1.match('test this').start)
+	  r1.ContinueFrom = 5
+	  assert_equal(6, r1.match('test this').start)
+	  assert_equal(7, r1.match('test this').start)
+	  assert_equal(8, r1.match('test this').start)
+	  assert_equal(9, r1.match('test this').start)
+	  assert_equal(0, r1.match('test this').start)
+	  r1.Continue = true
+	  r1.ContinueFrom = 4
+	  assert_equal(0, r1.match('test this').start)
+	  assert_equal(0, r1.match('test this').start)
+	  r2 = r$('/\G\s/')
+	  r2.ContinueFrom = r1.ContinueFrom
+	  assert_equal(5, r2.match('test this').start)
+
+	  ;\G doesn't have to be at the beginning...
+	  r1 = r$('/a?\Gba/')
+	  assert_equal(1, r1.match('bababa').start)
+	  assert_equal(2, r1.ContinueFrom)
+	  assert_equal(2, r1.match('bababa').start)
+	  assert_equal(4, r1.match('bababa').start)
+	  assert_equal(0, r1.match('bababa').start)
+
+	  ;But what matches must immediately follow
+	  r1 = r$('/\Ga/')
+	  assert_equal(0, r1.match('ba').start)
+
+	  ;Make sure continue option parses
+	  r1 = r$('/\Ga/c')
+	  assert(r1.Continue)
+	  assert_equal(1, r1.match('ab').start)
+	  assert_equal(0, r1.match('ab').start)
+	  assert_equal(1, r1.ContinueFrom)
+
+	  ;In a character class, it's just a G
+	  assert_equal(3, r$('/[\G]/').match('EFG').start)
+	end
+
+	;.NET named groups
+	begin
+	  data match, @MatchData
+	  r1 = r$('/a(?<name>b?)c/')
+	  match = r1.match('abc')
+	  assert_equal(2, match['name'].start)
+	  assert_equal(1, match['name'].length)
+	  assert_equal(2, match[1].start)
+	  assert_equal(1, match[1].length)
+	  match = r1.match('ac')
+	  assert_equal(2, match['name'].start)
+	  assert_equal(0, match['name'].length)
+
+	  r1 = r$("/(?'z'a)(?<x>b)(?'y'c)/")
+	  match = r1.match('abc')
+	  assert_equal(1, match['z'].start)
+	  assert_equal(2, match['x'].start)
+	  assert_equal(3, match['y'].start)
+	  assert(object.ReferenceEquals(match['z'], match[1]))
+	  assert(object.ReferenceEquals(match['x'], match[2]))
+	  assert(object.ReferenceEquals(match['y'], match[3]))
+
+	  ;Colliding group names
+	  r1 = r$("/(?'x'a)b(?'x'c)/")
+	  match = r1.match('abc')
+	  assert_equal('c', match['x'].matched)
+	  assert(object.ReferenceEquals(match['x'], match[1]))
+	  assert_equal(2, match.Count)
+
+	  ;Mixed with unnamed captured groups and Python named groups
+	  r1 = r$("/(?'x'a)(?P<y>b)(c)/")
+	  match = r1.match('abc')
+	  assert(object.ReferenceEquals(match[1], match['y']))
+	  assert_equal('c', match[2].matched)
+	  assert(object.ReferenceEquals(match[3], match['x']))	;.NET comes at the end
+
+	  ;.NET groups can duplicate Python named groups
+	  r1 = r$("/(?P<x>a)b(?'x'c)/")
+	  match = r1.match('abc')
+	  assert_equal('c', match['x'].matched)
+	  assert(object.ReferenceEquals(match['x'], match[1]))
+	  assert_equal(2, match.Count)
+
+	  ;And vice versa
+	  r1 = r$("/(?<x>a)b(?P<x>c)/")
+	  match = r1.match('abc')
+	  assert_equal('c', match['x'].matched)
+	  assert(object.ReferenceEquals(match['x'], match[1]))
+	  assert_equal(2, match.Count)
+
+	  ;Back-reference
+	  r1 = r$("/(?<x>a)b\k'x'/")
+	  match = r1.match('aba')
+	  assert_equal(1, match.start)
+
+	  r1 = r$("/(?'x'a)b\k<x>/")
+	  match = r1.match('aba')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+	  assert_equal(3, match.length)
+
+	  ;Python back-reference to a .NET group
+	  r1 = r$("/(?<x>a)b(?P=x)/")
+	  match = r1.match('aba')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  ;And vice versa
+	  r1 = r$("/(?P<x>a)b\k'x'/")
+	  match = r1.match('aba')
+	  assert_equal(1, match.start)
+	  assert_equal(3, match.length)
+
+	  ;\k in a character class is just a k
+	  assert_equal(3, r$('/[\k]/').match('ijkl').start)
+
+	  ;\k without a delimiter is just a k
+	  assert_equal(3, r$('/\k/').match('ijkl').start)
+	end
+
+	;POSIX character classes
+	begin
+	  data match, @MatchData
+	  r1 = r$('/[[:alnum:]]/')
+	  assert_equal(2, r1.match('_f').start)
+	  assert_equal(0, r1.match(' &!').start)
+	  r1 = r$('/[[]/')
+	  assert_equal(1, r1.match('[').start)
+	  r1 = r$('/[[:]/')
+	  assert_equal(1, r1.match('[').start)
+	  assert_equal(1, r1.match(':').start)
+	  r1 = r$('/[[::]/')
+	  assert_equal(1, r1.match(':').start)
+	  r1 = r$('/[[::]]/')
+	  assert_equal(":]", r1.match('[:]').matched)
+	  r1 = r$('/[![:alnum:]\s&]+/')
+	  match = r1.match('Jill & Bob!')
+	  assert_equal(1, match.start)
+	  assert_equal(11, match.length)
+	  r1 = r$('/[[:alpha:]]/g')
+	  assert_equal('  #55', r1.replace('Hey there #55', ''))
+	  r1 = r$('/[[:ascii:]]/g')
+	  assert_equal(%char(128), r1.replace(%char(0) + 'abc~' + %char(128), ''))
+	  r1 = r$('/[[:blank:]]/g')
+	  assert_equal('Hellotheretab', r1.replace('Hello there'+%char(9)+'tab', ''))
+	  r1 = r$('/[[:cntrl:]]/g')
+	  assert_equal('a', r1.replace(%char(0) + %char(27) + %char(127) + 'a', ''))
+	  r1 = r$('/[[:digit:]]/g')
+	  assert_equal('a', r1.replace('a0123456789', ''))
+	  r1 = r$('/[[:graph:]]/g')
+	  assert_equal('  ', r1.replace('Have a ball!', ''))
+	  r1 = r$('/[[:lower:]]/g')
+	  assert_equal('H  !', r1.replace('Have a ball!', ''))
+	  r1 = r$('/[[:print:]]+/g')
+	  match = r1.match(%char(1) + 'hello world' + %char(127))
+	  assert_equal(2, match.start)
+	  assert_equal(11, match.length)
+	  r1 = r$('/[[:punct:]]/g')
+	  assert_equal('Jill  Bob', r1.replace('(Jill & Bob!)', ''))
+	  r1 = r$('/[[:space:]]/g')
+	  assert_equal('Jill&Bob!', r1.replace('Jill' + %char(9) + '& Bob!', ''))
+	  r1 = r$('/[[:upper:]]/g')
+	  assert_equal('ill & ob!', r1.replace('Jill & Bob!', ''))
+	  r1 = r$('/[[:word:]]/g')
+	  assert_equal(' #!', r1.replace('Hey #_55!', ''))
+	  r1 = r$('/[[:xdigit:]]/g')
+	  assert_equal('Gg', r1.replace('0123456789AaBbCcDdEeFfGg', ''))
+
+	  ;Java syntax
+	  r1 = r$('/[\p{Alnum}]/')	;Works within a character class
+	  assert_equal(2, r1.match('_f').start)
+	  assert_equal(0, r1.match(' &!').start)
+	  r1 = r$('/\p{Alpha}/g')	;Or without
+	  assert_equal('  #55', r1.replace('Hey there #55', ''))
+	  r1 = r$('/\p{word}/g')	;We support word, and aren't case-sensitive
+	  assert_equal(' #!', r1.replace('Hey #_55!', ''))
+	  r1 = r$('/\p{xdigit/g')	;Lenient off the end
+	  assert_equal('Gg', r1.replace('0123456789AaBbCcDdEeFfGg', ''))
+	  r1 = r$('/\p/')
+	  assert_equal(2, r1.match('op').start)	;Just a p
+	end
+
+	;escape
+	assert_equal('\.\\a\[]\^\$\*\?\+\{}\|\(\)\/', Regex.escape('.\a[]^$*?+{}|()/'))
+	assert_equal('\#a', Regex.escape('#a','#'))
+	assert_equal(1, r$('/' + Regex.escape('a+b|c') + '/').match('a+b|c').start)
+
+	;split
+
+	; Split on first match only
+	assert(r$('/[,"]/').split('All told, we "survived"').Equals(
+	&	ls.of("All told")|' we "survived"'))
+
+	; Split on all matches
+	assert(r$('/[,"]/g').Split('All told, we "survived"').Equals(
+	&	ls.of("All told")|' we '|'survived'|''))
+
+	; Split on all matches, discard empty strings
+	assert(r$('/[,"]/g').Split('All told, we "survived"', false).Equals(
+	&	ls.of("All told")|' we '|'survived'))
+
+	; Split on all matches, keep the matching split characters
+	assert(r$('/([,"])/g').Split('All told, we "survived"').Equals(
+	&	ls.Of("All told")|','|' we '|'"'|'survived'|'"'|''))
+
+	; Split on all matches, with embedded empty string
+	assert(r$('/[,"]/g').Split('All told,, we "survived"').Equals(
+	&	ls.Of("All told")|''|' we '|'survived'|''))
+
+	; Split on all matches, discard embedded empty string
+	assert(r$('/[,"]/g').Split('All told,, we "survived"', false).Equals(
+	&	ls.Of("All told")|' we '|'survived'))
+
+	; Split on all matches, keep the matches
+	assert(r$('/([,"])/g').Split('All told,, we "survived"').Equals(
+	&	ls.Of("All told")|','|''|','|' we '|'"'|'survived'|'"'|''))
+
+	; Split case sensitive first match
+	assert(r$('/[aeiou]/').Split('All told, we survived').Equals(
+	&	ls.Of("All t")|'ld, we survived'))
+
+	; Split not case sensitive first match
+	Assert(r$( '/[aeiou]/i' ).Split( 'All told, we survived').Equals(
+	&	ls.Of(' ')|"ll told, we survived"))
+
+	; Split not case sensitive first match, discard empty
+	Assert(r$( '/[aeiou]/i' ).Split( 'All told, we survived', false ).Equals(
+	&	ls.Of("ll told, we survived")))
+
+	; Split case sensitive, keep the matches
+	Assert(r$( '/([aeiou])/g' ).Split( 'All told, we survived').Equals(
+	&	ls.Of("All t")|"o"|"ld, w"|"e"|" s"|"u"|"rv"|"i"|"v"|"e"|"d"))
+
+	; Split not case sensitive, keep the matches
+	Assert(r$( '/([aeiou])/gi' ).Split( 'All told, we survived').Equals(
+	&	ls.Of('')|"A"|"ll t"|"o"|"ld, w"|"e"|" s"|"u"|"rv"|"i"|"v"|"e"|"d" ))
+
+	assert_throws(RegexException, "test_regex_empty")
+	assert_throws(RegexException, "test_regex_opthash")
+	assert_throws(RegexException, "test_regex_badopt")
+	assert_throws(RegexException, "test_regex_extradelim")
+	assert_throws(RegexException, "test_regex_misop")
+	assert_throws(RegexException, "test_regex_finalesc")
+	assert_throws(RegexException, "test_regex_escc")
+	assert_throws(RegexException, "test_regex_escc2")
+	assert_throws(RegexException, "test_regex_escx1")
+	assert_throws(RegexException, "test_regex_escx2")
+	assert_throws(RegexException, "test_regex_charclass")
+	assert_throws(RegexException, "test_regex_charclass2")
+	assert_throws(RegexException, "test_regex_charclass3")
+	assert_throws(RegexException, "test_regex_charclass4")
+	assert_throws(RegexException, "test_regex_charclass5")
+	assert_throws(RegexException, "test_regex_paren")
+	assert_throws(RegexException, "test_regex_pqempty")
+	assert_throws(RegexException, "test_regex_pqunknown")
+	assert_throws(RegexException, "test_regex_grpbad")
+	assert_throws(RegexException, "test_regex_grpbad2")
+	assert_throws(RegexException, "test_regex_grpbad3")
+	assert_throws(RegexException, "test_regex_grpbad4")
+	assert_throws(RegexException, "test_regex_grpbad5")
+	assert_throws(RegexException, "test_regex_grpbad6")
+	assert_throws(RegexException, "test_regex_grpbad7")
+	assert_throws(RegexException, "test_regex_grpbad8")
+	assert_throws(RegexException, "test_regex_nmbad1")
+	assert_throws(RegexException, "test_regex_nmbad2")
+	assert_throws(RegexException, "test_regex_qempty")
+	assert_throws(RegexException, "test_regex_opt1")
+	assert_throws(RegexException, "test_regex_opt2")
+	assert_throws(RegexException, "test_regex_opt3")
+	assert_throws(RegexException, "test_regex_cond")
+	assert_throws(RegexException, "test_regex_cond2")
+	assert_throws(RegexException, "test_regex_kdelim")
+	assert_throws(RegexException, "test_regex_kdelim2")
+	assert_throws(RegexException, "test_regex_kdelim3")
+	assert_throws(RegexException, "test_regex_kdelim4")
+	assert_throws(RegexException, "test_regex_posix")
+	assert_throws(RegexException, "test_regex_posix2")
+	assert_throws(RegexException, "test_regex_posix3")
+	assert_throws(RegexException, "test_regex_posix4")
+
+	pass()
+end
+
+subroutine test_regex_empty
+proc
+	R$("")
+	xreturn
+end
+
+subroutine test_regex_opthash
+proc
+	R$('/a/g # no x')
+	xreturn
+end
+
+subroutine test_regex_badopt
+proc
+	R$('/a/ d')
+	xreturn
+end
+
+subroutine test_regex_extradelim
+proc
+	R$('/a/b/g')
+	xreturn
+end
+
+subroutine test_regex_misop
+proc
+	R$('/a|/')
+	xreturn
+end
+
+subroutine test_regex_finalesc
+proc
+	R$('/\')
+	xreturn
+end
+
+subroutine test_regex_escc
+proc
+	R$('/\c#/')
+	xreturn
+end
+
+subroutine test_regex_escc2
+proc
+	R$('/\c/')
+	xreturn
+end
+
+subroutine test_regex_escx1
+proc
+	R$('/\x')
+	xreturn
+end
+
+subroutine test_regex_escx2
+proc
+	R$('/\xnn/')
+	xreturn
+end
+
+subroutine test_regex_charclass
+proc
+	R$('/[]/')
+	xreturn
+end
+
+subroutine test_regex_charclass2
+proc
+	R$('/[abc/')
+	xreturn
+end
+
+subroutine test_regex_charclass3
+proc
+	R$('/[-x]/')
+	xreturn
+end
+
+subroutine test_regex_charclass4
+proc
+	R$('/[\s-\d]/')
+	xreturn
+end
+
+subroutine test_regex_charclass5
+proc
+	R$('/[i-h]/')
+	xreturn
+end
+
+subroutine test_regex_paren
+proc
+	R$('/abc)/')
+	xreturn
+end
+
+subroutine test_regex_pqempty
+proc
+	R$('/(?/')
+	xreturn
+end
+
+subroutine test_regex_pqunknown
+proc
+	R$('/(?A)/')
+	xreturn
+end
+
+subroutine test_regex_grpbad
+proc
+	R$('/(?P<group)/')
+	xreturn
+end
+
+subroutine test_regex_grpbad2
+proc
+	R$('/(?P=group/')
+	xreturn
+end
+
+subroutine test_regex_grpbad3
+proc
+	R$('/(?Pgroup)/')
+	xreturn
+end
+
+subroutine test_regex_grpbad4
+proc
+	R$('/(?P')
+	xreturn
+end
+
+subroutine test_regex_grpbad5
+proc
+	R$('/(?P<')
+	xreturn
+end
+
+subroutine test_regex_grpbad6
+proc
+	R$('/(?P=')
+	xreturn
+end
+
+subroutine test_regex_grpbad7
+proc
+	R$('/(?<>)/')
+	xreturn
+end
+
+subroutine test_regex_grpbad8
+proc
+	R$("/(?')/")
+	xreturn
+end
+
+subroutine test_regex_nmbad1
+proc
+	R$('/a{2/')
+	xreturn
+end
+
+subroutine test_regex_nmbad2
+proc
+	R$('/a{b}/')
+	xreturn
+end
+
+subroutine test_regex_qempty
+proc
+	R$('/\Q/')	;No operands
+	xreturn
+end
+
+subroutine test_regex_opt1
+proc
+	R$('/(?i' + %char(9) + ')/')
+	xreturn
+end
+
+subroutine test_regex_opt2
+proc
+	R$('/(?i#)/')
+	xreturn
+end
+
+subroutine test_regex_opt3
+proc
+	R$('/(?ig)/')
+	xreturn
+end
+
+subroutine test_regex_cond
+proc
+	R$('/(?())/')
+	xreturn
+end
+
+subroutine test_regex_cond2
+proc
+	R$('/(?(/')
+	xreturn
+end
+
+subroutine test_regex_kdelim
+proc
+	R$('/\k</')
+	xreturn
+end
+
+subroutine test_regex_kdelim2
+proc
+	R$("/\k'x")
+	xreturn
+end
+
+subroutine test_regex_kdelim3
+proc
+	R$('/\k<>/')
+	xreturn
+end
+
+subroutine test_regex_kdelim4
+proc
+	R$("/\k''")
+	xreturn
+end
+
+subroutine test_regex_posix
+proc
+	R$('/[[:unknown:]]/')
+	xreturn
+end
+
+subroutine test_regex_posix2
+proc
+	R$('/\p{unknown}/')
+	xreturn
+end
+
+subroutine test_regex_posix3
+proc
+	R$('/\p{}/')
+	xreturn
+end
+
+subroutine test_regex_posix4
+proc
+	R$('/\p{/')
+	xreturn
+end

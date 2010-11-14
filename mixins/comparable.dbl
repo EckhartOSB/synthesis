@@ -1,0 +1,167 @@
+; Comparable.dbl - module to mixin for comparison operators
+;
+; Include this file within a class definition to add the operators ==, !=,
+; <, >, <=, >=
+;
+; Before including this file, you must define the current class and optionally
+; the type to compare against (if different):
+;
+;	.define COMPARE_CLASS MyClass
+;	.define COMPARE_TYPE2 OtherType
+;
+; Note that if COMPARE_TYPE2 is a class, you must include the "@".  This
+; requirement allows you to define comparisons against primitive types as well.
+; If you don't define COMPARE_TYPE2, it defaults to @COMPARE_CLASS.
+;
+; Your class must include a compare method that has the following signature:
+;
+;	static method compare, int
+;		D_INARG obj1, @COMPARE_CLASS
+;		D_INARG obj2, COMPARE_TYPE2
+;
+; Where COMPARE_CLASS and COMPARE_TYPE2 are the class and type you defined above,
+; or a compatible ancestor of each.
+;
+; The return value of compare must be one of the following:
+;
+; 	-1 = obj1 is less than obj2
+;	 0 = obj1 is equal to obj2
+;	 1 = obj1 is greater than obj2
+;
+; In general, your compare method does not need to be marked virtual or
+; override, because one of the arguments must be a member of the current class.
+;
+; If COMPARE_MEMBER is defined, then a compare method will be generated for you
+; comparing the class members named COMPARE_MEMBER (and optionally COMPARE_MEMBER2).
+; These can also be method calls if you include the (), but be aware that the
+; USING statement may call your method twice in that case.
+;
+.ifndef D_INARG
+.include "SYNTHESIS:synthesis.def"
+.endc
+
+.ifndef COMPARE_CLASS
+.error COMPARE_CLASS not defined
+.endc
+
+.ifdef COMPARE_TYPE2
+.ifndef COMPARE_SWAP
+.define COMPARE_SWAP
+.endc
+.else
+.define COMPARE_TYPE2 @COMPARE_CLASS
+.ifdef COMPARE_SWAP
+.undefine COMPARE_SWAP
+.endc
+.endc
+
+public static method op_Equality, boolean
+D_INARG	obj1	,@COMPARE_CLASS
+D_INARG	obj2	,COMPARE_TYPE2
+proc
+	mreturn compare(obj1, obj2) == 0
+endmethod
+
+public static method op_Inequality, boolean
+D_INARG	obj1	,@COMPARE_CLASS
+D_INARG	obj2	,COMPARE_TYPE2
+proc
+	mreturn compare(obj1, obj2) != 0
+endmethod
+
+public static method op_GreaterThan, boolean
+D_INARG	obj1	,@COMPARE_CLASS
+D_INARG	obj2	,COMPARE_TYPE2
+proc
+	mreturn compare(obj1, obj2) > 0
+endmethod
+
+public static method op_LessThan, boolean
+D_INARG	obj1	,@COMPARE_CLASS
+D_INARG	obj2	,COMPARE_TYPE2
+proc
+	mreturn compare(obj1, obj2) < 0
+endmethod
+
+public static method op_GreaterThanOrEqual, boolean
+D_INARG	obj1	,@COMPARE_CLASS
+D_INARG	obj2	,COMPARE_TYPE2
+proc
+	mreturn compare(obj1, obj2) >= 0
+endmethod
+
+public static method op_LessThanOrEqual, boolean
+D_INARG	obj1	,@COMPARE_CLASS
+D_INARG	obj2	,COMPARE_TYPE2
+proc
+	mreturn compare(obj1, obj2) <= 0
+endmethod
+
+.ifdef COMPARE_SWAP	;Need to swap operands?
+
+public static method op_Equality, boolean
+D_INARG	obj2	,COMPARE_TYPE2
+D_INARG	obj1	,@COMPARE_CLASS
+proc
+	mreturn compare(obj1, obj2) == 0
+endmethod
+
+public static method op_Inequality, boolean
+D_INARG	obj2	,COMPARE_TYPE2
+D_INARG	obj1	,@COMPARE_CLASS
+proc
+	mreturn compare(obj1, obj2) != 0
+endmethod
+
+public static method op_GreaterThan, boolean
+D_INARG	obj2	,COMPARE_TYPE2
+D_INARG	obj1	,@COMPARE_CLASS
+proc
+	mreturn compare(obj1, obj2) < 0
+endmethod
+
+public static method op_LessThan, boolean
+D_INARG	obj2	,COMPARE_TYPE2
+D_INARG	obj1	,@COMPARE_CLASS
+proc
+	mreturn compare(obj1, obj2) > 0
+endmethod
+
+public static method op_GreaterThanOrEqual, boolean
+D_INARG	obj2	,COMPARE_TYPE2
+D_INARG	obj1	,@COMPARE_CLASS
+proc
+	mreturn compare(obj1, obj2) <= 0
+endmethod
+
+public static method op_LessThanOrEqual, boolean
+D_INARG	obj2	,COMPARE_TYPE2
+D_INARG	obj1	,@COMPARE_CLASS
+proc
+	mreturn compare(obj1, obj2) >= 0
+endmethod
+
+.undefine COMPARE_SWAP
+.endc	;COMPARE_SWAP
+
+.ifdef COMPARE_MEMBER
+.ifndef COMPARE_MEMBER2
+.define COMPARE_MEMBER2 COMPARE_MEMBER
+.endc
+
+protected static method compare, int
+	D_INARG obj1, @COMPARE_CLASS
+	D_INARG obj2, COMPARE_TYPE2
+proc
+	if (obj1.COMPARE_MEMBER > obj2.COMPARE_MEMBER)
+	  mreturn 1
+	if (obj1.COMPARE_MEMBER < obj2.COMPARE_MEMBER)
+	  mreturn -1
+	mreturn 0	;==
+endmethod
+
+.undefine COMPARE_MEMBER2
+
+.endc	;COMPARE_MEMBER
+
+.undefine COMPARE_TYPE2

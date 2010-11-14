@@ -1,0 +1,59 @@
+.ifndef D_REDUCE_CLASS
+.include "SYNTHESIS:synthesis.def"
+;
+; Functors for ls.reduce and ls.reduceright
+;
+
+namespace Synthesis
+
+    public abstract class Reducer
+    ;
+    ; A Reducer is a functor that reduces two objects to one
+    ;
+        public abstract method reduce, @*
+	D_INARG accumulator, @*		;Result of previous reduction, or initial value
+	D_INARG member, @*		;Next member to reduce
+	proc
+	end
+
+    endclass
+
+.define D_REDUCE_CLASS, ReduceSum
+.define D_REDUCE_OP, +
+.include "reducer"
+.define D_REDUCE_CLASS, ReduceDifference
+.define D_REDUCE_OP, -
+.include "reducer"
+.define D_REDUCE_CLASS, ReduceProduct
+.define D_REDUCE_OP, *
+.include "reducer"
+.define D_REDUCE_CLASS, ReduceQuotient
+.define D_REDUCE_OP, /
+.include "reducer"
+
+endnamespace
+
+.else	;D_REDUCE_CLASS
+
+    public class D_REDUCE_CLASS extends Reducer
+    ;
+    ; Perform D_REDUCE_OP on all Vars in the list, ignore everything else
+    ;
+    	public override method reduce, @*
+	D_INARG accumulator, @*
+	D_INARG member, @*
+	proc
+	    if (member .is. Var)
+	      begin
+	        if (accumulator .is. Var)
+		  mreturn (Var)accumulator D_REDUCE_OP (Var)member
+		mreturn member
+	      end
+	    mreturn accumulator
+	end
+
+    endclass
+
+.undefine D_REDUCE_CLASS
+.undefine D_REDUCE_OP
+.endc

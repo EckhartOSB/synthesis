@@ -1,0 +1,176 @@
+<html>
+<head>
+<title>Synthesis library reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Library Synthesis</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This library provides a number of new features made possible by Synergy/DE version 9.
+It requires Synergy/DE version 9.3.1 or higher.  It's called Synthesis for a few reasons:</p>
+<ul>
+  <li>It's a synthesis of most of my explorations of what I can do with Synergy/DE version 9</li>
+  <li>The programming model is a synthesis of object-oriented and functional programming.</li>
+  <li>The terminology synthesizes vocabulary from Lisp, Ruby, C++, .NET, and historical Synergy/DE.</li>
+  <li>It needed to start with "syn" to fit my tagging conventions on ChipsTips.</li>
+  <li>It embodies my "thesis" on the future of Synergy/DE programming.</li>
+</ul>
+<p>The code is intended to be portable across all supported Synergy/DE platforms, which include Linux,
+various Unices, Windows, and OpenVMS.  The Synergy/DE UI Toolkit is not required by this library, but I've
+taken pains to make it compatible with applications that do use the UI Toolkit.</p>
+<p>This site documents Synthesis version 2.1.4 (<a href="http://chipstips.com/?tag=synthesis">Download source</a>)<br/>
+Author: <a href="http://chipsquips.com">Chip Camden</a><br/>
+To report problems or suggestions, <a href="http://chipstips.com/?page_id=3">contact me</a>.
+</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#build">Building the library</a></li>
+<li>Primary Classes
+  <ol>
+    <li><a href="coverage.html">CodeCoverage</a> - Code coverage analysis</li>
+    <li><a href="commandline.html">CommandLine</a> - Command line parsing</li>
+    <li><a href="console.html">Console</a> - Console (stdio) class</li>
+    <li><a href="elapsedtime.html">ElapsedTime</a> - Compute elapsed times</li>
+    <li><a href="file.html">File</a> - File class</li>
+    <li><a href="hash.html">Hash</a> - Associative array</li>
+    <li><a href="json.html">json</a> - Parse and generate JSON</li>
+    <li><a href="ls.html">ls</a> - ArrayList extensions</li>
+    <li><a href="memo.html#cls-memo">Memo</a> - Memoization</li>
+    <li><a href="random.html">Random</a> - Pseudorandom number generator</li>
+    <li><a href="regex.html">Regex</a> - Regular Expressions</li>
+    <li><a href="socket.html">Socket</a> - Socket as a transport</li>
+    <li><a href="telnet.html">Telnet</a> - Telnet connection</li>
+    <li><a href="transport.html">Transport</a> - Serial transport mechanism</li>
+    <li><a href="var.html">Var</a> - Type-agnostic boxing of primitives</li>
+    <li><a href="version.html">Version</a> - Version numbers</li>
+  </ol>
+</li>
+<li>Macros and Functions
+  <ol>
+    <li><a href="assertions.html">Assertions</a> - Assertions for testing</li>
+    <li><a href="fif.html">fif</a> - Functional if</li>
+    <li><a href="gottk.html">GotToolkit</a> - Determine whether Toolkit is available</li>
+    <li><a href="let.html">let</a> - Functional Let</li>
+    <li><a href="let.html#maxvminv">maxv, minv</a> - Maximum/minimum values</li>
+    <li><a href="memo.html">memoize</a> - Memoize function/method results</li>
+    <li><a href="progn.html">progn</a> - evaluate multiple expressions, returning the last one</li>
+    <li><a href="swap.html">swapo, swapa, swapd, swapi, swapv</a> - swap variables</li>
+  </ol>
+</li>
+<li>Mixins
+  <ol>
+    <li><a href="boolean.html">Boolean</a> - Boolean operators</li>
+    <li><a href="comparable.html">Comparable</a> - Comparison operators</li>
+    <li><a href="singleton.html">Singleton</a> - Singleton design pattern</li>
+  </ol>
+</li>
+<li>Utilities
+  <ol>
+    <li><a href="cover.html">cover</a> - tab-delimited code coverage report</li>
+    <li><a href="htmlcover.html">htmlcover</a> - HTML code coverage report</li>
+  </ol>
+</li>
+<li><a href="changelog.html">Change log</a></li>
+<li><a href="#issues">Known issues</a></li>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="build">
+<h2>Building the library</h2>
+<p>This library currently requires Synergy/DE version 9.3.1 or higher.</p>
+<p>To set environment variables, execute one of the following:</p>
+<ul>
+  <li><code>. setenv.sh</code> - Unix and Linux</li>
+  <li><code>setenv.bat</code> - Windows</li>
+  <li>On OpenVMS, you'll have to roll your own</li>
+</ul>
+<p>One of the symbols set by these scripts is DBG (for debug mode).  If you want to build
+without debug symbols, unset this environment variable.</p>
+<p>The directory structure should be as follows:</p>
+<ul>
+  <li><code>synthesis</code> - main directory
+    <ul>
+      <li><code>documentation</code> - HTML documentation</li>
+      <li><code>mixins</code> - Source for included mixin modules</li>
+      <li><code>prototypes</code> - Place for dbp files to go (you may need to create this folder)</li>
+      <li><code>sources</code> - Source files
+        <ul>
+	  <li><code>obj</code> - Place for dbo files to go</li>
+	</ul>
+      </li>
+      <li><code>tests</code> - Unit test sources
+        <ul>
+	  <li><code>exe</code> - Executable tests</li>
+	  <li><code>obj</code> - Place for dbo files to go</li>
+	</ul>
+      </li>
+      <li><code>utilities</code> - Utility program sources
+        <ul>
+	  <li><code>obj</code> - Place for dbo files to go</li>
+	</ul>
+      </li>
+      <li><code>vcs</code> - PVCS archives
+        <ul>
+	  <li><code>cfg</code></li>
+	  <li><code>documentation</code></li>
+	  <li><code>mixins</code></li>
+	  <li><code>sources</code></li>
+	  <li><code>tests</code></li>
+	  <li><code>utilities</code></li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+<p>The build assumes that you use both PVCS Version Manager and Configuration Builder.  If you don't
+use Version Manager, set NOVCS=1 in your environment.  If you don't use Configuration Builder, then
+you'll need to translate the makefile.mak files in the sources, tests, and utilities directories into whatever
+build script suits your taste.</p>
+<p>
+If you do use PVCS Configuration builder, then in any directory that contains a makefile.mak you can issue the
+command 'build' to build the standard Synergy/DE version of the system.  Build in sources first, then
+tests and utilities.  A 'build clean' will delete all target files.  If you're on Windows, a 'build net' will
+build everything for the Synergy.NET version (currently in beta).  In tests, you can use 'build run' or
+'build runnet' to run the full test suite.  Also in tests, 'build coverage' will use the htmlcover utility
+to generate coverage statistics for all of the tests.  To combine the statistics from all tests
+into one report, use 'build coverall'.
+</p>
+<p>
+To use the library in your application, optionally include "SYNTHESIS:synthesis.def" in your client
+programs (this is only really needed if you intend to use the macros and constants defined therein).
+Then link your program against SYNTHESIS:synthesis.elb.
+</p>
+</div>
+<div id="issues">
+<h2>Known issues</h2>
+<ul>
+<li><a href="gottk.html">GotToolkit</a> does not yield meaningful results on .NET, nor can it start the UI Toolkit on .NET</li>
+<li>The <a href="socket.html">Socket</a> and <a href="telnet.html">Telnet</a> classes will not compile on .NET, due to a compiler issue.</li>
+<li>On .NET, passing an array or real array to <a href="ls.html#ref-from">ls.from</a> is not supported.</li>
+<li>The <a href="swap.html">swapd</a> macro gets a compilation error in .NET.</li>
+<li>CodeCoverage of a UI Toolkit program exits prematurely due to a debugger problem.  This is Synergex tracker #30947, which
+    will be fixed in a post-9.3.1 version.</li>
+</ul>
+</div>
+</body>
+</html>

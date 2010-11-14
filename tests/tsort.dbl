@@ -1,0 +1,88 @@
+.include "SYNTHESIS:synthesis.def"
+
+function get_numopt, ^val
+in req opt, a
+in req def, int
+
+record
+	l	,@ls
+	v	,@Var
+proc
+	l = CommandLine.SwitchArgs(opt)
+	if (l.Count > 0)
+	  begin
+	    v = (Var)l[0]
+	    freturn (int)v
+	  end
+	freturn def
+end
+
+main
+record
+	tim	,@ElapsedTime
+	cmp	,@Compare
+	rnd	,@Random
+	ls1	,@ls
+	ls2	,@ls
+	lls	,@ls
+	for	,int
+	ndx	,int
+	ndx1	,int
+	from	,int
+	thru	,int
+	by	,int
+	rep	,int
+proc
+	tim = new ElapsedTime()
+	cmp = new CompareVarInt()	;Compare as integer
+	rnd = new Random()
+	clear from, thru, by
+	from = get_numopt('from', 1)
+	thru = get_numopt('thru', from)
+	by = get_numopt('by', 1)
+	rep = get_numopt('rep',1)
+	Console.WriteLine("Array size,   Mergesort,   Quicksort,        Sort")
+
+	for for from from thru thru by by	;I couldn't resist
+	  call time_it
+	flags(01001010,1)
+	stop
+
+time_it,
+	Console.Display(%string(for, "ZZZZZZZZZX"))
+	lls = new ls()
+	for ndx1 from 1 thru rep
+	  begin
+	    ls1 = new ls()
+	    for ndx from 1 thru for
+	      begin
+		ls1.append$(rnd.NextInt())
+	      end
+	    lls.add(ls1)
+	  end
+
+	tim.reset()
+	foreach ls1 in lls
+	  ls2 = ls1.mergesort(cmp)
+	Console.Display("," + string(tim.nSeconds,"ZZZZZZZX.XXX"))
+	call check_it
+	clear ls2
+	tim.reset()
+	foreach ls1 in lls
+	  ls2 = ls1.quicksort(cmp)
+	Console.Display("," + string(tim.nSeconds,"ZZZZZZZX.XXX"))
+	call check_it
+	clear ls2
+	tim.reset()
+	foreach ls1 in lls
+	  ls2 = ls1.sort(cmp)
+	Console.WriteLine("," + string(tim.nSeconds,"ZZZZZZZX.XXX"))
+	call check_it
+	clear ls2
+	return
+
+check_it,
+	for ndx from 1 thru for-1
+	  assert((Var)ls2[ndx] >= (Var)ls2[ndx-1])
+	return
+end

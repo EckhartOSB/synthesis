@@ -1,0 +1,44 @@
+<html>
+<head>
+<title>Progn reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Progn</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class allows you to evaluate multiple expressions, returning
+only the last one.  This enables you to evaluate multiple expressions
+within a <a href="let.html">let</a>, for example.
+Even though Progn is a class, it's meant to be used
+more like a single function.</p>
+</div>
+<div class="ref">
+<h2>Syntax</h2>
+<pre><code>
+progn.do(<em>expr</em>).returning(<em>rexpr</em>) =&gt; <em>result</em>
+progn.do(<em>expr</em>).then(<em>expr</em>).returning(<em>rexpr</em>) =&gt; <em>result</em>
+progn.do(<em>expr</em>).then(<em>expr</em>).then(<em>expr</em>).returning(<em>rexpr</em>) =&gt; <em>result</em>
+(etc.)
+</code></pre> 
+<p>where:</p>
+<ul>
+  <li><em>expr</em> is an expression to evaluate</li>
+  <li><em>rexpr</em> is an expression to evaluate and return.</li>
+  <li><em>result</em> is the returned result.</li>
+</ul>
+</div>
+<div class="ref">
+<h2>Discussion</h2>
+<p>
+Each <em>expr</em> will be evaluated in order, beginning with the one passed to do() followed by each then().
+Finally, <em>rexpr</em> will be evaluated and returned.  This allows you to evaluate multiple expressions in a single statement,
+but return a meaningful value.
+The type of <em>result</em> returned will be one of the following:  int, a, decimal, @Var, or object -- depending
+on the type of <em>rexpr</em>.
+</p>
+</div>
+</body>
+</html>

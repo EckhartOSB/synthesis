@@ -1,0 +1,98 @@
+<html>
+<head>
+<title>Let macro reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Macro let</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This set of macros provides a functional Let capability for Synergy/DE.
+Let allows you to define variables with expression scope, and return the
+result of an operation, all in one expression.  It's very useful for defining
+complex macros where you need to avoid multiple evaluation of arguments.
+</div>
+<div class="ref">
+<h2>Syntax</h2>
+<pre><code>
+	 let(<em>assignments</em>, <em>body</em>) =&gt; <em>result</em>
+</code></pre> 
+<p>where:</p>
+<ul>
+  <li><em>assignments</em> is one or more assign macros, logically anded (&amp;&amp;) together</li>
+  <li><em>body</em> is an expression whose result will be returned</li>
+  <li><em>result</em> is the returned result</li>
+</ul>
+</div>
+<div class="ref">
+<p>Assignments have the syntax:</p>
+<pre><code>
+	assign(<em>name</em>, <em>value</em>)
+</code></pre>
+<p>where:</p>
+<ul>
+  <li><em>name</em> is an alphanumeric name to identify the variable</li>
+  <li><em>value</em> is the value to assign to it.</li>
+</ul>
+<p>
+If <em>value</em> is a primitive, it will be automatically boxed as a <a href="var.html">Var</a>.
+Assignments only have the scope of their containing let.  If you reassign the same name in
+nested lets, the inner definition overrides the outer one until the inner expression returns.</p>
+</div>
+<div class="ref">
+<p>
+To reference the value of one of these assignments within <em>body</em>, use one of the
+following macros:
+</p>
+<pre><code>
+	valueof(<em>name</em>) =&gt; <em>object</em>
+	vv(<em>name</em>) =&gt; <em>var</em>
+	it =&gt; <em>object</em>
+	itv =&gt; <em>var</em>
+</code></pre>
+<p>
+Both valueof and vv access an assignment by name, but vv casts the result as a Var, while
+valueof returns it as an object.  The it macro accesses the most recent assignment as an
+object, while itv casts it as a Var.
+</p>
+</div>
+<div class="ref">
+<p>If you intend to use it or itv and don't care about the name of the variable, you can
+generate a unique name using one of the following macros:</p>
+<pre><code>
+	gensym =&gt; <em>a</em>
+	genlet(<em>value</em>, <em>body</em>) =&gt; <em>result</em>
+</code></pre>
+<p>Gensym just creates a unique name.  Genlet is a simpler version of let that uses gensym
+for assigning just one variable.</p>
+</div>
+<div id="maxvminv" class="ref">
+<h2>macros maxv, minv</h2>
+For examples of how this can be useful, see the maxv and minv macros defined in synthesis.def.
+These macros return the greater or lesser of two values, respectively.  The naive implementation of
+maxv, for example, would be:
+<p><code>
+.define maxv(val1,val2) fif(val1 &gt; val2, val1, val2)
+</code></p>
+But what happens when one of the values has a side-effect or requires lengthy processing?
+<p><code>
+result = maxv(close_yearend(), minimum_fee)
+</code></p>
+In the expansion of our naive version, close_yearend() would get called twice:
+<p><code>
+result = fif(close_yearend() &gt; minimum_fee, close_yearend(), minimum_fee)
+</code></p>
+By using let, we can insure that each argument is evaluated only once:
+<p><code>
+.define maxv(val1, val2) let(assign("val1",val1) &amp;&amp; assign("val2",val2), fif((vv("val1") &gt; vv("val2")), vv("val1"), vv("val2")))
+</code></p>
+which expands to:
+<p><code>
+let(assign("val1",close_yearend()) &amp;&amp; assign("val2", minimum_fee), fif((vv("val1") &gt; vv("val2")), vv("val1"), vv("val2")))
+</code></p>
+Now the fif macro only references values already evaluated, rather than re-evaluating the original arguments.
+</div>
+</body>
+</html>

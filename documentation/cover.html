@@ -1,0 +1,28 @@
+<html>
+<head>
+<title>Cover utility reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Cover utility</h1>
+<div id="intro">
+<h2>Introduction</h2>
+The cover utility provides a command-line driven tool to analyze code coverage of
+a Synergy/DE executable.
+</div>
+<div id="usage">
+<h2>Usage</h2>
+<code>
+dbr SYNTHESIS:cover <em>executable</em>
+</code>
+<div class="description">
+Samples <em>executable</em> (which may also contain arguments) and Analyzes all source
+files using the <a href="coverage.html">CodeCoverage</a> class.  Outputs a tab-delimited
+coverage report to stdout that includes the name of each source file, each executable
+line number, and the number of times that line number was executed.
+</div>
+</div>
+</body>
+</html>

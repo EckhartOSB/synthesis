@@ -1,0 +1,43 @@
+body {
+    font-family: Verdana, Arial, Helvetica;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th {
+    background-color: #FEE;
+    border: thin solid #700;
+    padding: 5px;
+}
+
+td {
+    border: thin solid #700;
+    padding: 5px;
+}
+
+div {
+    border: thin solid #cdd;
+    padding: 1em;
+}
+
+#header {
+    border: none;
+    background-color: #eff;
+    padding: 0px;
+}
+
+.header-section {
+    float:left;
+    margin: 10px;
+    padding-top: 10px;
+}
+
+.description {
+    margin-top: 1em;
+    border: none;
+}
+.ref {
+    border-color: #acc;
+}

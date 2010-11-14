@@ -1,0 +1,394 @@
+; telnet.dbl - class for telnet access
+;
+; Chip Camden - November, 2009
+;
+.include "SYNTHESIS:synthesis.def"
+.include "DBLDIR:synsock.def"
+
+namespace Synthesis
+
+    public class Telnet
+
+        public method Telnet
+	D_INARG trans, @Transport
+	proc
+	    m_transport = trans
+	    m_recvlen = 0
+	    m_recvndx = 1
+	    m_echo = false
+	    m_GA = true
+	    m_SeenGA = false
+	    m_transport.Send(prolog)
+	end
+
+	public property Ready, boolean
+	  method get
+	  proc
+	  	mreturn m_SeenGA
+	  end
+	endproperty
+
+	public method Send, boolean
+	D_INARG str, a
+	proc
+	     m_SeenGA = false
+	     mreturn m_transport.Send(str)
+	end
+
+	public method SendLine, boolean
+	D_INARG str, a
+	proc
+	     mreturn this.Send(str + crlf)
+	end
+
+	public method GetChar, a
+	record
+		c	,a1
+	proc
+		c = NextChar()
+		if (m_echo)
+		  this.Send(c)
+		mreturn c
+	end
+
+	public method GetLine, i
+	out req buf, a
+	record
+		ndx	,int
+	proc
+		for ndx from 1 thru ^size(buf)
+		  begin
+		    using (buf(ndx:1) = this.GetChar()) select
+		    (%char(0)),		;NULL, means GA encountered
+		      begin
+		        decr ndx
+			exitloop
+		      end
+		    (%char(8)),		;Backspace
+		      if (ndx > 1) then
+		        ndx -= 2
+		      else
+		        ndx = 0
+		    (%char(21)),	;Ctrl+U
+		      ndx = 0
+		    (%char(13)),	;Include CR
+		      nop
+		    (< ' '),		;Treat all others, including LF, as terminator
+		      exitloop
+		    endusing
+		  end
+		mreturn ndx
+	end
+
+	protected m_transport, @Transport
+	protected m_recvbuf, a1024	;Buffer for socket receive
+	protected m_recvndx, i4
+	protected m_recvlen, i4
+	protected m_echo, boolean
+	protected m_GA, boolean	
+	protected m_SeenGA, boolean
+
+	private method NextChar, a
+	proc
+		if (m_recvndx >= m_recvlen)
+		  begin
+		    if (m_GA)
+		      m_transport.Send(GoAhead)
+		    m_recvlen = m_transport.Receive(m_recvbuf)
+		    m_recvndx = 0
+		  end
+		clear m_SeenGA
+		incr m_recvndx
+		using m_recvbuf(m_recvndx:1) select
+		(IAC),	begin
+			  data rslt, i4
+			  if (rslt = HandleCommand())
+			    mreturn %char(rslt)
+			  if (m_recvndx < m_recvlen) then
+			    mreturn NextChar()	;Recurse
+			  else
+			    mreturn %char(0)
+			end
+		endusing
+		mreturn m_recvbuf(m_recvndx:1)
+	end
+
+	private method HandleCommand, i
+	;
+	; Invoked when an IAC is encountered in the received data
+	;
+	proc
+	    using (this.NextChar()) select
+
+	    (WILL),
+	      begin
+	        using (this.NextChar()) select
+		(TERMINAL),
+		    this.Send(IAC+DONT+TERMINAL)	;No thanks
+		(LINEMODE),
+		    this.Send(IAC+DONT+LINEMODE)	;No thanks
+		(SUPPRESS_GA),
+		    this.Send(IAC+DONT+SUPPRESS_GA)	;We want GA
+		endusing
+	      end
+
+	    (WONT),
+	      this.NextChar()				;Consume and ignore
+
+	    (DO),
+	      begin
+		data c, a1
+	        using (c = this.NextChar()) select
+		(ECHO),
+		  m_echo = true
+		(SUPPRESS_GA),
+		  m_GA = false
+		(TERMINAL),
+		  nop			;This will be handled under subnegotiation
+		(),
+		  m_transport.Send(IAC+WONT+c)		;We don't know anything else
+		endusing
+	      end
+
+	    (DONT),
+	      begin
+	        using this.NextChar() select
+		(ECHO),
+		  m_echo = false
+		(SUPPRESS_GA),
+		  m_GA = true
+		endusing
+	      end
+
+	    (SB),			;Sub-negotiation
+	      begin
+	        using this.NextChar() select
+		(TERMINAL),
+		  if (this.NextChar() == SENDIT)	;Send them ours
+		    begin
+		      m_transport.Send(IAC+SB+TERMINAL+HEREIS+"vt100"+IAC+SE)
+		    end
+		endusing
+		while ((this.NextChar() != IAC) || (this.NextChar() != SE))
+		  nop	;Loop until we get IAC+SE (end of sub-negotiation)
+	      end
+
+	    (GA),
+	      m_SeenGA = true
+
+	    (EC),			;Delete previous character
+	      mreturn 8			;Backspace
+
+	    (EL),			;Delete the entire line
+	      mreturn 21		;Ctrl+U
+
+	    endusing
+
+	    mreturn 0			;Proceed to next character
+	end
+
+	private const crlf, a*, %char(13)+%char(10)
+
+	;Telnet commands:
+	private const IAC, a1, %char(255)
+	private const WILL, a1, %char(251)
+	private const WONT, a1, %char(252)
+	private const DO, a1, %char(253)
+	private const DONT, a1, %char(254)
+	private const SB, a1, %char(250)
+	private const SE, a1, %char(240)
+	private const GA, a1, %char(249)
+	private const EC, a1, %char(247)
+	private const EL, a1, %char(248)
+
+	;Telnet options:
+	private const ECHO, a1, %char(1)
+	private const SUPPRESS_GA, a1, %char(3)
+	private const TERMINAL, a1, %char(24)
+	private const LINEMODE, a1, %char(34)
+
+	;Telnet subnegotiation:
+	private const HEREIS, a1, %char(0)
+	private const SENDIT, a1, %char(1)
+
+	;Command strings:
+	private const GoAhead, a2, IAC+GA
+	private const prolog, a*, IAC+WILL+ECHO+IAC+WILL+SUPPRESS_GA+IAC+WILL+TERMINAL
+
+
+    endclass
+
+	public class TelnetInputHandler
+	;
+	; Functor for handling line-oriented text received on a Telnet session
+	;
+	  public virtual method OnConnect, int
+	  ;
+	  ; Called once after connection has been established
+	  ;
+	  ; Return nonzero to terminate
+	  ;
+	  D_INARG session, @Telnet
+	  ;
+	  proc
+	  	mreturn 0
+	  end
+
+	  public virtual method OnInput, int
+	  ;
+	  ; Process input on the Telnet connection
+	  ;
+	  ; Return nonzero to exit the connection, 0 to continue
+	  ;
+	  D_INARG session, @Telnet	;Telnet session
+	  D_INARG str, a			;A line of input received
+	  D_INARG len, i			;Length of input received
+	  ;
+	  proc
+	  	mreturn 0
+	  end
+
+	  public virtual method OnReady, int
+	  ;
+	  ; Process a ready state
+	  ;
+	  ; Return nonzero to exit
+	  ;
+	  D_INARG session, @Telnet	;Telnet session
+
+	  proc
+	  	mreturn 0
+	  end
+
+	  public virtual method OnDisconnect, int
+	  ;
+	  ; Process a dropped connection
+	  ;
+	  ; Return zero to attempt a new connection, nonzero to exit
+	  ;
+	  D_INARG session, @Telnet		;Telnet session
+	  D_INARG excp	, int			;Status code for cause of drop
+
+	  proc
+	  	mreturn excp			;Exit by default
+	  end
+
+	endclass
+
+	public class TelnetClient
+	;
+	; Line-oriented Telnet client over TCP/IP
+	;
+	  public method TelnetClient
+	  ;
+	  ; Opens a Telnet connection on the specified host and port
+	  ;
+	  D_INARG host, i
+	  D_INARG port, i
+	  record
+	  	s	,@Socket
+	  proc
+	    s = new Socket()
+	    s.Connect(host, port)
+	    m_telnet = new Telnet(s)
+	  end
+
+	  public method TelnetClient
+	  D_INARG hostname, a
+	  D_INARG port, i
+.ifdef DBLNET
+	    this(^val(Socket.GetHostByName(hostname)), port)
+.else
+	    this(Socket.GetHostByName(hostname), port)
+.endc
+	  proc
+	  end
+
+	  public method Run, int
+	  D_INARG handler, @TelnetInputHandler
+	  record
+		rv	,int
+		len	,int
+	  	buff	,a1024
+	  proc
+	    do
+	      call connect
+	    until (rv)
+	    mreturn rv
+
+	  connect,
+	    if (rv = handler.OnConnect(m_telnet))
+	      mreturn rv
+	    try
+	      begin
+	        do
+	          begin
+		    if ((m_telnet.Ready) && (rv = handler.OnReady(m_telnet)))
+		      exitloop
+	            len = m_telnet.GetLine(buff)
+	          end
+	        until (len && (rv = handler.OnInput(m_telnet, buff, len)))
+	      end
+	    catch (e, @SocketException)
+	      rv = handler.OnDisconnect(m_telnet, e.SocketStatus)
+	    endtry
+	    return
+	  end
+
+	  protected m_telnet, @Telnet
+
+	endclass
+
+	public class TelnetServer
+	;
+	; Line-oriented Telnet server over TCP/IP
+	;
+
+	    public method TelnetServer
+	    ;
+	    ; Lisetens for connections on the specified post
+	    ;
+	    D_INARG port, i
+	    proc
+	      	m_socket = new Socket()
+		m_socket.Listen(port)
+	    end
+
+	    public method Run, int
+	    D_INARG handler, @TelnetInputHandler
+	    record
+		t	,@Telnet
+		buff	,a1024
+		len	,int
+	    	rv	,int
+	    proc
+		do
+		  call accept
+		until (rv)
+		mreturn rv
+
+	    accept,
+		t = new Telnet(m_socket.Accept())
+		if (rv = handler.OnConnect(t))
+		  mreturn rv
+		try
+		  begin
+		    do
+		      begin
+		        if ((t.Ready) && (rv = handler.OnReady(t)))
+		          exitloop
+		        len = t.GetLine(buff)
+		      end
+		    until (len && (rv = handler.OnInput(t, buff, len)))
+		  end
+		catch (e, @SocketException)
+		  rv = handler.OnDisconnect(t, e.SocketStatus)
+		endtry
+	        return
+	    end
+
+	    private m_socket, @Socket
+
+	endclass
+
+endnamespace

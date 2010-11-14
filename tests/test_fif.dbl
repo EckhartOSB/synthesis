@@ -1,0 +1,41 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace a
+	class clown				;A working class hero
+	endclass
+
+endnamespace
+
+main
+proc
+	assert_equal(fif(TRUE, 1, 2), 1)	;decimal arguments (compiler treats numeric literals as decimal)
+	assert_equal(fif(1 == 2, 1, 2), 2)	;expression instead of true/false
+	assert_equal(fif(TRUE, 1.1, 2), 1.1)	;implied decimal maps to decimal
+	assert_equal(fif(TRUE, 1, integer(2)), 1)	;compiler maps the first 1 to integer, and the resulting
+							; integer 1 compares successfully to decimal 1
+
+	assert_equal(fif(TRUE, "hello", "world"), "hello")	;Alpha
+
+	begin
+	  data str1, string
+	  data str2, string
+	  str1 = "hello"
+	  str2 = "world"
+	  assert_equal(fif(TRUE, str1, str2), "hello")		;Strings map to alpha
+	end
+
+	begin
+	  data bozo, @a.clown, new a.clown()
+	  assert_kind_of(a.clown, fif(TRUE, bozo, ^null))	;object
+	  assert_null(fif(FALSE, bozo, ^null))
+	end
+
+	assert(fif(fif(true,true,false), fif(false, 1, 2), 3) == 2)	;nested
+
+	begin
+	  data rslt, @Var, fif((Var)1.0, (Var)"a", (Var)"b")	;Testing Var
+	  assert(rslt == "a")
+	end
+	
+	pass()
+end

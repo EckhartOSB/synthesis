@@ -1,0 +1,45 @@
+<html>
+<head>
+<title>Boolean mixin reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Mixin Boolean</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This mixin adds the Boolean operators to a class, so that wherever your class is
+one or more of the operands in a boolean test, its truth value can be evaluated
+consistently.  Boolean operations include:</p>
+<table>
+<tr><th>Test</th><th>Operators</th><th>Examples</th></tr>
+<tr><td>Truth</td><td></td><td><code>if (myobj)</code></td></tr>
+<tr><td>Falsehood</td><td>!, .not.</td><td><code>if (!myobj)</code></td></tr>
+<tr><td>And</td><td>&amp;&amp;, .and.</td><td><code>if (myobj &amp;&amp; other)<br/>if (other &amp;&amp; myobj)</code></td></tr>
+<tr><td>Or (inclusive)</td><td>||, .or.</td><td><code>if (myobj || other)<br/>if (other || myobj)</code></td></tr>
+<tr><td>Or (exclusive)</td><td>.xor.</td><td><code>if (myobj .xor. other)<br/>if (other .xor. myobj)</code></td></tr>
+</table>
+</div>
+<div class="ref">
+<h2>Usage</h2>
+<p>To use this mixin, you must define the identifier BOOLEAN_CLASS as the class under compilation and then include the module.  For example:</p>
+<pre><code>
+class myclass
+.define BOOLEAN_CLASS, myclass
+.include "MIXINS:Boolean"
+
+method truth, boolean
+proc
+    ;Return true if we're true.
+end
+</code></pre> 
+<p>You must supply the instance method "truth" shown above, which may be public, private, or protected.
+This method will be invoked whenever one of the Boolean operations shown above needs to test your object.
+</p>
+<p>The Boolean mixin creates versions of the binary operators when your class is one of the operators and
+the other operator is integer (includes boolean), decimal, alpha (includes string), or another instance
+of your class.  It does not handle the case of another class that provides its own Boolean operators.</p>
+</div>
+</body>
+</html>

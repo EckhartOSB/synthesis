@@ -1,0 +1,755 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	ls1	,@ls
+	ls2	,@ls
+	ls3	,@ls
+	ndx	,int
+	cnt	,int
+proc
+	ls1 = ls.of(1.1)
+	assert(ls1.Equals(ls.of(1.1)))
+	assert(ls1.Equals(ls1))			;Object identity
+	assert(!ls1.Equals(ls.of(1.1)|2))	;Differing length
+	assert(!ls.of(1.1).add$(2).Equals(ls1))	;Longer first
+	ls1 = ls.of(1)
+	assert(!ls1.Equals((Var)1))		;ls != Var
+	ls1.add(^null)
+	ls1.add$(2)
+	assert(!ls1.Equals(ls.of(1)|0|2))	;Compare null vs. non-null (0)
+	assert(ls1.ToString() == "[1, ^null, 2]")
+	ls1 = ls.of(1)|2|3
+	assert((var)(ls1[0]) == 1)
+	assert((var)(ls1[1]) == 2)
+	assert((var)(ls1[2]) == 3)
+	ls2 = ls1 + ls1
+	assert(ls1.Count == 3)
+	assert(ls2.Count == 6)
+	assert((var)(ls2[0]) == 1)
+	assert((var)(ls2[1]) == 2)
+	assert((var)(ls2[2]) == 3)
+	assert((var)(ls2[3]) == 1)
+	assert((var)(ls2[4]) == 2)
+	assert((var)(ls2[5]) == 3)
+	assert((ls2|ls1) != ^null)
+	assert(ls2.Count == 9)
+	ls3 = ls1 + (object)4
+	assert(ls1.Count == 3)
+	assert(ls3.Count == 4)
+	assert((d)ls3[3] == 4)
+	ls3 = ls1 + 4
+	assert((Var)ls3[3] == 4)
+	ls3 = ls1.append(4)
+	assert((Var)ls3[3] == 4)
+	ls3.append$(5)
+	assert((Var)ls3[4] == 5)
+	assert(ls3.union(5).Equals(ls3))
+	ls3 = ls1.union(5)
+	assert(ls3.Equals(ls.of(1)|2|3|5))
+	ls1 = ls.of("a")|"b"|"c"|"b"
+	assert(ls1.IndexOf("a") == 0)
+	assert(ls1.IndexOf("b") == 1)
+	assert(ls1.IndexOf("b",2) == 3)
+	assert(ls1.IndexOf("b",2,2) == 3)
+	assert(ls1.LastIndexOf("b") == 3)
+	assert(ls1.LastIndexOf("b",2) == 1)
+	assert(ls1.LastIndexOf("b",2,3) == 1)
+	ls1 = ls.of("fred")|"wilma"|"barney"|"betty"
+	assert(ls1.IndexOf(Var.Box("fred")) == 0)
+	assert(ls1.Indexof("wilma") == 1)
+	ls1.rotate$(1,3)
+	assert(ls1.IndexOf("wilma") == 3)
+	assert(ls1.IndexOf("betty") == 1)
+	ls1.rotate$(3,2,1,0)	;Shift everyone right
+	assert(ls1.IndexOf("wilma") == 0)
+	assert(ls1.IndexOf("fred") == 1)
+	assert(ls1.IndexOf("betty") == 2)
+	assert(ls1.IndexOf("barney") == 3)
+	assert(ls1.IndexOf("pebbles") == -1)
+	assert((var)(ls1.car) == "wilma")
+	assert(ls1.cdr.Count == 3)
+	assert((var)(ls1.cdr.car) == "fred")
+	assert((var)(ls1.last) == "barney")
+	ls1.car = (var)"dino"
+	assert((var)(ls1.car) == "dino")
+	ls1.cdr = ls.of("pebbles")|"bambam"
+	assert(ls1.count == 3)
+	ls1.push("fred")
+	assert(ls1.Count == 4)
+	assert((var)ls1.car == "fred")
+	assert((var)ls1.pop() == "fred")
+	assert(ls1.count == 3)
+	ls2 = ls1.reverse()
+	assert(ls2.count == 3)
+	assert(ls2.indexof("dino") == 2)
+	assert(ls2.indexof("pebbles") == 1)
+	assert(ls2.indexof("bambam") == 0)
+	ls2.car = Var.Box("bambam")	;New object, same value
+	ls1.push("fred")
+	ls2.push("wilma")
+	ls3 = ls1.intersection(ls2)
+	assert(ls3.count == 3)
+	assert(ls3.indexof("fred") == -1)
+	assert(ls3.indexof("wilma") == -1)
+	ls3 = ls1.union(ls2)
+	assert(ls3.count == 5)
+	assert(ls3.indexof("fred") >= 0)
+	assert(ls3.indexof("wilma") >= 0)
+	ls1 = ls3.subseq(1,3)
+	assert(ls1.count == 3)
+	assert(ls1[0] == ls3[1])
+	assert(ls1[1] == ls3[2])
+	assert(ls1[2] == ls3[3])
+	ls1 = ls3.subseq(3)
+	assert(ls1.count == 2)
+	ls1 = ls3.subseq(5)
+	assert(ls1.count == 0)
+	assert(ls1.subseq(-1,255).Equals(ls1))	;Exceeding bounds
+
+	ls1 = ls.of("a") | "b" | "c" 
+	ls2 = ls.of("a") | "b" | "c"
+	ls1.add(^null)
+	ls2.add(^null)
+	assert(ls1.Equals(ls2))		;Equals vs
+	assert(ls1 != ls2)		; ==
+	assert(ls1.join('-') == "a-b-c")
+	assert(ls1.compact().count == 3)
+	assert(ls1.count == 4)
+	ls1.compact$()
+	assert(ls1.count == 3)
+
+	ls1.add$("b").add$("c")
+	assert(ls1.count == 5)
+	assert(ls1.uniq().count == 3)
+	assert(ls1.count == 5)
+	ls1.uniq$()
+	assert(ls1.count == 3)
+
+	;Lists within lists
+	ls1 = ls.of((ls.of(1) & 2)) &
+	&	    (ls.of(3) &
+	&		  (ls.of(4) & 5))
+	assert(ls1.count == 2)
+	assert(((ls)(ls1.car)).count == 2)
+	assert((var)(((ls)(ls1.car)).car) == 1)
+	assert(((ls)(ls1[1])).count == 2)
+	assert((var)(((ls)(ls1[1])).car) == 3)
+	ls2 = ls1.flatten()
+	assert(ls2.count == 5)
+	for ndx from 1 thru 5
+	  assert((var)(ls2[ndx-1]) == ndx)
+
+	;Associative elements (key/value pairs)
+	;Construction with ls.of and make_pair macro
+	ls1 = ls.of(make_pair("fred",1)) & make_pair("wilma",2) & make_pair("pebbles",4)
+	assert(ls1.count == 3)
+	ls1.keyset("fred",7)
+	assert(ls1.count == 3)
+	ls1.keyset("bambam", 8)
+	assert(ls1.count == 4)
+	assert((var)(ls1.keyget("fred")) == 7)
+	assert(ls1.keyfind("fred").Equals(ls.of("fred")&7))
+	assert(ls1.keydel("pebbles").count == 3)
+	;Using a key-based indexer
+	ls1["fred"] = Var.Box(9)
+	assert((var)ls1["fred"] == 9)
+	ls1["dino"] = (Var)"bark"
+	assert((var)ls1["dino"] == "bark")
+	assert(ls1.count == 4)
+	assert(ls1["bedrock"] == ^null)
+	ls1.keyset(Var.Box("a"),777)
+	assert((Var)ls1["a"] == 777)
+	ls1.keyset(1.1, 888)
+	assert((Var)ls1.keyget(1.1) == 888)
+	ndx = 3
+	ls1.keyset(ndx,999)
+	assert((Var)ls1.keyget(ndx) == 999)	;Note: not the same as ls1[ndx]
+	ls1.keyadd(Var.Box("a"),778)
+	assert(ls1.keygetl(Var.Box("a")).Equals(ls.of(777) & 778))
+	ls1.keyadd(1.1, 889)
+	assert(ls1.keygetl(1.1).Equals(ls.of(888) & 889))
+	ls1.keyadd(ndx, 1000)
+	assert(ls1.keygetl(ndx).Equals(ls.of(999) & 1000))
+
+	;Multimap support
+	ls1 = ls.empty()
+	ls1.keyadd('A', 1)
+	ls1.keyadd('A', 65)
+	ls1.keyadd('B', 2)
+	ls1.keyadd('B', 66)
+	ls1.keyadd('C', 3)
+	assert(((ls)ls1['A']).Equals(ls.of(1) & 65))
+	assert(((ls)ls1['B']).Equals(ls.of(2) & 66))
+	assert(((Var)ls1['C']) == 3)
+	assert(ls1['D'] == ^null)
+	assert(ls1.keygetl('A').Equals(ls.of(1) & 65))
+	assert(ls1.keygetl('B').Equals(ls.of(2) & 66))
+	assert(ls1.keygetl('C').Equals(ls.of(3)))
+	assert(ls1.keygetl('D').Equals(ls.empty()))
+
+	;Mix alist and multimap
+	ls1['A'] = (Var)1
+	assert((Var)ls1['A'] == 1)
+	assert(ls1.keygetl('A').Equals(ls.of(1)))	;chopped
+	ls1 = ls.of(ls.of('A'))
+	assert_null(ls1['A'])
+	ls1['A'] = (Var)1
+	assert((Var)ls1['A'] == 1)
+	assert(ls1.keygetl('A').Equals(ls.of(1)))	;extended
+
+	;Key as object
+	assert((Var)ls1[Var.Box('A')] == 1)
+	ls1[Var.Box('B')] = (Var)2
+	assert((Var)ls1['B'] == 2)
+
+	;Merge
+	ls1 = ls.of('a')|'b'|'f'|'l'
+	ls2 = ls1.merge(ls.of('b')|'c'|'h'|'i'|'m',
+	&	        new CompareVar())
+	assert(ls2.Count == 9)
+	assert(ls2.Equals(ls.of('a')|'b'|'b'|'c'|'f'|'h'|'i'|'l'|'m'))
+
+	ls1 = ls.of(9)|7|5|3
+	ls1.merge$(ls.of(10)|8|6|4|2,
+	&	   new CompareDesc(new CompareVar()))
+	assert(ls1.Equals(ls.of(10)|9|8|7|6|5|4|3|2))
+
+	ls1 = ls.of(9)|5|23|452|1|-1|12
+	ls2 = ls1.mergesort(new CompareVar())
+	assert(ls2.Equals(ls.of(-1)|1|5|9|12|23|452))
+	ls1.quicksort$(new CompareVar())	;in-place
+	assert(ls1.Equals(ls2))
+	ls1 = ls.empty().mergesort(new CompareVar())
+	assert(ls1.Equals(ls.empty()))
+	ls1 = ls.of(1).mergesort(new CompareVar())
+	assert(ls1.Equals(ls.of(1)))
+	ls1 = ls.empty().quicksort(new CompareVar())
+	assert(ls1.Equals(ls.empty()))
+	ls1 = ls.of(1).quicksort(new CompareVar())
+	assert(ls1.Equals(ls.of(1)))
+	ls1 = ls.of((@d)1)|1|2|(@d)2
+	ls2 = ls1.sort(new CompareVar())
+	assert_equal(4, ls2.Count)
+	assert(ls2.subseq(0,1).Equals(ls.of(1)|2))	;Non-Vars to the end, unsorted
+	ls2 = ls1.sort(new CompareVarInt())
+	assert(ls2.Count == 4)
+	assert(ls2.subseq(0,1).Equals(ls.of(1)|2))	;Non-Vars to the end, unsorted
+	ls2 = ls1.sort(new CompareVarDec())
+	assert(ls2.Count == 4)
+	assert(ls2.subseq(0,1).Equals(ls.of(1)|2))	;Non-Vars to the end, unsorted
+	ls2 = ls1.sort(new CompareVarAlpha())
+	assert(ls2.Count == 4)
+	assert(ls2.subseq(0,1).Equals(ls.of(1)|2))	;Non-Vars to the end, unsorted
+
+.ifdef TOO_BIG_FOR_UNIT_TESTS
+	;Test >= 100000 items
+	begin
+	  ls1 = ls.empty()
+	  for ndx from 1 thru 100000
+	    ls1.add$(ndx)
+	  ls2 = ls1.sort(new CompareDesc(new CompareVarInt()))	;Integer, descending
+	  for ndx from 0 thru 99999
+	    assert((Var)ls2[ndx] == 100000-ndx)	;100000 thru 1
+	end
+.endc
+
+	ls1 = ls.of('3')|2|75|12|'12345'|15.2
+	ls1.sort$(new CompareVarInt())
+	assert(ls1.Equals(ls.of(2)|'3'|12|15.2|75|'12345'))
+	ls1.sort$(new CompareVarAlpha())
+	assert(ls1.Equals(ls.of(12)|'12345'|15.2|2|'3'|75))
+	ls1.sort$(new CompareVarDec())
+	assert(ls1.Equals(ls.of(2)|'3'|12|15.2|75|'12345'))
+
+	ls1 = ls.of(ls.of(1)|2|3|4)&
+	&	    (ls.of(1)|2|3)&
+	&	    (ls.of(1)|2|1)&
+	&	    (ls.of(2)|1|1)
+	ls1.sort$(new CompareList(new CompareVarInt()))
+	assert(ls1.Equals(ls.of(ls.of(1)|2|1)&
+	&		        (ls.of(1)|2|3)&
+	&			(ls.of(1)|2|3|4)&
+	&			(ls.of(2)|1|1)))
+	ls1 = ls.of(7) &
+	&	    (ls.of(1)|2|3)&
+	&	    (ls.of(1)|2|3)&
+	&	    (ls.of(1)|2|3|4)&
+	&	    (ls.of(1)|1|1|1)&
+	&	    1
+	ls1.sort$(new CompareList(new CompareVarInt()))
+	assert(ls1.Equals(ls.of(1)&
+	&			(ls.of(1)|1|1|1)&
+	&			(ls.of(1)|2|3)&
+	&			(ls.of(1)|2|3)&
+	&			(ls.of(1)|2|3|4)&
+	&			7))
+
+	ls1 = ls.of('fred')&
+	&	(ls.of('barney')&12)&
+	&	(ls.of(ls.of('bambam')&1)&2)&
+	&	(ls.of('wilma'))&
+	&	(ls.of('betty'))
+	;;writes(1,ls1.toString())
+	ls2 = ls1.sort(new CompareCar(new CompareVarAlpha()))
+	;;writes(1,ls2.toString())
+	ls3 = (ls)ls2[0]
+	ls3 = (ls)ls3[0]
+	assert((var)ls3[0] == "bambam")
+	ls2.sort$(new CompareDesc(new CompareCar(new CompareVarAlpha())))
+	assert(((ls)ls2[0]).Equals(ls.of('wilma')))
+
+	ls1 = ls.of(ls.empty()) & ls.of(1)
+	ls1.sort$(new CompareCar(new CompareVar()))
+	assert(ls1.Equals(ls.of(ls.of(1)) & ls.empty()))	;Empty to end because mapped to null
+
+	ls1 = ls.of('A12')|'a113'|'A7'|'a1 a'|'a1 B'
+	ls1.sort$(new CompareString())		;Case-insensitive, natural (default)
+	assert(ls1.Equals(ls.of('a1 a')|'a1 B'|'A7'|'A12'|'a113'));
+	ls1.sort$(new CompareString(true, false))	;Case-sensitive, non-natural
+	assert(ls1.Equals(ls.of('A12')|'A7'|'a1 B'|'a1 a'|'a113'));
+	ls1.sort$(new CompareString(false, false))	;Case-insensitive, non-natural
+	assert(ls1.Equals(ls.of('a1 a')|'a1 B'|'a113'|'A12'|'A7'));
+	ls1.sort$(new CompareString(true, true))	;Case-sensitive, natural
+	assert(ls1.Equals(ls.of('A7')|'A12'|'a1 B'|'a1 a'|'a113'));
+	ls1.sort$(new CompareString(false, true))	;Case-insensitive, natural
+	assert(ls1.Equals(ls.of('a1 a')|'a1 B'|'A7'|'A12'|'a113'));
+
+	ls1 = ls.of("a") | ls.of(^null) | "b" | ls.of(^null)	;nulls should sort as ""
+	ls1.sort$(new CompareString(true, false))
+	assert(ls1.Equals(ls.of(^null) | ls.of(^null) | "a" | "b"))
+
+	ls1 = ls.of("a  7")|"a 3"|"a   11"
+	ls1.sort$(new CompareString(true, true))			;Natural
+	assert(ls1.Equals(ls.of("a 3")|"a  7"|"a   11"))
+	ls1 = ls.of("a1")|"a1a"|"a2a"|"a2"
+	ls1.sort$(new CompareString(true, true))
+	assert(ls1.Equals(ls.of("a1")|"a1a"|"a2"|"a2a"))
+
+	ls1 = ls.of("aaa")|"a"|"aaaa"|"aaaaa"|"aa"
+	ls1.sort$(new CompareString(true, true))
+	assert(ls1.Equals(ls.of("a")|"aa"|"aaa"|"aaaa"|"aaaaa"))
+
+	;Map and map$
+	ls1 = ls.of('a') & (ls.of(1) | 43.2)
+	ls2 = ls1.map(new MapAlpha())
+	assert(ls2.Equals(ls.of('a') & '[1, 43.2]'))
+	ls2 = ls1.map(new MapAlpha(Case.Upper))
+	assert(ls2.Equals(ls.of('A') & '[1, 43.2]'))
+	ls1 = ls.of('A')
+	ls1.add(^null)
+	ls1.map$(new MapAlpha(Case.Lower))
+	assert(ls1.Equals(ls.of('a') & ""))
+	ls1 = ls.of('a')|'B'|'C'|'d'|'E'
+	ls1.map$(new MapIf(new CompareVarAlpha() < 'a', 'UPPER', 'lower'))
+	assert(ls1.Equals(ls.of('lower')|'UPPER'|'UPPER'|'lower'|'UPPER'))
+	ls1 = ls.of(1).add$(^null) | 2
+	ls2 = ls1.map(new MapIf(new MapNull(), -1))
+	assert(ls2.Equals(ls.of(1)|-1|2))
+	ls2 = ls1.map(new MapIf(!(new MapNull()), '!'))
+	assert(ls2.Equals(ls.of('!').add$(^null)|'!'))
+	ls1.map$(new MapIf(new MapNonNull(), '!'))	;Simpler version
+	assert(ls1.Equals(ls2))
+	ls1 = ls.of(1)|2|3|4
+	ls1.map$(new MapIf(new CompareVarInt() < 3, (@d)0, 1))	;obj, prim
+	assert(ls1.Equals(ls.of((@d)0)|(@d)0|1|1))
+
+	;A rather inefficient demonstration of nested MapIfs
+	ls1 = ls.of(1)|2|3|4
+	ls1.map$(new MapIf(new CompareVarInt() == 1, 'one',
+	&	 new MapIf(new CompareVarInt() == 2, 'two',
+	&	 new MapIf(new CompareVarInt() == 3, 'three',
+	&	 new MapIf(new CompareVarInt() == 4, 'four', '???')))))
+	assert(ls1.Equals(ls.of('one')|'two'|'three'|'four'))
+
+	ls2 = ls1.map(new MapKey(new MyMapper()))
+	assert((Var)(ls2.keyget("key1")) == "one")
+	assert((Var)(ls2.keyget("key2")) == "two")
+	assert((Var)(ls2.keyget("key3")) == "three")
+	assert((Var)(ls2.keyget("key4")) == "four")
+	assert(ls2.keyget("key5") == ^null)
+
+	ls1 = ls.of("key4")|"key1"|"key5"|"key2"|"key3"
+	ls3 = ls1.map(new MapAssoc(ls2))
+	assert(ls3.Equals(ls.of("four").add$("one").add$(^null).add$("two").add$("three")))
+
+	ls1 = ls.of(1)|2|3|4|5
+	ls1.map$(new MapVar() + 2)
+	assert(ls1.Equals(ls.of(3)|4|5|6|7))
+	ls1.map$(10 + new MapVar())
+	assert(ls1.Equals(ls.of(13)|14|15|16|17))
+	ls1.map$(new MapVar() + new MapVar())
+	assert(ls1.Equals(ls.of(26)|28|30|32|34))
+	ls1.map$(100 - (new MapVar() - 2))
+	assert(ls1.Equals(ls.of(76)|74|72|70|68))
+	ls1.map$(new MapVar() * 1.5)
+	assert(ls1.Equals(ls.of(114)|111|108|105|102))
+	ls1.map$(new MapVar() / 3)
+	assert(ls1.Equals(ls.of(38)|37|36|35|34))
+	ls1.map$(-(new MapVar()))
+	assert(ls1.Equals(ls.of(-38)|-37|-36|-35|-34))
+	ls1.map$(integer(100) - integer(100) / new MapInt() * new MapInt())
+	assert(ls1.Equals(ls.of(24)|26|28|30|32))
+	ls1 = ls.of(1)
+	ls1.add(^null)
+	ls1.add((@d)12)
+	ls1.map$(new MapInt())
+	assert(ls1.Equals(ls.of(1)|0|12))
+	for ndx from 0 thru 2
+	  assert(ls1[ndx] .is. VarInt)
+	ls1 = ls.of("antonio")|"julio"|"ion"
+	ls1.map$(new MapReplace(R$('/(n|l)io/'), "\1ia"))
+	assert(ls1.Equals(ls.of("antonia")|"julia"|"ion"))
+	ls1 = ls.of(1)|2|3|4
+	ls1.map$(new MapInt() * Var.Box(3))
+	assert(ls1.Equals(ls.of(3)|6|9|12))
+	ls1.map$(Var.Box(12) - new MapInt())
+	assert(ls1.Equals(ls.of(9)|6|3|0))
+
+	;mapnonull
+	ls1 = ls.of(1)|2|3|4
+	ls1.add(^null)
+	ls1.add((@i)5)
+	ls2 = ls1.mapnonull(new MapIf(New CompareVarInt() > 2, new MapDec() / 2, ^null))
+	assert(ls2.Count == 4)
+	assert(ls2.Equals(ls.of(1.5) & 2 & 0 & 2.5))	;0 included because ^null is not a Var, so
+							; CompareVarInt treats it as greater than Var
+
+	;Removeif and removeif$
+
+	ls1 = ls.of(1)|2|3|4|5|4|3|2|1
+	ls2 = ls1.removeif(new CompareVarInt() >= 4)
+	assert(ls2.Equals(ls.of(1)|2|3|3|2|1))
+	begin
+	  data cmp, @Compare, new CompareVarDec()
+	   ls2.removeif$(cmp == 2 || cmp == 1)
+	end
+	assert(ls2.Equals(ls.of(3)|3))
+
+	;countif
+	cnt = ls1.countif(new CompareVarInt() < 5)
+	assert(cnt == 8)
+	ls1 = ls.of("fred")|"Fred"|"FRED"|"wilma"
+	cnt = ls1.countif(New CompareString() == "fred")
+	assert(cnt == 3)	;Defaults to case-insensitive
+	cnt = ls1.countif(!(New CompareString(true, false) == "fred"))
+	assert(cnt == 3)	;Case-sensitive, not "fred"
+	ls1 = ls.of(^null) | 1 | ls.of(^null) | 2 | 3 | 4 | ls.of(^null)
+	cnt = ls1.countif(new MapNonNull())
+	assert(cnt == 4)
+	cnt = ls1.countif(new MapNull())
+	assert(cnt == 3)	;Because | appended the lists
+	cnt = ls1.countif(new CompareMap1(new MapDec() / 3, new CompareVarDec()) >= 1)
+	assert(cnt == 2)	;3 (maps to 1.0) and 4 (maps to 1.3333333333)
+
+	;Sort nulls to the front, by mapping them to -1
+	ls1.sort$(new CompareMap2(new MapIf(new MapNull(), -1), new CompareVarInt()))
+	assert(ls1.Equals(ls.of(^null)|ls.of(^null)|ls.of(^null)|1|2|3|4))
+
+	;Sort nulls to the middle, by mapping them to 2.5 (test object then)
+	ls1.sort$(new CompareMap2(new MapIf(new MapNull(), Var.Box(2.5)), new CompareVarDec()))
+	assert(ls1.Equals(ls.of(1)|2|ls.of(^null)|ls.of(^null)|ls.of(^null)|3|4))
+
+	;Tests for object as operand instead of primitive
+	ls1 = ls.of(1) | 2 | 3 | 4 | 5
+	cnt = ls1.countif(new CompareVarInt() == Var.Box(4))
+	assert(cnt == 1)
+	cnt = ls1.countif(new CompareVarInt() != Var.Box(4))
+	assert(cnt == 4)
+	cnt = ls1.countif(new CompareVarInt() > Var.Box(4))
+	assert(cnt == 1)
+	cnt = ls1.countif(new CompareVarInt() < Var.Box(4))
+	assert(cnt == 3)
+	cnt = ls1.countif(new CompareVarInt() >= Var.Box(4))
+	assert(cnt == 2)
+	cnt = ls1.countif(new CompareVarInt() <= Var.Box(4))
+	assert(cnt == 4)
+
+	;Finish out primitive operands
+	cnt = ls1.countif(new CompareVarDec() == 4)
+	assert(cnt == 1)
+	cnt = ls1.countif(new CompareVarDec() != 4)
+	assert(cnt == 4)
+	cnt = ls1.countif(new CompareVarDec() > 4)
+	assert(cnt == 1)
+	cnt = ls1.countif(new CompareVarDec() < 4)
+	assert(cnt == 3)
+	cnt = ls1.countif(new CompareVarDec() >= 4)
+	assert(cnt == 2)
+	cnt = ls1.countif(new CompareVarDec() <= 4)
+	assert(cnt == 4)
+
+	;find
+	ls1 = ls.of(1) | 2 | 3 | 4 | 5
+	begin
+	  data is_even, @MapBoolean
+	  data is_odd, @MapBoolean
+	  data over, @MapBoolean
+
+	  is_even = new CompareMap1(MapVar.modulo(new MapInt(), 2), new CompareVarInt()) == 0
+	  is_odd = new MapNot(is_even)
+	  assert((var)ls1.find(is_even) == 2)
+	  assert(ls1.findall(is_odd).Equals(ls.of(1)|3|5))
+	  over = new CompareVarInt() > 5
+	  assert_null(ls1.find(over))
+	  over = new CompareVarInt() > 3
+	  assert(ls1.findall(over || is_even).Equals(ls.of(2)|4|5))
+	  assert(ls1.findall(over && is_even).Equals(ls.of(4)))
+	  assert(ls1.findall(over .xor. is_even).Equals(ls.of(2)|5))
+	end
+
+	begin
+	  data is_digit, @MapBoolean
+	  is_digit = new MapMatches(R$('/\d/'))
+	  ls1.add$('a')	;a non-match
+	  assert(ls1.findall(is_digit).Equals(ls.of(1)|2|3|4|5))
+	end
+
+	;reduce
+	begin
+	  data v, @Var
+	  data o, @*
+	  data d1, d1
+	  data d2, d1
+
+	  d1 = 2
+	  d2 = -1
+	  ls1 = ls.of(d1).add$(4).add$(^null).add$(ls.empty()).add$(new VarInt(3)).add$(d2)
+	  ;^null and ls.empty() will be ignored in the following
+
+	  v = (Var)ls1.reduce(new ReduceSum())
+	  assert(v == 8)
+	  v = (Var)ls1.reduce(new ReduceSum(), 1)
+	  assert(v == 9)
+	  v = (Var)ls1.reduce(new ReduceDifference())
+	  assert(v == -4)
+	  v = (Var)ls1.reduceRight(new ReduceDifference())
+	  assert(v == -10)
+	  v = (Var)ls1.reduceRight(new ReduceDifference(), 10)
+	  assert(v == 2)
+	  v = (Var)ls1.reduce(new ReduceProduct())
+	  assert(v == -24)
+	  v = (Var)ls1.reduce(new ReduceQuotient())
+	  assert((v < -0.166) && (v > -0.167))	;-0.16666...
+	  v = (Var)ls1.reduceRight(new ReduceQuotient())
+	  assert((v < -0.04166) && (v > -0.04167)) ;-0.0416666...
+	  v = (Var)ls1.reduce(new ReduceQuotient(), ^null)
+	  assert((v < -0.166) && (v > -0.167))	;-0.16666...
+
+	  ;Zero-length lists
+	  o = ls.empty().reduce(new ReduceSum())
+	  assert_null(o)
+	  o = ls.empty().reduceRight(new ReduceSum())
+	  assert_null(o)
+	  ls1 = ls.of(2)
+	  v = (Var)ls1.reduce(new ReduceSum())
+	  assert(v == 2)
+	  v = (Var)ls1.reduceRight(new ReduceQuotient())
+	  assert(v == 2)
+	end
+
+	;Tests for ArrayList
+	begin
+	  data ary, @System.Collections.ArrayList
+	  ary = new System.Collections.Arraylist()
+	  ary.add((@d)1)
+	  ary.add((@i)2)
+	  ary.add((@a)"3")
+	  ls1 = ls.from(ary)
+	  assert(ls1.Equals(ls.of((@d)1)&(@i)2&(@a)3))
+	end
+
+	;Tests for Hash
+	begin
+	  data h, @Hash, new Hash()
+	  h.CaseSensitive = true
+	  h['a'] = (object)1
+	  h['xyzzy'] = (object)'plugh'
+	  h['x'] = ^null
+	  ls1 = ls.from(h)
+	  assert(ls1.Equals(ls.of(make_pair('a',(object)1)) & make_pair('xyzzy',(object)'plugh')))
+
+	  h = ls1.ToHash()
+	  assert_equal(1, (d)h['a'])
+	  assert_equal('plugh', (a)h['xyzzy'])
+	  assert_equal(2, h.Count)
+	end
+
+	;Tests for System.Array
+	begin
+	  data ary, [#]string
+	  ary = new string[3]
+	  ary[1] = "one"
+	  ary[2] = "two"
+	  ary[3] = "three"
+	  ls1 = ls.from(ary)		;This does not convert strings to Vars
+	  ls2 = ls.empty()
+	  ls2.add((string)"one")	;Avoid converting to Var
+	  ls2.add((string)"two")
+	  ls2.add((string)"three")
+	  assert(ls1.Equals(ls2))
+
+	  ;Now we'll show how you could convert the strings to vars
+	  ls1 = ls.from(ary).map(new MapAlpha())
+	  assert_kind_of(Var, ls1[0])
+	  assert(ls1.Equals(ls.of("one")|"two"|"three"))
+	end
+
+.ifndef DBLNET
+	begin
+	  data ary, [#,#]@Var
+	  ary = new VarAlpha[3,2]
+	  ary[1,1] = (Var)"1,1"
+	  ary[1,2] = (Var)"1,2"
+	  ary[2,1] = (Var)"2,1"
+	  ary[2,2] = (Var)"2,2"
+	  ary[3,1] = (Var)"3,1"
+	  ary[3,2] = (Var)"3,2"
+	  ls1 = ls.from(ary)
+	  ls2 = ls.of(ls.of("1,1") & "1,2") &
+	  &	     (ls.of("2,1") & "2,2") &
+	  &	     (ls.of("3,1") & "3,2")
+	  assert(ls1.Equals(ls2))
+	end
+
+	begin
+	  data ary, [#,#,#]@Var
+	  ary = new VarDec[2,2,2]
+	  ary[1,1,1] = Var.Box(111)
+	  ary[1,1,2] = Var.Box(112)
+	  ary[1,2,1] = Var.Box(121)
+	  ary[1,2,2] = Var.Box(122)
+	  ary[2,1,1] = Var.Box(211)
+	  ary[2,1,2] = Var.Box(212)
+	  ary[2,2,1] = Var.Box(221)
+	  ary[2,2,2] = Var.Box(222)
+	  ls1 = ls.from(ary)
+	  assert(ls1.Equals(ls.of(ls.of((ls.of(111) & 112)) &
+	  &				(ls.of(121) & 122)) &
+	  &			 (ls.of((ls.of(211) & 212)) &
+	  &				(ls.of(221) & 222))))
+	end
+
+	begin
+	  data ary, [#,#,#]string
+	  ary = new string[2,2,2]
+	  ary[1,1,1] = "1,1,1"
+	  ary[1,1,2] = "1,1,2"
+	  ary[1,2,1] = "1,2,1"
+	  ary[1,2,2] = "1,2,2"
+	  ary[2,1,1] = "2,1,1"
+	  ary[2,1,2] = "2,1,2"
+	  ary[2,2,1] = "2,2,1"
+	  ary[2,2,2] = "2,2,2"
+	  ls1 = ls.from(ary).map(new MapDeep(new MapAlpha()))	;Convert all members to VarAlpha
+	  ls2 = ls.of(ls.of(ls.of("1,1,1") & "1,1,2") &
+	  &	           (ls.of("1,2,1") & "1,2,2")) &
+	  &	     (ls.of(ls.of("2,1,1") & "2,1,2") &
+	  &		   (ls.of("2,2,1") & "2,2,2"))
+	  assert(ls1.Equals(ls2))
+	end
+
+	;Tests for native array (9.3 and up only)
+.ifdef DBLV93
+	begin
+	  data ary, [3]i1, 1, 2, 3
+	  ls1 = ls.from(ary)
+	  assert(ls1.Equals(ls.of(1)|2|3))
+	end
+	begin
+	  data ary, [3]d1, 1, 2, 3
+	  ls1 = ls.from(ary)
+	  assert(ls1.Equals(ls.of(1)|2|3))
+	end
+	begin
+	  data ary, [3]a1, '1', '2', '3'
+	  ls1 = ls.from(ary)
+	  assert(ls1.Equals(ls.of('1')|'2'|'3'))
+	end
+.endc
+.endc
+
+	;Set manipulation
+
+	ls1 = ls.of(1).union$(2).union$(1).union$(3).union$(4)
+	assert(ls1.Equals(ls.of(1) & 2 & 3 & 4))
+	ls2 = ls.of(3) & 5 & 4
+	ls1.union$(ls2)
+	assert(ls1.Equals(ls.of(1) & 2 & 3 & 4 & 5))
+	assert(ls1.contains(5))
+	assert(!ls1.contains(6))
+	assert(ls1.issupersetof(ls2))
+	assert(!ls2.issupersetof(ls1))
+	assert(ls1.issupersetof(ls1))
+	assert(!ls1.issubsetof(ls2))
+	assert(ls2.issubsetof(ls1))
+	assert(ls1.issubsetof(ls1))
+	ls3 = ls1 - ls2
+	assert(ls3.Equals(ls.of(1) & 2))
+	ls3 = ls1 - 4
+	assert(ls3.Equals(ls.of(1) & 2 & 3 & 5))
+	ls3.remove$(1)
+	assert(ls3.Equals(ls.of(2) & 3 & 5))
+	assert(ls3.remove(3).Equals(ls.of(2) & 5))
+	ls1.subtract$(ls3)
+	assert(ls1.Equals(ls.of(1) & 4))
+	ls2 = ls3 - (Var)3
+	assert(ls2.Equals(ls.of(2) & 5))
+
+	;Expand test coverage
+
+	ls1 = ls1 | (Var)7
+	assert(ls1.Equals(ls.of(1) & 4 & 7))
+	assert(ls1.chop(2).Equals(ls.of(1) & 4))
+	assert(ls1.Equals(ls.of(1) & 4 & 7))
+	assert(ls1.union((@a)"a").Equals(ls.of(1) & 4 & 7 & (@a)"a"))
+	assert(ls1.Equals(ls.of(1) & 4 & 7))
+
+	assert_null(ls.empty().pop())
+	assert_null(ls.empty().poplast())
+	assert((Var)ls1.poplast() == 7)
+
+	assert_null(ls.empty().car)
+	ls1 = ls.empty()
+	ls1.car = (Var)1
+	assert(ls1.Equals(ls.of(1)))
+
+	ls1 = ls.empty()
+	assert_null(ls1.last)
+	ls1.last = (Var)1
+	assert(ls1.Equals(ls.of(1)))
+	ls1.last = (Var)2
+	assert(ls1.Equals(ls.of(2)))
+	ls1.add$(3)
+	ls1.last = (Var)4
+	assert(ls1.Equals(ls.of(2) & 4))
+
+	;copy and deepcopy
+	ls1 = ls.of(1) & ls.of(2) & ls.of(ls.of(3) & 4)
+	ls2 = ls1.copy()
+	assert(ls1.Equals(ls2))
+	assert(Object.ReferenceEquals(ls1[0], ls2[0]))
+	assert(Object.ReferenceEquals(ls1[1], ls2[1]))
+	assert(Object.ReferenceEquals(ls1[2], ls2[2]))
+	ls3 = ls1.deepcopy()
+	assert(ls1.Equals(ls3))
+	assert(Object.ReferenceEquals(ls1[0], ls3[0]))
+	assert(!Object.ReferenceEquals(ls1[1], ls3[1]))	;embedded list
+	assert(!Object.ReferenceEquals(ls1[2], ls3[2]))	;embedded list
+	pass()
+end
+
+namespace test
+  class MyMapper extends MapObject
+    public method MyMapper
+    proc
+        m_counter = 0
+    end
+    public override method map, @*
+    D_INARG obj, @*
+    proc
+	mreturn Var.Box("key"+string(m_counter+=1))	;1-based key
+    end
+    private m_counter, int
+  endclass
+endnamespace

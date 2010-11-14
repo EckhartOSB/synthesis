@@ -1,0 +1,312 @@
+<html>
+<head>
+<title>Var class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Var</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides a more type-agnostic way to box primitives in Synergy/DE.  Additionally, it
+provides methods and operator overloads to help prevent the need to unbox or cast the value.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-add">add</a> - perform addition</li>
+    <li><a href="#ref-asalpha">AsAlpha</a> - convert a Var to alpha</li>
+    <li><a href="#ref-asdecimal">AsDecimal</a> - convert a Var to decimal</li>
+    <li><a href="#ref-asinteger">AsInteger</a> - convert a Var to integer</li>
+    <li><a href="#ref-box">Box</a> - create a Var</li>
+    <li><a href="#ref-compare">compare</a> - conditional comparisons</li>
+    <li><a href="#ref-decrement">decrement</a> - decrement the value</li>
+    <li><a href="#ref-divide">divide</a> - perform division</li>
+    <li><a href="#ref-increment">increment</a> - increment the value</li>
+    <li><a href="#ref-match">match</a> - Regular Expression matching</li>
+    <li><a href="#ref-modulo">modulo</a> - modulo operation</li>
+    <li><a href="#ref-multiply">multiply</a> - perform multiplication</li>
+    <li><a href="#ref-negate">negate</a> - perform negation</li>
+    <li><a href="#ref-replace">replace</a> - regular expression replacement</li>
+    <li><a href="#ref-split">replace</a> - split on regular expression</li>
+    <li><a href="#ref-subtract">subtract</a> - perform subtraction</li>
+    <li><a href="#ref-tohtml">ToHtml</a> - convert to an HTML-friendly string</li>
+    <li><a href="#ref-truth">truth</a> - test for truth</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-add" class="ref">
+    <h3>method add, operator +</h3>
+    <code>
+      <em>var</em>.add(<em>operand</em>) =&gt; <em>var2</em><br/>
+      <em>var</em> + <em>operand</em> =&gt; <em>var2</em><br/>
+      <em>operand</em> + <em>var</em> =&gt; <em>var2</em>
+    </code>
+    <div class="description">
+      <p>Adds <em>var</em> and <em>operand</em>, yielding a new Var.  The <em>operand</em>
+      may be another Var or a primitive of any type.  If primitive, <em>operand</em> will
+      be boxed as a Var of the appropriate type before computing the result according to the
+      rules below.</p>
+      <p>When adding Vars of the same type, the result is also of that type.  When adding
+      VarInt and VarDec, the result is VarDec.  When adding any type to VarAlpha, the result
+      is VarAlpha.  For VarAlpha, addition means string concatenation.  For VarInt and VarDec,
+      it means numeric addition.</p>
+    </div>
+  </div>
+  <div id="ref-asalpha" class="ref">
+    <h3>methods AsAlpha, ToString, explicit cast</h3>
+    <code>
+      <em>var</em>.AsAlpha() =&gt; <em>a</em><br/>
+      (a)<em>var</em> =&gt; <em>a</em><br/>
+      (string)<em>var</em> =&gt; <em>string</em><br/>
+      <em>var</em>.ToString() =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      <p>Converts a Var to alpha or string, regardless of its original type.</p>
+    </div>
+  </div>
+  <div id="ref-asdecimal" class="ref">
+    <h3>methods AsDecimal, explicit cast</h3>
+    <code>
+      <em>var</em>.AsDecimal() =&gt; <em>decimal</em><br/>
+      (decimal)<em>var</em> =&gt; <em>decimal</em><br/>
+    </code>
+    <div class="description">
+      <p>Converts a Var to decimal, regardless of its original type.</p>
+      If <em>var</em> is a VarAlpha containing non-decimal characters, the
+      result will be 0.</p>
+    </div>
+  </div>
+  <div id="ref-asinteger" class="ref">
+    <h3>methods AsInteger, explicit cast</h3>
+    <code>
+      <em>var</em>.AsInteger() =&gt; <em>int</em><br/>
+      (i)<em>var</em> =&gt; <em>int</em><br/>
+    </code>
+    <div class="description">
+      <p>Converts a Var to integer, regardless of its original type.</p>
+      <p>If <em>var</em> is a VarDec containing a non-integer portion, it will
+      be rounded or truncated according to the rules in effect for %integer().
+      If <em>var</em> is a VarAlpha containing non-numeric characters, the
+      result will be 0.</p>
+    </div>
+  </div>
+  <div id="ref-box" class="ref">
+    <h3>method Box, explicit cast</h3>
+    <code>
+      Var.Box(<em>primitive</em>) =&gt; <em>var</em><br/>
+      (Var)<em>primitive</em> =&gt; <em>var</em>
+    </code>
+    <div class="description">
+      <p>Creates a Var that boxes <em>primitive</em>, which may be an integer, decimal, or alpha (including string)
+      expression.  The true type of <em>var</em> will be VarInt, VarDec, or VarAlpha, depending on the primitive's
+      type, but for all practical purposes you should treat it as Var.</p>
+      <p>For Var.Box, if you pass a non-primitive object, it will be returned as is.  The same does not occur for
+      casting as (Var).</p>
+    </div>
+  </div>
+  <div id="ref-compare" class="ref">
+    <h3>method compare, conditional operators</h3>
+    <code>
+      <em>var</em>.compare(<em>operand</em>) =&gt; <em>i</em><br/>
+    </code>
+    <div class="description">
+      <p>Compares <em>var</em> and <em>operand</em>, yielding an integer value of -1 for less than,
+      0 for equal, and 1 for greater than.  Because Var uses the <a href="comparable.html">Comparable mixin</a>,
+      this method is automatically invoked whenever a Var is one of the operands in a conditional expression
+      using .eq. (==), .ne. (!=), .gt. (&gt;), .lt. (&lt;), .ge. (&gt;=), or .le. (&lt;=).  If the other
+      operand is not a Var, it will be automatically boxed as a Var of the appropriate type before comparing.</p>
+      <p>When Vars of different types are compared, VarInt may be promoted to VarDec, and either may be promoted
+      to VarAlpha.</p>
+    </div>
+  </div>
+  <div id="ref-decrement" class="ref">
+    <h3>method decrement, operator decr</h3>
+    <code>
+      <em>var</em>.decrement() =&gt; <em>var</em><br/>
+      decr <em>var</em>
+    </code>
+    <div class="description">
+      <p>Decrements the value of a Var in place, returning that same Var.  For integer and decimal
+      Vars, subtracts 1 from the value.  For alphameric, subtracts 1 from the ASCII value of the last character.
+      If that character is already char(1), it is removed from the end of the string.  If the string is already
+      empty, no change occurs.
+      </p>
+    </div>
+  </div>
+  <div id="ref-divide" class="ref">
+    <h3>method divide, operator /</h3>
+    <code>
+      <em>var</em>.divide(<em>operand</em>) =&gt; <em>var2</em><br/>
+      <em>var</em> / <em>operand</em> =&gt; <em>var2</em><br/>
+      <em>operand</em> / <em>var</em> =&gt; <em>var2</em>
+    </code>
+    <div class="description">
+      <p>Divides <em>var</em> and <em>operand</em>, yielding a new Var.  The <em>operand</em>
+      may be another Var or a primitive of any type.  If primitive, <em>operand</em> will
+      be boxed as a Var of the appropriate type before computing the result according to the
+      rules below.</p>
+      <p>When dividing Vars of the same type, the result is also of that type.  When the types
+      differ, both operands are cast as decimal (because string division doesn't make sense).</p>
+      <p>Note that attempting to divide by zero (or a non-decimal string) will result in a
+      catchable runtime exception.</p>
+    </div>
+  </div>
+  <div id="ref-increment" class="ref">
+    <h3>method increment, operator incr</h3>
+    <code>
+      <em>var</em>.increment() =&gt; <em>var</em><br/>
+      incr <em>var</em>
+    </code>
+    <div class="description">
+      <p>Increments the value of a Var in place, returning that same Var.  For integer and decimal
+      Vars, adds 1 to the value.  For alphameric, adds 1 to the ASCII value of the last character.
+      If that character is already char(255) or the string is empty, appends char(1).
+      </p>
+    </div>
+  </div>
+  <div id="ref-match" class="ref">
+    <h3>method match</h3>
+    <code>
+      <em>var</em>.match(<em>regex</em>) =&gt; <em>matchdata</em><br/>
+    </code>
+    <div class="description">
+      <p>Performs <code><em>regex</em>.match(<em>var</em>.ToString())</code>, which yields a
+      <a href="regex.html#cls-MatchData">MatchData object</a>.  See <a href="regex.html#ref-match">Regex.match</a> for details.</p>
+    </div>
+  </div>
+  <div id="ref-modulo" class="ref">
+    <h3>method modulo</h3>
+    <code>
+      <em>var</em>.modulo(<em>operand</em>) =&gt; <em>var2</em><br/>
+    </code>
+    <div class="description">
+      <p>Creates a new VarInt containing the result of <em>var</em> modulo <em>operand</em>,
+      where both <em>var</em> and <em>operand</em> are treated as integer.</p>  The <em>operand</em>
+      may be another Var or any primitive type.  If primitive, it will be boxed as a Var before
+      casting it as integer.</p>
+      <p>Modulo is defined as the remainder from integer division of <em>var</em> by <em>operand</em>.</p>
+    </div>
+  </div>
+  <div id="ref-multiply" class="ref">
+    <h3>method multiply, operator *</h3>
+    <code>
+      <em>var</em>.multiply(<em>operand</em>) =&gt; <em>var2</em><br/>
+      <em>var</em> * <em>operand</em> =&gt; <em>var2</em><br/>
+      <em>operand</em> * <em>var</em> =&gt; <em>var2</em>
+    </code>
+    <div class="description">
+      <p>Multiplies <em>var</em> and <em>operand</em>, yielding a new Var.  The <em>operand</em>
+      may be another Var or a primitive of any type.  If primitive, <em>operand</em> will
+      be boxed as a Var of the appropriate type before computing the result according to the
+      rules below.</p>
+      <p>When multiplying Vars of the same type, the result is also of that type.  When multiplying
+      VarInt and VarDec, the result is VarDec.</p>
+      <p>When one of the operands is VarAlpha, the other operand will be cast as integer (even if
+      it's VarAlpha) to perform string multiplication.  The alpha operand will be repeated that
+      number of times.</p>
+    </div>
+  </div>
+  <div id="ref-negate" class="ref">
+    <h3>method negate, operator -</h3>
+    <code>
+      <em>var</em>.negate() =&gt; <em>var2</em><br/>
+      -<em>var</em> =&gt; <em>var2</em>
+    </code>
+    <div class="description">
+      <p>Negates <em>var</em>, yielding a new Var of the same type.</p>
+      <p>The result for a VarAlpha will always be "", which is the same as ("" - <em>var</em>).</p>
+    </div>
+  </div>
+  <div id="ref-replace" class="ref">
+    <h3>method replace</h3>
+    <code>
+      <em>var</em>.replace(<em>regex</em>, <em>object</em>) =&gt; <em>var2</em>
+    </code>
+    <div class="description">
+      Performs Regular Expression replacement of the portion of the string representation of <em>var</em> that
+      matches <em>regex</em> with the string representation of <em>object</em>, yielding a new VarAlpha.
+      If <em>object</em> is primitive, it will be boxed as a Var before being extracted as a string.  For the
+      rules of Regular Expression replacement, see <a href="regex.html#ref-replace">Regex.replace</a>.</p>
+    </div>
+  </div>
+  <div id="ref-split" class="ref">
+    <h3>method split</h3>
+    <code>
+      <em>var</em>.split(<em>regex</em>) =&gt; <em>ls</em><br/>
+      <em>var</em>.split(<em>regex</em>, <em>boolean</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Splits the alphanumeric representation of <em>var</em> at <em>regex</em>.  See
+      <a href="regex.html#ref-split">Regex.split</a> for details.
+    </div>
+  </div>
+  <div id="ref-subtract" class="ref">
+    <h3>method subtract, operator -</h3>
+    <code>
+      <em>var</em>.subtract(<em>operand</em>) =&gt; <em>var2</em><br/>
+      <em>var</em> - <em>operand</em> =&gt; <em>var2</em><br/>
+      <em>operand</em> - <em>var</em> =&gt; <em>var2</em>
+    </code>
+    <div class="description">
+      <p>Subtracts <em>var</em> and <em>operand</em>, yielding a new Var.  The <em>operand</em>
+      may be another Var or a primitive of any type.  If primitive, <em>operand</em> will
+      be boxed as a Var of the appropriate type before computing the result according to the
+      rules below.</p>
+      <p>When subtracting Vars of the same type, the result is also of that type.  When subtracting
+      VarInt and VarDec, the result is VarDec.  When subtracting from VarAlpha, string subtraction is performed --
+      i.e., the first occurrence (if any) of the second operand is removed from the first.  When subtracting VarAlpha
+      from another type, the VarAlpha is first converted to decimal.</p>
+    </div>
+  </div>
+  <div id="ref-tohtml" class="ref">
+    <h3>method ToHtml</h3>
+    <code>
+      <em>var</em>.ToHtml() =&gt; <em>string</em><br/>
+    </code>
+    <div class="description">
+      Converts the string representation of <em>var</em> (see <a href="#ref-asalpha">ToString</a>) to an HTML-friendly format.
+      Specifically, tabs and spaces are converted to the appropriate number of "&amp;nbsp;", ampersands are converted to "&amp;amp;",
+      &gt; and &lt; are converted to "&amp;gt;" and "&amp;lt;", respectively, &apos; is converted to "&amp;apos;" and &quot; is
+      converted to "&amp;quot;".  The resulting string will be no more than 65535 characters in length.
+    </div>
+  </div>
+  <div id="ref-truth" class="ref">
+    <h3>method truth, boolean operators</h3>
+    <code>
+      <em>var</em>.truth() =&gt; <em>boolean</em><br/>
+      <em>var</em> =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      <p>Allows <em>var</em> to be tested for truth.  This occurs implictly in Synergy/DE when, for instance,
+      an object reference is the sole operand in a conditional expression.  Because Var uses the <a href="boolean.html">Boolean mixin</a>,
+      truth is automatically provided in response to .not. (!), .and. (&amp;&amp;), .or. (||), and .xor. when a
+      Var is one or more of the operands.<p>
+      <p>The test for truth is consistent with standard DIBOL types: VarInt and VarDec are true if non-zero,
+      VarAlpha is true if non-blank with length greater than 0.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

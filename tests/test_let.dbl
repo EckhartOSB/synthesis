@@ -1,0 +1,104 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+proc
+	;Simple case using Var
+	assert(let(assign("x",1),vv("x")) == 1)
+	
+	;Prove scope of let at statement level
+	assert(valueof("x") == ^null)
+
+	;Prove scope of let within a statement
+	begin
+	  data nil, @*
+	  nil = ^null
+	  assert(let(assign("fred", 1), nil) == ^null && (valueof("fred") == ^null))
+	end
+
+	;Prove scope of let within if
+	if (let(assign("b",1),vv("b"))) assert(valueof("b") == ^null)
+
+	;Prove right-to-left evaluation of assignments
+	assert(let(assign("a",1) && assign("a", 2), vv("a")) == 2)
+
+	;Prove that we can access outer scope variables within inner scope if not redefined
+	assert(let(assign("a",2), let(assign("b", 3), vv("a") + vv("b"))) == 5)
+
+	;Overriding x, but accessing outer y and z -- then accessing outer x in outer scope
+	begin
+	  data v, @var
+	  v = let(assign("x", 1) &&
+	&         assign("y", 2) &&
+	&	  assign("z", 3),
+	&	    let (assign("x", 2),
+	&		 vv("x") * vv("y") + vv("z"))
+	&	    + vv("x"))
+	  assert (v == 8)
+	end
+
+	;Nested let in an assign (overriding the same variable even)
+	assert(let(assign("b",let(assign("b",2), vv("b") * 2)), vv("b")) == 4)
+
+	;Return a ^val function return (maps to integer)
+	assert(let(assign("a",1), func1()) == 2)
+
+	;Use of genlet and it
+	assert((genlet("hello",itv)) == "hello")
+
+	begin
+	  ;Decimal return type, prove scope of genlet and it
+	  ;(Can't nest genlet due to Synergy/DE 9.1.5 macro limitations)
+	  data dc, decimal, let(assign(gensym,2),(decimal)(genlet(3,itv)*itv))
+	  assert(dc == 6)
+	end
+
+	;See how easy max is with Vars?
+	assert(maxv(3,4) == 4)
+	assert(maxv(4,3) == 4)
+	assert(maxv("j","i") == "j")
+	assert(minv(3,4) == 3)
+
+	begin
+	  ;Prove single evaluation of each argument in maxv macro, and order of assignments
+	  data vali, int, 100
+	  vali = (int)maxv(vali *= 5, vali = 0)
+	  assert(vali == 500)
+	end
+
+	;How to do max of max (you can't nest maxv within maxv because of Synergy/DE macro limitations as of
+	;  version 9.1.5)
+	begin
+	  data which, a1
+
+	  ;Using the same let variables as the maxv macro to prove let scope
+	  which = (a)let(assign("val1",maxv("d","c")) &&
+	  &               assign("val2",maxv("b","a")),
+	  &		    maxv(vv("val1"), vv("val2")))
+	  assert(which == "d")
+
+	  ;Prove not order dependent
+	  which = (a)let(assign("val1",maxv("a","b")) &&
+	  &               assign("val2",maxv("c","d")),
+	  &		    maxv(vv("val1"), vv("val2")))
+	  assert(which == "d")
+
+	  ;Okay, how about five values (7,8,5,6,2)?  Demonstrates order of assignments, too.
+	  which = (int)let(assign("v1",maxv(7,8)) &&
+	  &		  assign("v2",maxv(5,6)) &&
+	  &		  assign("v3",maxv(2,vv("v1"))),
+	  &		    maxv(vv("v2"),vv("v3")))
+	  assert(which == "8")
+	end
+
+	assert(let(assign("testname",1), itsname) .eqs. "testname")
+
+	assert_null(it)		;By default
+	assert(itsname .eqs. "")
+
+	pass()
+end
+
+function func1, ^val
+proc
+	freturn let(assign("a",2), (int)vv("a"))
+end

@@ -1,0 +1,121 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace test
+  public class MyServerhandler extends TelnetInputHandler
+    public override method OnConnect, int
+    D_INARG server, @Telnet
+    proc
+	server.SendLine("Telnet Server Session")
+	server.Send("$ ")
+    	mreturn 0
+    end
+
+    public override method OnInput, int
+    D_INARG server, @Telnet
+    D_INARG str, a
+    D_INARG len, i
+    proc
+	  begin
+	    data l, i4, len
+	    data t, i4, 0
+	    decr l
+	    if (l)
+	      begin
+		t = unsigned(^i(str(l:1)))
+    	        if (str(1:l) == "exit")
+	          mreturn 42
+	        server.Send("I read " + str(1:l))
+	      end
+	    if ((t != 10) && (t != 13)) then	;Don't bother on CR/LF
+	      server.SendLine(" +0x" + hex(t))
+	    else
+	      server.Send(%char(10))
+	  end
+    	server.Send("$ ")
+        mreturn 0
+    end
+  endclass
+
+  public class MyClientHandler extends TelnetInputHandler
+
+    public method MyClientHandler
+    D_INARG script, @ls
+    proc
+    	m_script = script
+	m_expected = ls.of("Telnet Server Session"+crlf) & "$ "
+    end
+
+    public override method OnInput, int
+    D_INARG client, @Telnet
+    D_INARG str, a
+    D_INARG len, i
+    record
+    	expected	,@Var
+    proc
+	Console.Display(str(1:len))
+	if (m_expected.Count) then
+	  begin
+	    expected = (Var)(m_expected.pop())
+	    assert_equal((a)expected, str(1:len))
+	  end
+	else
+	  flunk("Got " + string(len) + " unexpected characters: " + str(1:len))
+	mreturn 0
+    end
+
+    public override method OnReady, int
+    D_INARG client, @Telnet
+    record
+    	input	,@Var
+    proc
+	if ((input = (Var)m_script.pop()) == ^null)
+    	  mreturn 4			;EOF = exit
+	client.SendLine((a)input)
+	if (input != "exit")
+	  m_expected.add$("I read " + input + crlf).add$("$ ")
+	mreturn 0
+    end
+
+    private m_script, @ls
+    private m_expected, @ls
+    private const crlf, a2, %char(13)+%char(10)
+
+  endclass
+endnamespace
+
+main
+record
+	handler	,@TelnetInputHandler
+	cmdlin	,a260
+proc
+	xcall cmdln(cmdlin)
+	if (%instr(1,cmdlin,"server")) then
+	  begin
+	    data server, @TelnetServer
+	    server = new TelnetServer(2500)
+	    handler = new MyServerhandler()
+	    assert_equal(42, server.Run(handler))
+	  end
+	else
+	  begin
+	    data client, @TelnetClient
+	    data script, @ls
+	    data rslt, int
+	    if (!%instr(1,cmdlin,"client"))
+	      begin
+.ifdef DBLNET
+		launch_process("exe\test_telnet server")
+.else
+	        launch_process("dbs TEST_EXE:test_telnet server")
+.endc
+	        sleep 1
+	      end
+	    script = ls.of("testing telnet") & "testing line two" & "exit" & "something else"
+	    client = new TelnetClient(Socket.IPAddress("127.0.0.1"),2500)
+	    handler = new MyClientHandler(script)
+	    rslt = client.Run(handler)
+	    assert_in_delta(10053, rslt, 1)	;Server closed the connection
+	    					; (10052 - 10054)
+	  end
+	pass()
+end

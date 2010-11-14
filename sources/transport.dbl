@@ -1,0 +1,23 @@
+; transport.dbl - abstract class for two-way transport
+;
+; Chip Camden	November, 2009
+;
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+    public abstract class Transport
+
+    	public abstract method Send, boolean
+	D_INARG str, a	;Characters to send
+	proc
+	end
+
+	public abstract method Receive, i
+	out req buf, a	;Buffer for returned characters
+	proc
+	end
+
+    endclass
+
+endnamespace

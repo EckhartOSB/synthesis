@@ -1,0 +1,156 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace test_boolean
+
+	public class test
+	    .define BOOLEAN_CLASS test
+	    .include "MIXINS:boolean"
+	    public method test
+	    D_INARG tf, boolean
+	    proc
+		m_true = tf
+	    endmethod
+	    private method truth, i
+	    proc
+		mreturn m_true
+	    endmethod
+	    private m_true, boolean
+	endclass
+
+main
+record
+	t	,@test
+	t2	,@test
+	f	,@test
+	f2	,@test
+	dt	,d2.1, 1.1
+	df	,d2.1, 0.0
+	at	,a1, "*"
+	af	,a1, " "
+	st	,string
+	sf	,string
+proc
+	t = new test(true)
+	t2 = new test(true)
+	f = new test(false)
+	f2 = new test(false)
+	st = "Hello"
+	clear sf
+
+	;True
+	if (t) then nop else flunk()
+	if (f) flunk()
+
+	;Not
+	if (!t) flunk()
+	assert(!f)
+
+	;And
+	assert(t && t2)
+	if (t && f) flunk()
+	if (f && t) flunk()
+	if (f && f2) flunk()
+
+	;And boolean
+	assert(t && !f)
+	assert(!f && t)
+	if (!t && !t2) flunk()
+	if (!t && !f) flunk()
+	if (!f && !t) flunk()
+	assert(!f && !f2)
+
+	;And decimal
+	assert(t && dt)
+	assert(dt && t)
+	if (t && df) flunk()
+	if (df && t) flunk()
+	if (f && df) flunk()
+
+	;And alpha
+	assert(t && at)
+	assert(at && t)
+	if (t && af) flunk()
+	if (af && t) flunk()
+	if (f && af) flunk()
+
+	;And string
+	assert(t && st)
+	assert(st && t)
+	if (t && sf) flunk()
+	if (sf && t) flunk()
+	if (f && sf) flunk()
+
+	;Or
+	assert(t || t2)
+	assert(t || f)
+	assert(f || t)
+	if (f || f2) flunk()
+
+	;Or boolean
+	assert(t || !f)
+	assert(!f || t)
+	if (!t || !t2) flunk()
+	assert(!t || !f)
+	assert(!f || !t)
+	assert(!f || !f2)
+
+	;Or decimal
+	assert(t || dt)
+	assert(dt || t)
+	assert(t || df)
+	assert(df || t)
+	if (f || df) flunk()
+
+	;Or alpha
+	assert(t || at)
+	assert(at || t)
+	assert(t || af)
+	assert(af || t)
+	if (f || af) flunk()
+
+	;And string
+	assert(t || st)
+	assert(st || t)
+	assert(t || sf)
+	assert(sf || t)
+	if (f || sf) flunk()
+
+	;Xor
+	if (t .xor. t2) flunk()
+	assert(t .xor. f)
+	assert(f .xor. t)
+	if (f .xor. f2) flunk()
+
+	;Xor boolean
+	if (t .xor. !f) flunk()
+	if (!f .xor. t) flunk()
+	if (!t .xor. !t2) flunk()
+	assert(!t .xor. !f)
+	assert(!f .xor. !t)
+	if (!f .xor. !f2) flunk()
+
+	;Xor decimal
+	if (t .xor. dt) flunk()
+	if (dt .xor. t) flunk()
+	assert(t .xor. df)
+	assert(df .xor. t)
+	if (f .xor. df) flunk()
+
+	;Xor alpha
+	if (t .xor. at) flunk()
+	if (at .xor. t) flunk()
+	assert(t .xor. af)
+	assert(af .xor. t)
+	if (f .xor. af) flunk()
+
+	;And string
+	if (t .xor. st) flunk()
+	if (st .xor. t) flunk()
+	assert(t .xor. sf)
+	assert(sf .xor. t)
+	if (f .xor. sf) flunk()
+
+	pass()
+end
+
+endnamespace

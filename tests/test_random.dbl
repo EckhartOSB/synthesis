@@ -1,0 +1,96 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	l, @ls
+	v, @Var
+	r, @Random
+	ndx, int
+	num, int
+	dnum, decimal
+	bignum, long
+	chars, a65535
+proc
+	r = new Random()
+	l = new ls()
+	for ndx from 0 thru 32767
+	  l.add(new VarInt(0))
+	for ndx from 1 thru 3276700
+	  begin
+	    num = r.Next()
+	    v = (Var)l[num]
+	    incr v
+	  end
+	for ndx from 0 thru 32767
+	  begin
+	    v = (Var)l[ndx]
+	    assert_not_equal(0, (int)v, "Value never generated: " + string(num))
+	  end
+	for ndx from 1 thru 10000
+	  begin
+	    num = r.NextInt(65536)
+	    assert_in_delta(32768, num, 32768)
+	  end
+	for ndx from 1 thru 10000
+	  begin
+	    num = r.NextInt(100000, 200000)
+	    assert_in_delta(150000, num, 50000)
+	  end
+	for ndx from 1 thru 100
+	  begin
+	    num = r.NextInt(100, 100)
+	    assert_equal(100, num)
+	  end
+	for ndx from 1 thru 10000
+	  begin
+	    bignum = r.NextLong(10000000000, 30000000000)
+	    assert_in_delta(20000000000, bignum, 10000000000)
+	  end
+	for ndx from 1 thru 100
+	  begin
+	    dnum = r.NextDec()
+	    assert_in_delta(0.5, dnum, 0.5)
+	  end
+	l = ls.of(new VarInt(0)) | new VarInt(0)
+	for ndx from 1 thru 1000
+	  begin
+	    num = fif(r.NextBool(), 1, 0)
+	    v = (Var)l[num]
+	    incr v
+	  end
+	assert_in_delta(0, (int)((Var)l[1] - (Var)l[0]), 100) 
+
+	r.NextChars(chars)
+	l = new ls()
+	for ndx from 0 thru 255
+	  l.add(new VarInt(0))
+	for ndx from 1 thru ^size(chars)
+	  begin
+	    num = decml(chars(ndx:1))
+	    v = (Var)l[num]
+	    incr v
+	  end
+	for ndx from 0 thru 255
+	  begin
+	    v = (Var)l[num]
+	    assert_not_equal(0, (int)v, "Character never generated: " + string(num))
+	  end
+
+	r.NextChars(chars, decml('A'), decml('Z'))
+	for ndx from 1 thru ^size(chars)
+	  assert((chars(ndx:1) >= 'A') && (chars(ndx:1) <= 'Z'), "Character out of range at index "
+	  &	+ string(ndx))
+
+	assert_throws(Synergex.SynergyDE.SynArgumentException, "bad_next")
+
+	pass()
+end
+
+subroutine bad_next
+record
+	r	,@Random
+proc
+	r = new Random()
+	r.NextInt(100, 99)
+	xreturn
+end

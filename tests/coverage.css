@@ -1,0 +1,83 @@
+td.coverage-percent {
+    text-align: right;
+    padding-left: 10px;
+}
+
+div.coverage {
+    display: table-row;
+}
+
+div.coverage-head {
+    display: table-header-group;
+    background-color: #ccc;
+    text-decoration: underline;
+}
+
+span {
+    display: table-cell;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+span.coverage-line {
+    border-left: thin solid #ccc;
+    text-align: right;
+}
+
+span.coverage-source {
+    border-left: thin solid #ccc;
+}
+
+span.coverage-hits {
+    border-left: thin solid #ccc;
+    border-right: thin solid #ccc;
+    text-align: right;
+}
+
+.coverage-0 {
+    background-color: red;
+}
+
+.coverage-1 {
+    background-color: yellow;
+}
+
+.coverage-2 {
+    background-color: #CCFF00;
+}
+
+.coverage-3 {
+    background-color: #99FF00;
+}
+
+.coverage-4 {
+    background-color: #77FF00;
+}
+
+.coverage-5 {
+    background-color: #55FF00;
+}
+
+.coverage-6 {
+    background-color: #33FF00;
+}
+
+.coverage-7 {
+    background-color: #11FF00;
+}
+
+.coverage-8 {
+    background-color: green;
+}
+
+.coverage-9 {
+    background-color: #00CC00;
+}
+
+.coverage-10 {
+    background-color: #00AA00;
+}
+
+.coverage-over10 {
+    background-color: #007700;	// deep green
+}

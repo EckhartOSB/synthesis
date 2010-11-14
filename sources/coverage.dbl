@@ -1,0 +1,567 @@
+;-----------------------------------------------------------------------------
+;
+; coverage.dbl		Code coverage analysis
+;
+; Chip Camden		November, 2009
+;
+;-----------------------------------------------------------------------------
+;
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+    public class CodeCoverage
+
+	public abstract class ProgressHandler
+	;
+	; Class to handle progress notifications
+	;
+	    public abstract method OnProgress, void
+	    ;
+	    ; Method invoked on progress notification
+	    ;
+	    D_INARG a_phase	,a	;Processing phase
+
+	    D_INARG a_file	,a	;Source file
+	    
+	    D_INARG a_line	,a	;Line number (or blank if none)
+
+	    proc
+	    end
+
+	endclass
+
+	public class ProgressStdOut extends ProgressHandler
+	;
+	; Provided ProgressHandler to write to stdout
+	;
+	    public override method OnProgress, void
+	    ;
+	    ; Method invoked on progress notification
+	    ;
+	    D_INARG a_phase	,a	;Processing phase
+
+	    D_INARG a_file	,a	;Source file
+	    
+	    D_INARG a_line	,a	;Line number (or blank if none)
+
+	    proc
+	    	if (a_line) then
+		  Console.Display(%char(13) + a_phase + ' ' + a_file + ', line ' + a_line + '          ')
+		else
+		  Console.Display(%char(13) + a_phase + ' ' + a_file + '                               ')
+	    end
+
+	endclass
+
+        protected class CoverageHandler extends TelnetInputHandler
+	    private static s_regex, @Regex	;Regex for recognizing line numbers
+	    private static s_catch, @Regex	;Regex for recognizing error catch
+
+	    public method CoverageHandler
+	    D_INARG map, @Hash
+	    D_INARG prog, @ProgressHandler
+	    proc
+	        m_map = map
+		m_prog = prog
+		if (s_regex == ^null)
+	          s_regex = R$('/^([\d.]*) in \S* \((.*)\)/')
+		if (s_catch == ^null)
+		  s_catch = R$('/^[\d.]* in \S* \((.*)\), jumping to line ([\d.]*)/')
+		m_firstfile = ^null
+	        m_lastfile = ""
+		m_fl = ^null
+	    end
+
+    	    public override method OnReady, int
+	    D_INARG session, @Telnet
+	    proc
+	        session.SendLine("step")	;Keep moving
+	        mreturn 0			;Always continue
+	    end
+
+            public override method OnInput, int
+	    D_INARG session, @Telnet
+	    D_INARG str, a
+	    D_INARG len, i
+
+	    record
+	        md	,@MatchData
+		ndx	,int
+		filename,string
+		linenum	,string
+		o	,@*
+		hits	,i4
+
+	    proc
+		;Do a straight alpha comparison for speed first, to eliminate the negatives
+
+		using str select
+		("Step to "),
+		  begin
+		    md = s_regex.match(str(9,len))
+		    if (md.start && md[1].length && md[2].length)
+		      begin
+			linenum = md[1].matched
+			filename = md[2].matched
+			call add_one
+		      end
+		  end
+		("Break at "),
+		  begin
+		    md = s_regex.match(str(10,len))
+		    if (md.start && md[1].length && md[2].length)
+		      begin
+			linenum = md[1].matched
+			filename = md[2].matched
+			call add_one
+		      end
+		  end
+		("DBL error trapped at "),
+		  begin
+		    md = s_catch.match(str(22,len))
+		    if (md.start && md[1].length && md[2].length)
+		      begin
+		        linenum = md[2].matched
+		        filename = md[1].matched
+			call add_one
+		      end
+		  end
+		endusing
+
+	        mreturn 0			;Always continue
+	    ;
+	    add_one,
+		if (ndx = instr(1,linenum,'.'))
+		  linenum = linenum(ndx+1,linenum.Length)  ;eliminate inclusion level
+.ifndef D_UNIX
+		filename = filename.ToLower()	;case-insensitive, except on unix
+.endc
+		if (m_lastfile .nes. filename)	;cache the SourceFile
+		  begin
+		    m_lastfile = filename
+		    m_fl = (SourceFile)(m_map[filename])
+		    if (m_fl == ^null)
+		      begin
+		        m_fl = new SourceFile(filename)
+		        m_map[filename] = m_fl
+		      end
+		  end
+		if (m_fl != ^null)
+		  begin
+		    o = m_fl.lines[linenum]
+		    if (o == ^null) then
+		      begin
+			hits = 1
+		      end
+		    else
+		      begin
+		        hits = (i)o + 1
+		      end
+		    m_fl.lines[linenum] = (object)hits
+		  end
+		if (m_prog != ^null)
+		  begin
+		    if (m_firstfile == ^null)
+		      m_firstfile = filename
+		    if (filename == m_firstfile)
+		      m_prog.OnProgress("Sample", filename, linenum)
+		  end
+	    	return
+	    end
+
+	    private m_map, @Hash
+	    private m_firstfile, string
+	    private m_lastfile, string
+	    private m_fl, @SourceFile
+	    private m_prog, @ProgressHandler
+        endclass
+
+	public class SourceFile
+	;
+	; A source file that was sampled
+	;
+	    public name, string			;Name of the file
+	    public lines, @Hash			;line_number => hits
+
+	    public method SourceFile
+	    D_INARG a_name, a
+	    proc
+	    	name = a_name
+		lines = new Hash()
+		lines.CaseSensitive = true	;Slightly faster
+	    end
+
+	    public method NumberWithin, int
+	    ;
+	    ; Retrieve number of lines within a range of hits
+	    ;
+	    D_INARG at_least, i			;Range of hits
+	    D_INARG at_most, i			;0 = no upper bound
+	    ;
+	    record
+	    	iter	,@Hash.Iterator
+		o	,@*
+		hits	,i4
+		cnt	,int
+	    proc
+		clear cnt
+		iter = new Hash.Iterator(lines)
+		while ((o = iter.Next()) != ^null)
+		  begin
+		    hits = (i)o
+		    if ((hits >= at_least) && ((at_most < 1) || (hits <= at_most)))
+		      incr cnt
+		  end
+	    	mreturn cnt
+	    end
+
+	    public method PercentageWithin, decimal
+	    ;
+	    ; Retrieve the percentage of lines within a range of hits
+	    ;
+	    D_INARG at_least, i			;Range of hits
+	    D_INARG at_most, i			;0 = no upper bound
+	    ;
+	    proc
+	    	mreturn %implied(NumberWithin(at_least, at_most)) / %implied(lines.Count)
+	    end
+
+	endclass
+
+	public TelnetPort, int			;Port to use for Telnet session
+
+	public method CodeCoverage
+	proc
+	    TelnetPort = 2499			;Default Telnet port
+	    m_map = new Hash()
+	    m_map.CaseSensitive = true
+	    if (s_blank == ^null)
+	      s_blank = R$('/^\s*(;.*)?$/i')	;Optional spaces, optional semi-colon and following
+	    if (s_proc == ^null)
+	      s_proc = R$('/^\s*\.?proc\s*(;.*)?$/i')	;"proc"
+	    if (s_notproc == ^null)
+	      s_notproc = R$('/^\s*end(method|main|function|subroutine)\s*(;.*)?$/i')
+	    if (s_cont == ^null)		;Continuation line
+	      s_cont = R$('/^\s*&')
+	    if (s_begin == ^null)		;begin
+	      s_begin = R$('/^\s*begin\s*(;.*)?$/i')
+	    if (s_end == ^null)			;end
+	      s_end = R$('/^\s*end\s*(;.*)?$/i')
+	    if (s_ignore == ^null)
+	      s_ignore = R$('/^\s*(\.|data\s+[^\s=]|(do|else|endusing|endcase|endtry|repeat|.+,|catch\s+\(.*\))\s*(;.*)?$)/i')
+	end
+
+	public static property SourcePath, string	;Paths to source files (separate paths with comma)
+	  method get				;Defaults to environment variable SOURCE_PATH
+	  record
+	      sts, int
+	      log, a1024
+	  proc
+	      getlog("SOURCE_PATH", log, sts)
+	      if (sts)
+	        mreturn log(1:sts)
+	      mreturn ""
+	  end
+	  method set
+	  record
+	      sts, int
+	  proc
+	      setlog("SOURCE_PATH", value, sts)
+	  end
+	endproperty
+
+	public property Map, @Hash
+	;
+	; The map is a Hash of filename => @SourceFile
+	;
+	  method get
+	  proc
+	    mreturn m_map
+	  end
+	endproperty
+
+	public method Sample, @Hash
+	D_INARG exename, a
+	proc
+	    mreturn Sample(exename, ^null)	;No progress reporting
+	end
+
+    	public method Sample, @Hash
+	;
+	; Sample an executable, adding to the coverage map
+	;
+	; The executable will be run in remote debug and sampled over
+	; a Telnet session on TelnetPort.
+	;
+	D_INARG exename, a			;Name (or path) of the executable (and optional arguments)
+
+	D_INARG progress, @ProgressHandler	;Handler for progress reporting
+	;
+	record
+	    debugger	,@TelnetClient		;Remote debug session
+	proc
+	    launch_process("dbr -rd " + string(TelnetPort) + ' ' + exename)
+	    sleep 1				;Give it a chance to start up
+	    debugger = new TelnetClient(Socket.IPAddress('127.0.0.1'), TelnetPort) ;localhost:port
+	    debugger.Run(new CoverageHandler(m_map, progress))
+	    mreturn m_map
+	end
+
+	public method Analyze, boolean
+	;
+	; Analyze a source file, adding to the coverage map
+	;
+	; Returns false if file could not be opened
+	;
+	D_INARG file, a		;Filename, without a path
+	;
+	record
+	    fl, @SourceFile
+	    fd, @File
+	    text, string
+	    linnum, int
+	    begin_depth, int
+	    inproc, boolean
+	    lct	,i4
+	proc
+	    try
+	      begin
+	        fd = new File("SOURCE_PATH:" + file)
+		clear linnum, begin_depth
+		inproc = false
+		fl = (SourceFile)(m_map[file])
+		if (fl == ^null)
+		  begin
+		    fl = new SourceFile(file)
+		    m_map[file] = fl
+		  end
+		while ((text = fd.ReadLine()) != ^null)
+		  begin
+		    incr linnum
+		    if ((text.Length > 0) && (s_blank.match(text).start == 0))	;Not a blank line (or only a comment)
+		      begin
+		        if (inproc) then		;Within a procedure division?
+			  begin
+			    if (s_notproc.match(text).start) then
+			      inproc = false		;Not any more
+			    else
+			      begin
+				if (s_begin.match(text).start) then
+				  incr begin_depth
+				else if (s_end.match(text).start) then
+				  begin
+				    if (begin_depth) then
+				      decr begin_depth
+				    else
+				      inproc = false				;End of routine
+				  end
+				else if (s_cont.match(text).start) then		;Continuation
+				  begin
+				    data o, @*
+				    o = fl.lines[string(linnum-1)]
+				    if (o != ^null)				;Remove previous line
+				      begin
+					lct = (i)o
+					if (lct == 0)				;We haven't executed that one
+				          fl.lines[string(linnum-1)] = ^null
+					if (fl.lines[string(linnum)] == ^null)
+					  fl.lines[string(linnum)] = (object)(lct = 0) ;only if what we continue qualified
+				      end
+				  end
+			        else if (s_ignore.match(text).start == 0)	;Don't ignore this
+				  begin
+				    if (fl.lines[string(linnum)] == ^null)
+				      fl.lines[string(linnum)] = (object)(lct = 0)	;New line number
+				  end
+			      end
+			  end
+			else				;Not in a procedure division
+			  begin
+			    if (s_proc.match(text).start)
+			      begin
+			        inproc = true		;Now we are
+				begin_depth = 0
+			      end
+			  end
+		      end
+		  end
+	      end
+	    catch (e)
+	      begin
+	        mreturn false
+	      end
+	    endtry
+	    mreturn true
+	end
+
+	public method AnalyzeAll, @ls
+	proc
+	    mreturn AnalyzeAll(^null)
+	end
+
+	public method AnalyzeAll, @ls
+	;
+	; Analyze all source files that have been sampled
+	;
+	D_INARG progress, @ProgressHandler
+
+	; Returns list of files that could not be opened
+	;
+	record
+	    l	,@ls
+	    iter,@Hash.Iterator
+	    file,a260
+	    v	,@Var
+	proc
+	    l = new ls()
+	    iter = new Hash.Iterator(m_map, true)
+	    while (iter.Next(file) != ^null)
+	      begin
+		if (progress != ^null)
+		  progress.OnProgress("Analyze", atrim(file), " ")
+	        if (!Analyze(atrim(file)))
+		  l.add(Var.Box(atrim(file)))
+	      end
+	    foreach v in l
+	      m_map[(a)v] = ^null	;Remove files we couldn't open
+	    mreturn l
+	end
+
+	public method Markup, @ls
+	;
+	; Create an HTML version of the source showing coverage
+	;
+	D_INARG filename, a		;Name of the source file (no path)
+	;
+	; Returns list of HTML source lines (empty if file cannot be opened)
+	;
+	record
+	    html	,@ls
+	    fl		,@SourceFile
+	    fd		,@File
+	    src		,string
+	    out		,string
+	    class	,string
+	    o		,@*
+	    hits	,@Var
+	    linnum	,int
+
+	proc
+	    html = ls.of('<div class="coverage coverage-head"><span class="coverage-line">Line</span>' +
+	    &		   '<span class="coverage-source">Source</span><span class="coverage-hits">Hits</span></div>')
+	    if ((fl = (SourceFile)m_map[filename]) == ^null)
+	      begin
+	        if (!Analyze(filename))
+		  mreturn html
+		fl = (SourceFile)m_map[filename]
+	      end
+	    try
+	      begin
+	        fd = new File("SOURCE_PATH:" + filename)
+		clear linnum
+		while (src = fd.ReadLine())
+		  begin
+		    incr linnum
+		    if ((o = (Var)fl.lines[string(linnum)]) == ^null) then
+		      begin
+		        class = "coverage-notexe"
+			hits = (Var)""
+		      end
+		    else
+		      begin
+			hits = Var.Box((i)o)
+		        if (hits <= 10) then
+			  class = "coverage-" + (a)hits
+			else
+			  class = "coverage-over10"
+		      end
+		    out = '<div class="coverage ' + class + '"><span class="coverage-line">' +
+		    &	    string(linnum) + '</span><span class="coverage-source"><code>' + Var.Box(src).ToHtml() +
+		    &	    '</code></span><span class="coverage-hits">' + (a)hits + '</span></div>'
+		    html.add$(out)
+		  end
+	      end
+	    catch (e)
+	      begin
+	      end
+	    endtry
+
+	    mreturn html
+	end
+
+	public method MarkupAll, @ls
+	D_INARG path	,a
+	D_INARG title	,a
+	proc
+	    mreturn MarkupAll(path, title, ^null)
+	end
+
+	public method MarkupAll, @ls
+	;
+	; Create HTML version of all source files
+	;
+	; Returns list of files that could not be opened
+	;
+	D_INARG path	,a	;Path for HTML file
+
+	D_INARG title	,a	;HTML title
+
+	D_INARG progress,@ProgressHandler
+	;
+	record
+	    l	,@ls
+	    html,@ls
+	    fd	,@File
+	    fl	,@SourceFile
+	    iter,@Hash.Iterator
+	    srcfile, a260
+	proc
+	    l = new ls()
+	    fd = File.Open(path, "O")
+	    fd.WriteLine("<html><head><title>" + title + "</title>")
+	    fd.WriteLine('<link rel="stylesheet" href="coverage.css" type="text/css" /></head><body>')
+	    fd.WriteLine('<h1>' + title + '</h1>')
+	    fd.WriteLine('<table class="coverage-contents"><tr><th>Source file</th><th>Coverage</th><th>&gt; 1</th><th>&gt; 10</th></tr>')
+	    iter = new Hash.Iterator(m_map, true)
+	    while ((fl = (SourceFile)iter.Next(srcfile)) != ^null)
+	      begin
+		fd.WriteLine('<tr><td class="coverage-filename"><a href="#' + atrim(srcfile) + '">' + atrim(srcfile) + '</a></td>')
+		fd.WriteLine('<td class="coverage-percent">' + string(fl.PercentageWithin(1,0) * 100, "ZZX.X%") + '</td>')
+		fd.WriteLine('<td class="coverage-percent">' + string(fl.PercentageWithin(2,0) * 100, "ZZX.X%") + '</td>')
+		fd.WriteLine('<td class="coverage-percent">' + string(fl.PercentageWithin(11,0) * 100, "ZZX.X%") + '</td>')
+		fd.WriteLine('</tr>')
+	      end
+	    fd.WriteLine('</table>')
+	    iter = new Hash.Iterator(m_map, true)
+	    while ((fl = (SourceFile)iter.Next(srcfile)) != ^null)
+	      begin
+		if (progress != ^null)
+		  progress.OnProgress("Markup", atrim(srcfile), " ")
+	        html = Markup(atrim(srcfile))
+		if (html.Count == 0) then
+		  l.add(Var.Box(atrim(srcfile)))
+		else
+		  begin
+		    fd.WriteLine('<div class="coverage-file" id="' + atrim(srcfile) + '"><h2>' + atrim(srcfile) + '</h2>')
+		    fd.WriteLine(html)
+		    fd.WriteLine('</div>')
+		  end
+	      end
+	    fd.WriteLine('</body></html>')
+	    fd.Close()
+	    mreturn l
+	end
+
+    	protected m_map, @Hash
+	protected static s_blank, @Regex
+	protected static s_proc, @Regex
+	protected static s_notproc, @Regex
+	protected static s_cont, @Regex
+	protected static s_begin, @Regex
+	protected static s_end, @Regex
+	protected static s_ignore, @Regex
+
+    endclass
+
+endnamespace

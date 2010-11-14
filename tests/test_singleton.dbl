@@ -1,0 +1,49 @@
+.include "SYNTHESIS:synthesis.def"
+namespace test
+  class testclass
+  .define SINGLETON_CLASS testclass
+  .include "MIXINS:singleton"
+  method initialize, void
+  proc
+  	when = %datetime
+  end
+  public when, a20
+  endclass
+
+  class baseclass
+    public method copy, @baseclass
+    proc
+      mreturn (baseclass)this.MemberwiseClone()
+    end
+  endclass
+  class derived_singleton extends baseclass
+  .define SINGLETON_CLASS derived_singleton
+  .include "MIXINS:singleton"
+  method initialize, void
+  proc
+  end
+  endclass
+endnamespace
+
+main
+record
+	x	,@testclass
+proc
+	x = testclass.instance
+	assert_kind_of(testclass, x)
+	assert(testclass.instance == x)
+	assert(x.when)
+	assert(x.when == testclass.instance.when)
+	;;x = new testclass()  ;;doesn't compile -- good!
+
+.ifndef DBLNET
+	assert_throws(System.InvalidOperationException, "bad_singleton")
+.endc
+	pass()
+end
+
+subroutine bad_singleton
+proc
+	derived_singleton.instance.copy()
+	xreturn
+end

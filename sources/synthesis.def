@@ -1,0 +1,126 @@
+.ifndef D_SYNTHESIS_INCLUDED
+.define D_SYNTHESIS_INCLUDED
+
+;Various macros:
+
+.define fif, Fif_.Test				;Ternary if fif(cond,iftrue,iffalse)
+.define make_pair(key,val) (ls.of(key)&(val))	;Create a key => value pair
+.define make_what(product,version) "@(#) " + product + " Version " + version + %char(0)	;Unix what string
+.define r$, Regex.from				;Shortcut for creating a Regex
+.ifdef D_GUI					;Windows
+.define launch_process(cmd) spawn(cmd, D_DETACHED|D_NOWAIT)
+.else
+.define launch_process(cmd) spawn(cmd)
+.endc
+
+;dbl.def doesn't have an "any flavor of Unix/Xenix/Linux" define, so we'll make one:
+
+.ifndef D_GUI					;Not Windows
+.ifndef D_VMS					;Not OpenVMS
+.ifndef D_UNIX					;Nobody else defined it
+.define D_UNIX					;Must be *n?x
+.endc
+.endc
+.endc
+
+;Let:
+
+.define let, Lets.Return			;Functional let(assignments, body)
+.define assign, Lets.Set			;assign("name", value)
+.define valueof, Lets.Get			;Evaluate previous assign
+.define vv(name) ((Var)Lets.Get(name))		;Evaluate as Var
+.define gensym, Lets.Gensym_			;Generate unique name
+.define genlet(val, body) let(assign(gensym, val), body)
+.define it, Lets.It_				;Anaphor for last assignment
+.define itv, ((Var)it)				;  as a Var
+.define itsname, Lets.Itsname_			;  and its name
+
+;Macros using let:
+
+.define maxv(val1, val2) let(assign("val1",val1) && assign("val2",val2), fif((vv("val1") > vv("val2")), vv("val1"), vv("val2")))
+.define minv(val1, val2) let(assign("val1",val1) && assign("val2",val2), fif((vv("val1") < vv("val2")), vv("val1"), vv("val2")))
+.define swapo(x,y,type) let(assign('x', x) && assign('y', y), progn.do(x = type(valueof('y'))).then(y = type(valueof('x'))).returning(true))
+.define swapi(x,y) swapo(x,y,(int)(var))
+.define swapd(x,y) swapo(x,y,(decimal)(var))
+.define swapa(x,y) swapo(x,y,(a)(var))
+.define swapv(x,y) swapo(x,y,(var))
+
+;Memoization:
+.define memoize(rslt,func,arg) if ((rslt = Memo.retrieve("``func`",(object)(arg))) == ^null) rslt = Memo.store((object)func(arg), "``func`",(object)(arg))
+
+;Assertions:
+
+.ifndef D_NO_ASSERTIONS
+.define assert(condition,message,arg1,arg2,arg3,dflt)	if (!(condition)) flunk(build_message(message, dflt, arg1, arg2, arg3))
+.define assert_equal(expected,actual,message)		assert ((actual) == (expected), message, actual, expected,, "%a != %a")
+.define assert_not_equal(expected,actual,message) 	assert ((actual) != (expected), message, actual, expected,, "%a == %a")
+.define assert_not_null(object,message)			assert ((object) != ^null, message,,,, "object is null")
+.define assert_null(object,message)			assert ((object) == ^null, message,,,, "object is not null")
+.define assert_kind_of(klass,object,message) 		assert ((object) .is. klass, message, "``klass`",,, "not an instance of %a")
+.define assert_in_delta(expected,actual,delta,message) 	assert (((actual) >= ((expected)-(delta)) && ((actual) <= ((expected)+(delta)))), message, actual, expected, delta, "%a differs from %a by more than %a")
+.define assert_throws(exceptype,routine)		assert (Assertion.catch_exception(routine) .is. exceptype, "Expected exception type ``exceptype` not thrown")
+.define assert_fails(routine)				assert_throws(AssertionFailedError, routine)
+.define assert_fails_with(routine, msg)			assert (Assertion.catch_exception(routine).Message == msg, "Exception message does not match: " + msg)
+.ifndef flunk
+.define flunk(message)					throw new AssertionFailedError(message)
+.endc
+.else
+.define assert(condition,message) 			
+.define assert_equal(expected,actual,message)		
+.define assert_not_equal(expected,actual,message) 	
+.define assert_not_null(object,message)			
+.define assert_null(object,message)		
+.define assert_kind_of(klass,object,message) 
+.define assert_in_delta(expected,actual,delta,message)
+.define assert_throws(exceptype, routine)
+.define assert_fails(routine)
+.define assert_fails_with(routine, msg)
+.ifndef flunk
+.define flunk(message)
+.endc
+.endc
+
+;Synergy/DE changed the type of Object.Equals in 9.3 from i1 to boolean
+
+.ifdef DBLV93
+.define D_EQUALS_TYPE, boolean
+.else
+.define D_EQUALS_TYPE, i1
+.endc
+
+;.NET requires byval on the parameter to override object.Equals
+; and byval works better for literals and expressions in .NET
+.ifdef DBLNET
+.define D_INARG ,in req byval
+.define D_EQUALS_PARAM(name) in req byval name, @*
+.else
+.define D_INARG ,in req
+.define D_EQUALS_PARAM(name) in req name, @*
+.endc
+
+;Useful values:
+.define D_MAXINTVAL		,^x(7FFFFFFF)	;Maximum value of an int (currently 32-bit on all platforms)
+
+;Path to the Toolkit (for OPENELB or XADDR):
+.ifdef D_VMS
+.define D_TKLIB ,"TKLIB_SH:"
+.else
+.ifdef DBLNET
+.define D_TKLIB ,"NETLIBPATH:Synergex.SynergyDE.tklib.dll"
+.else
+.define D_TKLIB	,"WND:tklib"
+.endc
+.endc
+
+;Parameter to GotToolkit function:
+.define D_NO_START		,0	;Don't change anything
+.define D_START			,1	;Start the Toolkit if it was linked and not started
+.define D_START_ANYWAY		,2	;Open and start the Toolkit regardless
+
+;Return value:
+.define D_NO_TOOLKIT		,0	;Toolkit not available
+.define D_TOOLKIT_AVAILABLE	,1	;Toolkit linked, but not started
+.define D_TOOLKIT_STARTED	,2	;Toolkit started
+
+import Synthesis
+.endc

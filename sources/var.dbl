@@ -1,0 +1,823 @@
+; Var - a class for dynamic typing of boxed primitives
+
+.ifndef D_VAR_PRIMITIVE
+
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+	public abstract class Var
+
+	    public static method op_Explicit, @Var
+	    D_INARG val, int
+	    proc
+	    	mreturn new VarInt(val)
+	    endmethod
+
+	    public static method op_Explicit, @Var
+	    D_INARG val, decimal
+	    proc
+	        mreturn new VarDec(val)
+	    endmethod
+
+.ifdef DBLNET
+
+	    public static method op_Explicit, @Var
+	    D_INARG val, i
+	    proc
+	    	mreturn new VarInt(val)
+	    endmethod
+
+	    public static method op_Explicit, @Var
+	    D_INARG val, d.
+	    proc
+	        mreturn new VarDec(val)
+	    endmethod
+
+.endc
+
+	    public static method op_Explicit, @Var
+	    D_INARG val, a
+	    proc
+	    	mreturn new VarAlpha(val)
+	    endmethod
+
+	    public static method Box, @Var
+	    D_INARG val, int
+	    proc
+	    	mreturn new VarInt(val)
+	    endmethod
+
+	    public static method Box, @Var
+	    D_INARG val, decimal
+	    proc
+	        mreturn new VarDec(val)
+	    endmethod
+
+	    public static method Box, @Var
+	    D_INARG val, a
+	    proc
+	    	mreturn new VarAlpha(val)
+	    endmethod
+
+.ifdef DBLNET
+	    public static method Box, @Var
+	    D_INARG val, i
+	    proc
+	    	mreturn new VarInt(val)
+	    endmethod
+
+	    public static method Box, @Var
+	    D_INARG val, d.
+	    proc
+	        mreturn new VarDec(val)
+	    endmethod
+.endc
+
+	    public static method Box, @*
+	    D_INARG val, @*
+	    proc
+	    	mreturn val	;The original object
+	    endmethod
+
+	    public static method op_Explicit, a
+	    D_INARG source, @Var
+	    proc
+	    	mreturn source.AsAlpha()
+	    endmethod
+
+	    public static method op_Explicit, string
+	    D_INARG source, @Var
+	    proc
+	    	mreturn source.AsAlpha()
+	    endmethod
+
+	    public abstract method AsAlpha, a
+	    proc
+	    endmethod
+
+	    public static method op_Explicit, int
+	    D_INARG source, @Var
+	    proc
+	    	mreturn source.AsInteger()
+	    endmethod
+
+.ifdef DBLNET
+	    public static method op_Explicit, i
+	    D_INARG source, @Var
+	    proc
+	        mreturn source.AsInteger()
+	    end
+.endc
+
+	    public abstract method AsInteger, int
+	    proc
+	    endmethod
+
+	    public static method op_Explicit, decimal
+	    D_INARG source, @Var
+	    proc
+	    	mreturn source.AsDecimal()
+	    endmethod
+
+	    public abstract method AsDecimal, decimal
+	    proc
+	    endmethod
+
+	    public static method op_Addition, @Var
+	    D_INARG op1, @Var
+	    D_INARG op2, @Var
+	    proc
+	    	mreturn op1.add(op2)
+	    endmethod
+
+	    public abstract method add, @Var
+	    D_INARG that, @Var
+	    proc
+	    endmethod
+
+	    public static method op_Subtraction, @Var
+	    D_INARG op1, @Var
+	    D_INARG op2, @Var
+	    proc
+	        mreturn op1.subtract(op2)
+	    endmethod
+
+	    public abstract method subtract, @Var
+	    D_INARG that, @Var
+	    proc
+	    endmethod
+
+	    public static method op_Multiply, @Var
+	    D_INARG op1, @Var
+	    D_INARG op2, @Var
+	    proc
+	        mreturn op1.multiply(op2)
+	    endmethod
+
+	    public abstract method multiply, @Var
+	    D_INARG that, @Var
+	    proc
+	    endmethod
+
+	    public static method op_Division, @Var
+	    D_INARG op1, @Var
+	    D_INARG op2, @Var
+	    proc
+	    	mreturn op1.divide(op2)
+	    endmethod
+
+	    public abstract method divide, @Var
+	    D_INARG that, @Var
+	    proc
+	    endmethod
+
+	    public static method op_UnaryNegation, @Var
+	    D_INARG op, @Var
+	    proc
+	        mreturn op.negate()
+	    endmethod
+
+	    public abstract method negate, @Var
+	    proc
+	    endmethod
+
+	    public static method op_Increment, @Var
+	    D_INARG op, @Var
+	    proc
+	        mreturn op.increment()
+	    end
+
+	    public abstract method increment, @Var
+	    proc
+	    endmethod
+
+	    public static method op_Decrement, @Var
+	    D_INARG op, @Var
+	    proc
+	    	mreturn op.decrement()
+	    end
+
+	    public abstract method decrement, @Var
+	    proc
+	    endmethod
+
+	    public method modulo, @Var
+	    D_INARG divisor, @Var
+	    record
+	    	i	,int
+		j	,int
+	    proc
+	    	i = this.AsInteger()
+		j = divisor.AsInteger()
+		mreturn Var.Box(i - (i/j * j))
+	    endmethod
+
+	    public method match, @MatchData
+	    D_INARG rgx, @Regex
+	    proc
+	    	mreturn rgx.match(ToString())
+	    endmethod
+
+	    public method replace, @Var
+	    D_INARG what, @Regex
+	    D_INARG with, a
+	    proc
+	    	mreturn Var.Box(what.replace(ToString(), with))
+	    endmethod
+
+	    public method replace, @Var
+	    D_INARG what, @Regex
+	    D_INARG with, int
+	    proc
+	    	mreturn replace(what, string(with))
+	    end
+
+	    public method replace, @Var
+	    D_INARG what, @Regex
+	    D_INARG with, decimal
+	    proc
+	    	mreturn replace(what, string(with))
+	    end
+
+	    public method replace, @Var
+	    D_INARG what, @Regex
+	    D_INARG with, @*		;Also handles Var
+	    proc
+	    	mreturn replace(what, with.ToString())
+	    endmethod
+
+	    public method split, @ls
+	    D_INARG at, @Regex
+	    proc
+	    	mreturn split(at, true)
+	    end
+
+	    public method split, @ls
+	    D_INARG at, @Regex
+	    D_INARG incempty, boolean
+	    proc
+	    	mreturn at.split(this.AsAlpha(), incempty)
+	    end
+
+	    .define BOOLEAN_CLASS Var
+	    .include "MIXINS:boolean"		;defines boolean operators
+
+	    public abstract method truth, boolean
+	    proc
+	    endmethod
+
+	    .define COMPARE_CLASS Var
+	    .include "MIXINS:comparable"	;defines comparison operators
+
+	    public static method compare, i
+	    D_INARG op1, @Var
+	    D_INARG op2, @Var
+	    proc
+	    	mreturn op1.cmp(op2)
+	    endmethod
+
+	    public abstract method cmp, i
+	    D_INARG that, @Var
+	    proc
+	    endmethod
+
+	    public override method Equals, D_EQUALS_TYPE
+	        D_EQUALS_PARAM(objB)
+	    proc
+	        if (objB .is. Var)
+		  mreturn (this == (Var)objB)
+		if (objB .is. System.String)
+		  mreturn this.AsAlpha() .eqs. (a)(string)objB
+		mreturn parent.Equals(objB)
+	    endmethod
+
+	    public method ToHtml, string
+	    ;
+	    ; Produce a string version of this that's HTML friendly
+	    ;
+	    record
+	    	ndx	,int
+		ndx2	,int
+		lpos	,int
+		me	,string
+		buff	,a65535
+	    proc
+	    	ndx2 = 1
+		lpos = 1
+		me = this.ToString()
+		for ndx from 1 thru me.Length
+		  begin
+		    if (ndx2 > ^size(buff))
+		      exitloop
+		    using me(ndx:1) select
+		    (char(9)),			;Tab - convert to spaces
+		      begin
+		        do 
+			  begin
+			    if (ndx2 > ^size(buff)-5)
+			      exitloop
+			    buff(ndx2:6) = '&nbsp;'
+			    ndx2 += 6
+			    incr lpos
+			  end
+			until (Var.Box(lpos).modulo(8) == 1)
+			decr lpos		;Incremented below
+		      end
+		    (' '),
+		      if (ndx2 < ^size(buff)-5)
+		        begin
+			  buff(ndx2:6) = '&nbsp;'
+			  ndx2 += 6
+			end
+		    ('&'),
+		      if (ndx2 < ^size(buff)-4)
+		        begin
+			  buff(ndx2:5) = "&amp;"
+			  ndx2 += 5
+			end
+		    ('<'),
+		      if (ndx2 < ^size(buff)-3)
+		        begin
+			  buff(ndx2:4) = "&lt;"
+			  ndx2 += 4
+			end
+		    ('>'),
+		      if (ndx2 < ^size(buff)-3)
+		        begin
+			  buff(ndx2:4) = "&gt;"
+			  ndx2 += 4
+			end
+		    ("'"),
+		      if (ndx2 < ^size(buff)-6)
+		        begin
+			  buff(ndx2:6) = "&apos;"
+			  ndx2 += 6
+			end
+		    ('"'),
+		      if (ndx2 < ^size(buff)-6)
+		        begin
+			  buff(ndx2:6) = "&quot;"
+			  ndx2 += 6
+			end
+		    (),
+		      begin
+		        buff(ndx2:1) = me(ndx:1)
+			incr ndx2
+		      end
+		    endusing
+		    incr lpos
+		  end
+		if (ndx2 > 1)
+		  mreturn buff(1:ndx2-1)
+		mreturn ""
+	    end
+
+	    public override method ToString, string
+	    proc
+	        mreturn this.AsAlpha()
+	    endmethod
+
+;.includes to define primitive parameter overloads
+.define D_VAR_PRIMITIVE, int
+.include "var"
+.define D_VAR_PRIMITIVE, decimal
+.include "var"
+.define D_VAR_PRIMITIVE, a
+.include "var"
+
+.ifdef DBLNET
+.define D_VAR_PRIMITIVE, i
+.include "var"
+.define D_VAR_PRIMITIVE, d.
+.include "var"
+.endc
+
+	endclass
+
+	public class VarInt extends Var
+
+	    public method VarInt
+	    D_INARG val, int
+	    proc
+	    	m_val = val
+	    endmethod
+
+.ifdef DBLNET
+	    public method VarInt
+	    D_INARG val, i
+	    proc
+	        m_val = val
+	    end
+.endc
+
+	    public override method AsAlpha, a
+	    proc
+	    	mreturn string(m_val)
+	    endmethod
+
+	    public override method AsInteger, int
+	    proc
+	    	mreturn m_val
+	    endmethod
+
+	    public override method AsDecimal, decimal
+	    proc
+	    	mreturn implied(m_val)
+	    endmethod
+
+	    public override method add, @Var
+	    D_INARG that, @Var
+	    proc
+		if (that .is. VarDec)
+		  mreturn new VarDec(this.AsDecimal() + that.AsDecimal())
+		if (that .is. VarAlpha)
+		  mreturn new VarAlpha(this.AsAlpha() + that.AsAlpha())
+		mreturn new VarInt(m_val + that.AsInteger())
+	    endmethod
+
+	    public override method subtract, @Var
+	    D_INARG that, @Var
+	    proc
+	        if (that .is. VarInt)
+		  mreturn new VarInt(m_val - that.AsInteger())
+	        mreturn new VarDec(this.AsDecimal() - that.AsDecimal())	;Both decimal and alpha
+	    endmethod
+
+	    public override method multiply, @Var
+	    D_INARG that, @Var
+	    proc
+	        if (that .is. VarInt)
+		  mreturn new VarInt(m_val * that.AsInteger())
+		mreturn that.multiply(this)	;Let other class decide (assumes commutativity)
+	    endmethod
+
+	    public override method divide, @Var
+	    D_INARG that, @Var
+	    proc
+	    	if (that .is. VarInt)
+		  mreturn new VarInt(m_val / that.AsInteger())
+		mreturn new VarDec(this.AsDecimal() / that.AsDecimal())	;Convert both to decimal
+	    endmethod
+
+	    public override method negate, @Var
+	    proc
+	    	mreturn new VarInt(-m_val)
+	    endmethod
+
+	    public override method increment, @Var
+	    proc
+	    	incr m_val
+		mreturn this	;In place
+	    endmethod
+
+	    public override method decrement, @Var
+	    proc
+	    	decr m_val
+		mreturn this
+	    endmethod
+
+	    public override method truth, boolean
+	    proc
+	    	if (m_val)	;Inherit DIBOL rules
+		  mreturn true
+		mreturn false
+	    endmethod
+
+	    public override method cmp, i
+	    D_INARG that, @Var
+	    proc
+	    	if (that .is. VarInt)		;integer to integer
+		  using (that.AsInteger()) select
+		  (< m_val),	mreturn 1	;we're greater
+		  (> m_val),	mreturn -1
+		  (),		mreturn 0
+		  endusing
+		mreturn -(that.cmp(this))	;Promote to other type
+	    endmethod
+
+	    protected m_val, int
+
+	endclass
+
+	public class VarDec extends Var
+
+	    public method VarDec
+	    D_INARG val, decimal
+	    proc
+	    	m_val = val
+	    endmethod
+
+.ifdef DBLNET
+	    public method VarDec
+	    D_INARG val, d.
+	    proc
+	    	m_val = val
+	    endmethod
+.endc
+
+	    public override method AsAlpha, a
+	    record
+	    	rval	,string
+		dot	,int
+	    proc
+		rval = string(m_val)
+		if (dot = instr(1,rval,'.'))	;Trim trailing zeros after decimal point
+		  begin
+		    data l, int, rval.Length
+		    while ((l > dot) && (rval(l:1) == '0'))
+		      decr l
+		    if ((l == dot) && (l > 1))	;Kill the dot as well if nothing to the right
+		      decr l
+		    if (l < rval.Length)
+		      rval = rval(1:l)
+		  end
+	    	mreturn rval
+	    endmethod
+
+	    public override method AsInteger, int
+	    proc
+	    	mreturn integer(m_val)
+	    endmethod
+
+	    public override method AsDecimal, decimal
+	    proc
+	    	mreturn m_val
+	    endmethod
+
+	    public override method add, @Var
+	    D_INARG that, @Var
+	    proc
+		if (that .is. VarAlpha)
+		  mreturn new VarAlpha(this.AsAlpha() + that.AsAlpha())
+		mreturn new VarDec(m_val + that.AsDecimal())
+	    endmethod
+
+	    public override method subtract, @Var
+	    D_INARG that, @Var
+	    proc
+	        mreturn new VarDec(m_val - that.AsDecimal())
+	    endmethod
+
+	    public override method multiply, @Var
+	    D_INARG that, @Var
+	    proc
+	    	if (that .is. VarAlpha)
+		  mreturn that.multiply(this)		;Let VarAlpha determine (assumes commutativity)
+		mreturn new VarDec(m_val * that.AsDecimal())	;Both decimal and integer
+	    endmethod
+
+	    public override method divide, @Var
+	    D_INARG that, @Var
+	    proc
+	    	mreturn new VarDec(m_val / that.AsDecimal())
+	    endmethod
+
+	    public override method negate, @Var
+	    proc
+	    	mreturn new VarDec(-m_val)
+	    endmethod
+
+	    public override method increment, @Var
+	    proc
+	    	m_val = m_val + 1
+		mreturn this	;In place
+	    endmethod
+
+	    public override method decrement, @Var
+	    proc
+	    	m_val = m_val - 1
+		mreturn this
+	    endmethod
+
+	    public override method truth, boolean
+	    proc
+	    	if (m_val)	;Inherit DIBOL rules
+		  mreturn true
+		mreturn false
+	    endmethod
+
+	    public override method cmp, i
+	    D_INARG that, @Var
+	    record
+	    	thatd	,decimal
+	    proc
+	    	if (that .is. VarAlpha)
+		  mreturn -(that.cmp(this))	;Promote to alpha
+		thatd = that.AsDecimal()
+		if (m_val > thatd)
+		  mreturn 1
+		if (m_val < thatd)
+		  mreturn -1
+		mreturn 0			;we're equal
+	    endmethod
+
+	    protected m_val, decimal
+
+	endclass
+
+	public class VarAlpha extends Var
+
+	    public method VarAlpha
+	    D_INARG val, a
+	    proc
+	    	m_val = val
+	    endmethod
+
+	    public override method AsAlpha, a
+	    proc
+	    	mreturn m_val
+	    endmethod
+
+	    public override method AsInteger, int
+	    proc
+	    	try
+		  mreturn integer(m_val)
+		catch (e)
+		  mreturn 0
+		endtry
+	    endmethod
+
+	    public override method AsDecimal, decimal
+	    proc
+		try
+	    	  mreturn implied(m_val)
+		catch (e)
+		  mreturn 0
+		endtry
+	    endmethod
+
+	    public override method add, @Var
+	    D_INARG that, @Var
+	    proc
+	    	mreturn new VarAlpha(m_val + that.AsAlpha())
+	    endmethod
+
+	    public override method subtract, @Var
+	    D_INARG that, @Var
+	    proc
+	    	begin
+		  data where, int, instr(1, this.AsAlpha(), that.AsAlpha())
+		  if (where > 0)
+		    begin
+		      data rstr, string
+		      if (where > 1)
+		        rstr = m_val(1:where-1)
+		      where += ^size(that.AsAlpha())
+		      if (where < ^size(m_val))
+		        rstr = rstr + m_val(where,^size(m_val))
+		      mreturn new VarAlpha(rstr)
+		    end
+		  mreturn new VarAlpha(m_val)
+		end
+	    endmethod
+
+	    public override method multiply, @Var
+	    D_INARG that, @Var
+	    record
+		result	,string
+		each	,int
+	    	howmany	,int
+	    proc
+		result = ""
+		howmany = that.AsInteger()
+	    	for each from 1 thru howmany
+		  result = result + m_val
+		mreturn new VarAlpha(result)
+	    endmethod
+
+	    public override method divide, @Var
+	    D_INARG that, @Var
+	    proc
+	    	mreturn new VarDec(this.AsDecimal() / that.AsDecimal())
+	    endmethod
+
+	    public override method negate, @Var
+	    proc
+	    	mreturn new VarAlpha("")	;Same as "" - m_val
+	    endmethod
+
+	    public override method truth, boolean
+	    proc
+	    	if (m_val)	;Inherit DIBOL rules
+		  mreturn true
+		mreturn false
+	    endmethod
+
+	    public override method increment, @Var
+	    record
+	    	c	,a1
+		ndx	,int
+	    proc
+		ndx = m_val.Length
+		if (ndx < 1) then
+		  m_val = %char(1)
+		else
+		  begin
+		    c = m_val(ndx:1)
+		    if (decml(c) >= 255) then
+		      m_val = m_val + %char(1)
+		    else if (ndx > 1) then
+		      m_val = m_val(1:ndx-1) + char(decml(c)+1)
+		    else
+		      m_val = char(decml(c) + 1)
+		  end
+		mreturn this	;In place
+	    endmethod
+
+	    public override method decrement, @Var
+	    record
+	    	c	,a1
+		ndx	,int
+	    proc
+		ndx = m_val.Length
+		if (ndx >= 1)
+		  begin
+		    c = m_val(ndx:1)
+		    if (decml(c) > 1) then
+		      begin
+		        if (ndx > 1) then
+			  m_val = m_val(1:ndx-1) + char(decml(c) - 1)
+			else
+			  m_val = char(decml(c) - 1)
+		      end
+		    else if (ndx > 1) then
+		      m_val = m_val(1:ndx-1)
+		    else
+		      m_val = ""
+		  end
+		mreturn this
+	    endmethod
+
+	    public override method cmp, i
+	    D_INARG that, @Var
+	    record
+	    	thats	,string
+	    proc
+		thats = that.ToString()
+		if ((a)thats .lts. (a)m_val)	;Cast to alpha for .NET
+		  mreturn 1			;we're greater
+		if ((a)thats .gts. (a)m_val)
+		  mreturn -1
+		mreturn 0			;equal
+	    endmethod
+
+	    protected m_val, string
+
+	endclass
+
+endnamespace
+
+.else	;D_VAR_PRIMITIVE
+.ifndef D_VAR_OPERATOR
+
+.define D_VAR_OPERATOR, op_Addition
+.define D_VAR_METHOD, add
+.include "var"
+.define D_VAR_OPERATOR, op_Subtraction
+.define D_VAR_METHOD, subtract
+.include "var"
+.define D_VAR_OPERATOR, op_Multiply
+.define D_VAR_METHOD, multiply
+.include "var"
+.define D_VAR_OPERATOR, op_Division
+.define D_VAR_METHOD, divide
+.include "var"
+
+	    public method modulo, @Var
+	    D_INARG divisor, D_VAR_PRIMITIVE
+	    proc
+	    	mreturn modulo(Var.Box(divisor))
+	    endmethod
+
+	    .define COMPARE_TYPE2, D_VAR_PRIMITIVE
+	    .include "MIXINS:comparable"
+
+	    public static method compare, i
+	    D_INARG op1, @Var
+	    D_INARG op2, D_VAR_PRIMITIVE
+	    proc
+	        mreturn op1.cmp((Var)op2)
+	    endmethod
+
+.undefine D_VAR_PRIMITIVE
+.else	;D_VAR_OPERATOR
+
+	    public static method D_VAR_OPERATOR, @Var
+	    D_INARG op1, @Var
+	    D_INARG op2, D_VAR_PRIMITIVE
+	    proc
+	    	mreturn op1.D_VAR_METHOD((Var)op2)
+	    endmethod
+
+	    public static method D_VAR_OPERATOR, @Var
+	    D_INARG op1, D_VAR_PRIMITIVE
+	    D_INARG op2, @Var
+	    proc
+	    	mreturn Var.Box(op1).D_VAR_METHOD(op2)
+	    endmethod
+
+.undefine D_VAR_OPERATOR
+.undefine D_VAR_METHOD
+.endc
+.endc

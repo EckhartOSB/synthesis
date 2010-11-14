@@ -1,0 +1,526 @@
+; Comparison functor classes
+;
+.ifndef D_MAPCOMPARE_PRIMITIVE
+
+.include "SYNTHESIS:synthesis.def"
+import System.Collections
+
+namespace Synthesis
+
+public abstract class Compare
+
+    public abstract method test, int
+    ;
+    ; Description:  Method to compare two objects
+    ;
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    ;
+    ; Returns:
+    ;
+    ;	< 0 if obj1 is less than obj2
+    ;     0 if obj1 is equal to obj2
+    ;   > 0 if obj1 is greater than obj2
+    ;
+    proc
+    end
+
+    ; Methods for generating lazy comparisons
+
+    public static method op_Equality, @MapCompareEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, @*
+    proc
+    	mreturn new MapCompareEqual(cmp, obj)
+    end
+
+    public static method op_Inequality, @MapCompareNotEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, @*
+    proc
+    	mreturn new MapCompareNotEqual(cmp, obj)
+    end
+
+    public static method op_GreaterThan, @MapCompareGreaterThan
+    D_INARG cmp, @Compare
+    D_INARG obj, @*
+    proc
+    	mreturn new MapCompareGreaterThan(cmp, obj)
+    end
+
+    public static method op_LessThan, @MapCompareLessThan
+    D_INARG cmp, @Compare
+    D_INARG obj, @*
+    proc
+    	mreturn new MapCompareLessThan(cmp, obj)
+    end
+
+    public static method op_GreaterThanOrEqual, @MapCompareGreaterThanOrEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, @*
+    proc
+    	mreturn new MapCompareGreaterThanOrEqual(cmp, obj)
+    end
+
+    public static method op_LessThanOrEqual, @MapCompareLessThanOrEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, @*
+    proc
+    	mreturn new MapCompareLessThanOrEqual(cmp, obj)
+    end
+
+;Generate methods for auto-boxing primitives
+.define D_MAPCOMPARE_PRIMITIVE, int
+.include "compare"
+.define D_MAPCOMPARE_PRIMITIVE, decimal
+.include "compare"
+.define D_MAPCOMPARE_PRIMITIVE, a
+.include "compare"
+
+endclass
+
+public class CompareDesc extends Compare
+;
+; Reverses the comparison of another Compare
+;
+    public method CompareDesc
+    D_INARG cmp, @Compare
+    proc
+        Comparer = cmp
+    end
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+        mreturn  -(Comparer.test(obj1, obj2))
+    end
+
+    public Comparer, @Compare
+
+endclass
+
+public class CompareList extends Compare
+;
+; Compares two lists (if one object isn't a list, it is treated as a list of that one object)
+;
+; The first element that's greater wins
+;
+    public method CompareList
+    D_INARG cmp, @Compare
+    proc
+        Comparer = cmp
+    end
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	if (obj1 .is. ArrayList)
+	  begin
+	    if (obj2 .is. ArrayList)
+	      begin
+		data rslt, int
+	        data ndx, int, 0
+		data a1, @Arraylist, (ArrayList)obj1
+		data a2, @Arraylist, (ArrayList)obj2
+		data max1, int, a1.Count-1
+		data max2, int, a2.Count-1
+		data max, int
+		if (max1 < max2) then max = max1 else max = max2
+		while (ndx <= max)
+		  begin
+		    if (rslt = Comparer.test(a1[ndx], a2[ndx]))
+		      mreturn rslt
+		    incr ndx
+		  end
+		if (ndx <= max1)
+		  mreturn 1		;There's more to the first one
+		if (ndx <= max2)
+		  mreturn -1		;There's more to the second one
+		mreturn 0		;They both ran out together
+	      end
+	    mreturn test(obj1, ls.of(obj2))	;Make a list of the second
+	  end
+	mreturn test(ls.of(obj1), obj2)		;Make a list of the first
+    end
+
+    public Comparer, @Compare
+
+endclass
+
+public class CompareCar extends Compare
+;
+; Compares presuming an alist, where each object is a list, beginning with a key
+; If an object is not a list, it will be compared directly
+; If the first element in a list is also a list, we'll iterate until it isn't
+;
+    public method CompareCar		;Constructor
+    D_INARG cmp, @Compare
+    proc
+        Comparer = cmp
+    end
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+	mreturn Comparer.test(getCar(obj1), getCar(obj2))
+    end
+
+    public Comparer, @Compare
+
+    private static method getCar, @*
+    D_INARG obj, @*
+    record
+    	o	,@*
+    proc
+    	o = obj
+	while (o .is. ArrayList)
+	  begin
+	    data a, @ArrayList, (ArrayList)o
+	    if (a.Count > 0) then
+	      o = a[0]
+	    else
+	      o = ^null
+	  end
+	mreturn o
+    end
+
+endclass
+
+public class CompareMap1 extends Compare
+;
+; Maps an object before comparing it against an unmapped object
+;
+
+    public method CompareMap1
+    D_INARG map, @MapObject
+    D_INARG cmp, @Compare
+    proc
+    	Mapper = map
+	Comparer = cmp
+    end
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	mreturn Comparer.test(Mapper.map(obj1), obj2)
+    end
+
+    public Mapper, @MapObject
+    public Comparer, @Compare
+
+endclass
+
+public class CompareMap2 extends Compare
+;
+; Maps both objects before comparing them
+;
+
+    public method CompareMap2
+    D_INARG map, @MapObject
+    D_INARG cmp, @Compare
+    proc
+    	Mapper = map
+	Comparer = cmp
+    end
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	mreturn Comparer.test(Mapper.map(obj1), Mapper.map(obj2))
+    end
+
+    public Mapper, @MapObject
+    public Comparer, @Compare
+
+endclass
+
+public class CompareString extends Compare
+;
+; Compare string representations using ToString()
+;
+    public method CompareString		;Constructor
+    proc
+    	m_case = false
+	m_natural = true
+    end
+
+    public method CompareString
+    D_INARG case, boolean
+    D_INARG natural, boolean
+    proc
+        m_case = case
+	m_natural = natural
+    end
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    record
+    	s1	,string
+	s2	,string
+	rslt	,int
+    proc
+	if (obj1 == ^null) then
+	  s1 = ""
+	else
+    	  s1 = obj1.ToString()
+	if (obj2 == ^null) then
+	  s2 = ""
+	else
+	  s2 = obj2.ToString()
+	if (!m_case)
+	  begin
+	    s1 = s1.ToUpper()
+	    s2 = s2.ToUpper()
+	  end
+	if (m_natural && (rslt = TestNatural(s1,s2)))
+	  mreturn rslt	;Naturally equal, we'll default to string equality
+
+	if ((a)s1 .lts. (a)s2)	;Alpha cast for .NET
+	  mreturn -1
+	if ((a)s1 .gts. (a)s2)
+	  mreturn 1
+	mreturn 0
+    end
+
+    public static method TestNatural, int
+    D_INARG s1, a
+    D_INARG s2, a
+    proc
+	  begin
+	    data i1, int, 1
+	    data i2, int, 1
+	    data len1, int, trimz(s1)
+	    data len2, int, trimz(s2)
+	    while ((i1 <= len1) && (i2 <= len2))
+	      begin
+		data rslt, int
+		if (!s1(i1:1)) then
+		  incr i1
+		else if (!s2(i2:1)) then
+		  incr i2
+		else if (isdigit(s1(i1:1)) && isdigit(s2(i2:1))) then
+		  begin
+		    if (rslt = compare_num(s1,i1,len1,s2,i2,len2))
+		      mreturn rslt
+		  end
+		else
+		  begin
+		    data a1, a1, s1(i1:1)
+		    data a2, a1, s2(i2:1)
+		    if (a1 < a2)
+		      mreturn -1
+		    if (a1 > a2)
+		      mreturn 1
+		    incr i1
+		    incr i2
+		  end
+	      end
+	    if (i1 < len1)
+	      mreturn 1		;s1 is greater, because there's more
+	    if (i2 < len2)
+	      mreturn -1	;Conversely...
+	    mreturn 0		;They're equal
+	  end
+    end
+
+    private static method isdigit, boolean
+    D_INARG char	,a
+    proc
+    	mreturn ((char >= '0') && (char <= '9'))	;A dot must be preceded by a digit to be numeric
+    end
+
+    private static method compare_num, int
+    D_INARG s1, string
+    inout req i1, int
+    D_INARG l1, int
+    D_INARG s2, string
+    inout req i2, int
+    D_INARG l2, int
+    record
+    	b1	,int
+	b2	,int
+	d1	,decimal
+	d2	,decimal
+    proc
+    	b1 = i1
+	while (((i1 += 1) <= l1) &&
+	&  (isdigit(s1(i1:1)) || (s1(i1:1) == '.')))
+	  nop
+	d1 = (a)s1(b1,i1-1)
+	b2 = i2
+	while (((i2 += 1) <= l2) &&
+	&  (isdigit(s2(i2:1)) || (s2(i2:1) == '.')))
+	  nop
+	d2 = (a)s2(b2,i2-1)
+	if (d1 < d2)
+	  mreturn -1
+	if (d1 > d2)
+	  mreturn 1
+	mreturn 0
+    end
+
+    private m_case, boolean
+    private m_natural, boolean
+
+endclass
+
+public class CompareVar extends Compare
+;
+; Compares Vars according to Var comparison rules, sorting non-vars to the end
+;
+
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	if (obj2 .is. Var)
+	  begin
+	    if (obj1 .is. Var)
+	      begin
+	        mreturn Var.compare((Var)obj1, (Var)obj2)
+	      end
+	    mreturn 1	;obj1 is not a Var, so it's greater by rule
+	  end
+
+	mreturn -1	;obj2 is not a Var, so it's greater by rule
+    end
+
+endclass
+
+public class CompareVarInt extends Compare
+;
+; Compares Vars as integers, sorting non-vars to the end
+;
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	if (obj2 .is. Var)
+	  begin
+	    if (obj1 .is. Var)
+	      begin
+		data i1, int, (int)(Var)obj1
+	        data i2, int, (int)(Var)obj2
+		if (i1 < i2)
+		  mreturn -1
+		if (i1 > i2)
+		  mreturn 1
+		mreturn 0
+	      end
+	    mreturn 1
+	  end
+	mreturn -1
+    end
+
+endclass
+
+public class CompareVarDec extends Compare
+;
+; Compares Vars as decimal values, sorting non-vars to the end
+;
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	if (obj2 .is. Var)
+	  begin
+	    if (obj1 .is. Var)
+	      begin
+		data d1, decimal, (decimal)(Var)obj1
+	        data d2, decimal, (decimal)(Var)obj2
+		if (d1 < d2)
+		  mreturn -1
+		if (d1 > d2)
+		  mreturn 1
+	        mreturn 0
+	      end
+	    mreturn 1
+	  end
+	mreturn -1
+    end
+
+endclass
+
+public class CompareVarAlpha extends Compare
+;
+; Compares Vars as alpha values, sorting non-vars to the end
+;
+    public override method test, int
+    D_INARG obj1, @*
+    D_INARG obj2, @*
+    proc
+    	if (obj2 .is. Var)
+	  begin
+	    if (obj1 .is. Var)
+	      begin
+		data a1, string
+	        data a2, string
+		a1 = (a)(Var)obj1
+		a2 = (a)(Var)obj2
+		if ((a)a1 .lts. (a)a2)	;Cast to alpha for .NET
+		  mreturn -1
+		if ((a)a1 .gts. (a)a2)
+		  mreturn 1
+		mreturn 0
+	      end
+	    mreturn 1
+	  end
+	mreturn -1
+    end
+
+endclass
+
+endnamespace
+
+.else ;D_MAPCOMPARE_PRIMITIVE
+
+    public static method op_Equality, @MapCompareEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, D_MAPCOMPARE_PRIMITIVE
+    proc
+    	mreturn new MapCompareEqual(cmp, Var.Box(obj))
+    end
+
+    public static method op_Inequality, @MapCompareNotEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, D_MAPCOMPARE_PRIMITIVE
+    proc
+    	mreturn new MapCompareNotEqual(cmp, Var.Box(obj))
+    end
+
+    public static method op_GreaterThan, @MapCompareGreaterThan
+    D_INARG cmp, @Compare
+    D_INARG obj, D_MAPCOMPARE_PRIMITIVE
+    proc
+    	mreturn new MapCompareGreaterThan(cmp, Var.Box(obj))
+    end
+
+    public static method op_LessThan, @MapCompareLessThan
+    D_INARG cmp, @Compare
+    D_INARG obj, D_MAPCOMPARE_PRIMITIVE
+    proc
+    	mreturn new MapCompareLessThan(cmp, Var.Box(obj))
+    end
+
+    public static method op_GreaterThanOrEqual, @MapCompareGreaterThanOrEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, D_MAPCOMPARE_PRIMITIVE
+    proc
+    	mreturn new MapCompareGreaterThanOrEqual(cmp, Var.Box(obj))
+    end
+
+    public static method op_LessThanOrEqual, @MapCompareLessThanOrEqual
+    D_INARG cmp, @Compare
+    D_INARG obj, D_MAPCOMPARE_PRIMITIVE
+    proc
+    	mreturn new MapCompareLessThanOrEqual(cmp, Var.Box(obj))
+    end
+
+.undefine D_MAPCOMPARE_PRIMITIVE
+.endc

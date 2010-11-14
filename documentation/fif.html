@@ -1,0 +1,43 @@
+<html>
+<head>
+<title>Fif macro reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Macro fif</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This macro provides a functional ternary if, allowing you to embed a
+conditional result within a single statement.  This is useful for
+eliminating unnecessary statements and variables, and is essential for
+composing complex macros.</p>
+</div>
+<div class="ref">
+<h2>Syntax</h2>
+<pre><code>
+	fif(<em>boolean</em>, <em>value1</em>, <em>value2</em>) =&gt; <em>result</em>
+</code></pre> 
+<p>where:</p>
+<ul>
+  <li><em>boolean</em> is the condition to test</li>
+  <li><em>value1</em> is the value to return if <em>boolean</em> is true</li>
+  <li><em>value2</em> is the value to return if <em>boolean</em> is false</li>
+  <li><em>result</em> is the returned result</li>
+</ul>
+</div>
+<div class="ref">
+<h2>Discussion</h2>
+<p>
+<p>The type of <em>result</em> depends on the types of <em>value1</em> and <em>value2</em>,
+which must be compatible.  For the purposes of compatibility, integer and boolean are
+compatible, as are a and string, and d and decimal.  If both <em>value1</em> and <em>value2</em>
+are <a href="var.html">Vars</a>, then a Var will be returned.  Otherwise, if both arguments
+are objects, the result will be an object and will probably need to be cast in order to use it.</p>
+<p>Naturally, you do not need to assign <em>result</em> to a variable -- you can use the
+return value of fif whereever a value of that type may be used.  That's almost the whole point.</p>
+</p>
+</div>
+</body>
+</html>

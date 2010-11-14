@@ -1,0 +1,292 @@
+<html>
+<head>
+<title>CodeCoverage class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class CodeCoverage</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>
+This class provides code coverage analysis by sampling the lines of code
+executed by a program and counting those occurrences, and by parsing the source
+files to find any code that was not executed. 
+</p>
+<p>Sampling is performed by using a <a href="telnet.html">Telnet connection</a>
+to drive the Synergy/DE remote debugger, stepping through the code a line at a time
+and recording the line numbers encountered.  This process can take quite a bit of time,
+depending on the code being executed.  Because the Telnet remote debugger is not
+available for Synergy.NET, this class is not provided for .NET either.</p>
+<p>This class is used by two supplied utilities: <a href="cover.html">cover</a> and
+<a href="htmlcover.html">htmlcover</a>.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-analyze">Analyze</a> - Analyze a source file</li>
+    <li><a href="#ref-analyzeall">AnalyzeAll</a> - Analyze all known source files</li>
+    <li><a href="#ref-map">Map</a> - Map of source files</li>
+    <li><a href="#ref-markup">Markup</a> - Generate an HTML report for a file</li>
+    <li><a href="#ref-markupall">MarkupAll</a> - Generate an HTML report for all files</li>
+    <li><a href="#ref-sample">Sample</a> - Sample an executable</li>
+    <li><a href="#ref-sourcepath">SourcePath</a> - Path for source files</li>
+    <li><a href="#ref-telnetport">TelnetPort</a> - Port to use for sampling</li>
+  </ol>
+</li>
+<li><a href="#related">Related classes</a>
+  <ol>
+    <li><a href="#ref-sourcefile">SourceFile</a> - a source file being sampled or analyzed
+      <ol>
+        <li><a href="#ref-sourcefile-ctor">(constructor)</a></li>
+        <li><a href="#ref-sourcefile-lines">lines</a> - hash of lines and hits</li>
+        <li><a href="#ref-sourcefile-name">name</a> - the filename</li>
+        <li><a href="#ref-sourcefile-numberwithin">NumberWithin</a> - number of lines within a range of hits</li>
+        <li><a href="#ref-sourcefile-percentagewithin">PercentageWithin</a> - percentage of lines within a range of hits</li>
+      </ol>
+    </li>
+    <li><a href="#ref-progresshandler">ProgressHandler</a> - Handler for progress notifications
+      <ol>
+        <li><a href="#ref-progresshandler-onprogress">OnProgress</a> - Progress event notification</li>
+	<li><a href="#ref-progressstdout">ProgressStdOut</a> - Derived class for sending notifications to stdout</li>
+      </ol>
+    </li>
+  </ol>
+</li>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-analyze" class="ref">
+    <h3>method Analyze</h3>
+    <code>
+      <em>codecoverage</em>.Analyze(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Attempts to open the file specified by <em>a</em> within any of the directories specified by the <a href="#ref-sourcepath">
+      SourcePath</a> property.  If the file cannot be opened, it returns false.  Otherwise, the file is analyzed to detect all
+      executable statements.  If a corresponding <a href="#ref-sourcefile">SourceFile</a> is not in the <a href="#ref-map">Map</a>, it will be added.
+      For each statement that is determined to be executable, if that line number does not exist in the <a href="#ref-sourcefile-lines">lines</a>
+      for the associated SourceFile, it will be added with a hit count of zero.
+    </div>
+  </div>
+  <div id="ref-analyzeall" class="ref">
+    <h3>method AnalyzeAll</h3>
+    <code>
+      <em>codecoverage</em>.AnalyzeAll() =&gt; <em>ls</em><br/>
+      <em>codecoverage</em>.AnalyzeAll(<em>ProgressHandler</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Calls <a href="#ref-analyze">Analyze</a> for each source file that is contained in the <a href="#ref-map">Map</a>.  Any file
+      that cannot be opened is removed from the Map.  Returns a list of the names of the files that could not be opened.  If
+      <em>ProgressHandler</em> is passed, then as each file is analyzed, that event will be logged to <em>ProgressHandler</em>'s
+      <a href="#ref-progresshandler-onprogress">OnProgress</a> method.
+    </div>
+  </div>
+  <div id="ref-map" class="ref">
+    <h3>property Map</h3>
+    <code>
+      <em>codecoverage</em>.Map =&gt; <em>Hash</em><br/>
+      <em>codecoverage</em>.Map = <em>Hash</em>
+    </code>
+    <div class="description">
+      This property specifies a <a href="hash.html">Hash</a> of <em>a</em> =&gt; <em>sourcefile</em>, where <em>a</em>
+      is the name of the file, and <em>sourcefile</em> is an associated <a href="#ref-sourcefile">SourceFile</a>.
+    </div>
+  </div>
+  <div id="ref-markup" class="ref">
+    <h3>method Markup</h3>
+    <code>
+      <em>codecoverage</em>.Markup(<em>a</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      <p>
+      Returns a list of HTML source lines that represent the source code from the file specified in <em>a</em>, marked up
+      to indicate code coverage.  If the file cannot be opened, then <em>ls</em> is returned as a list without any source lines, but
+      still containing headers.  If the file does not exist in the <a href="#ref-map">Map</a>, it will be <a href="#ref-analyze">
+      analyzed</a>.
+      </p>
+      <p>
+      In the generated HTML, the first line will be a header in a &lt;div&gt; section of class "coverage coverage-head".  This will
+      contain &lt;span&gt;s for each header, of the same class as the columns, which are "coverage-line" (line number), "coverage-source"
+      (the source line itself), and "coverage-hits" (the number of executions sampled).  Each successive line is an actual source line
+      from the file enclosed within a &lt;div&gt; with two classes:  "coverage" and a class that specifies a range of hits:
+      <ul>
+        <li>coverage-notexe - not an executable statement</li>
+	<li>coverage-0 - not executed</li>
+	<li>coverage-1 thru coverage-10 - executed 1 to 10 times</li>
+	<li>coverage-over10 - executed more than 10 times</li>
+      </ul>
+      </p>
+    </div>
+  </div>
+  <div id="ref-markupall" class="ref">
+    <h3>method MarkupAll</h3>
+    <code>
+      <em>codecoverage</em>.MarkupAll(<em>a</em>, <em>a2</em>) =&gt; <em>ls</em><br/>
+      <em>codecoverage</em>.MarkupAll(<em>a</em>, <em>a2</em>, <em>ProgressHandler</em>) =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      <p>
+        Generates an HTML report of coverage for all known files, returning a list of files that could not be opened.
+	The first argument (<em>a</em>) specifies the name of the HTML file that will be created.  The second argument (<em>a2</em>) specifies
+	the title for the report.  At the top of the report will be a table that contains the name of each source file (linked to
+	its specific sub-report) and the percentage of code executed at least once, more than once, and more than 10 times.
+	Each file's report (generated by <a href="#ref-markup">Markup</a>) is then presented in a &lt;div&gt; section of class
+	"coverage-file" and an id corresponding to the name of the file.  If <em>ProgressHandler</em> is passed, then its
+	<a href="#ref-progresshandler-onprogress">OnProgress</a> method will be invoked for each file as it is being processed.
+      </p>
+      <p>
+        The generated file contains a link to a stylesheet named "coverage.css".  An example of this stylesheet can be found in tests\coverage.css.
+      </p>
+    </div>
+  </div>
+  <div id="ref-sample" class="ref">
+    <h3>method Sample</h3>
+    <code>
+      <em>codecoverage</em>.Sample(<em>a</em>) =&gt; <em>Hash</em><br/>
+      <em>codecoverage</em>.Sample(<em>a</em>, <em>ProgressHandler</em>) =&gt; <em>Hash</em>
+    </code>
+    <div class="description">
+      This method launches the Synergy/DE executable named in <em>a</em> in remote debug mode to sample the line numbers
+      executed.  If the executable needs arguments, you may pass them within <em>a</em> as well.  Do not include "dbr" itself
+      or any debug switches to that command.  This method may run for some time.  It increments the line count for each line
+      that is executed to the appropriate <a href="#ref-sourcefile">SourceFile</a> within the <a href="#ref-map">Map</a>, which
+      it returns.  If a source file is encountered that isn't in the map, it will be added.  If <em>ProgressHandler</em> is supplied,
+      then as each line of the main source file is encountered, that event will be passed to <em>ProgressHandler</em>'s
+      <a href="#ref-progresshandler-onprogress">OnProgress</a> method.
+    </div>
+  </div>
+  <div id="ref-sourcepath" class="ref">
+    <h3>static property SourcePath</h3>
+    <code>
+      CodeCoverage.SourcePath =&gt; <em>string</em><br/>
+      CodeCoverage.SourcePath = <em>string</em>
+    </code>
+    <div class="description">
+      This property specifies the list of directories to search for source files for analysis.  Multiple directories should be separated
+      by a comma.  This property defaults to the value of the environment variable SOURCE_PATH, and modifying it changes the value
+      of that environment variable.
+    </div>
+  </div>
+  <div id="ref-telnetport" class="ref">
+    <h3>TelnetPort</h3>
+    <code>
+      <em>codecoverage</em>.TelnetPort =&gt; <em>int</em><br/>
+      <em>codecoverage</em>.TelnetPort = <em>int</em>
+    </code>
+    <div class="description">
+      This public member specifies the port to use for the Telnet session launched by the <a href="#ref-sample">Sample</a> method.  It defaults to 2499.
+    </div>
+  </div>
+</div>
+<div id="related">
+<h2>Related classes</h2>
+  <div id="ref-sourcefile" class="ref">
+    <h3>class SourceFile</h3>
+    <div class="description">
+      This class represents a source file that is being sampled, analyzed, or both.  A Hash of all SourceFiles can be obtained from
+      a CodeCoverage object via its <a href="#ref-Map">Map</a> property.
+    </div>
+    <div id="ref-sourcefile-ctor" class="ref">
+      <h3>constructor</h3>
+      <code>
+        new SourceFile(<em>a</em>) =&gt; <em>sourcefile</em>
+      </code>
+      <div class="description">
+        Creates a new SourceFile specifying the filename as <em>a</em>.  SourceFiles created by CodeCoverage do not include the path.
+      </div>
+    </div>
+    <div id="ref-sourcefile-lines" class="ref">
+      <h3>lines</h3>
+      <code>
+        <em>sourcefile</em>.lines =&gt; <em>Hash</em><br/>
+	<em>sourcefile</em>.lines = <em>Hash</em>
+      </code>
+      <div class="description">
+        This public member is a <a href="hash.html">Hash</a> of <em>a</em> =&gt; <em>var</em>, where <em>a</em> is
+	an alphanumeric representation of a source line number, and <em>var</em> is a Var containing the
+	number of times that line number has been encountered in sampling.  A line that has a zero count has not
+	been sampled, but has been determined to be executable by source file analysis.
+      </div>
+    </div>
+    <div id="ref-sourcefile-name" class="ref">
+      <h3>name</h3>
+      <code>
+        <em>sourcefile</em>.name =&gt; <em>string</em><br/>
+	<em>sourcefile</em>.name = <em>string</em>
+      </code>
+      <div class="description">
+        This public member specifies the name of the file.  SourceFiles created by CodeCoverage do not include the path.
+      </div>
+    </div>
+    <div id="ref-sourcefile-numberwithin" class="ref">
+      <h3>method NumberWithin</h3>
+      <code>
+        <em>sourcefile</em>.NumberWithin(<em>i</em>, <em>i2</em>) =&gt; <em>int</em>
+      </code>
+      <div class="description">
+        Returns the number of source lines that have been executed in sampling at least <em>i</em> times, but not more
+	than <em>i2</em> times.  If <em>i2</em> is less than or equal to 0, then no upper limit is applied.
+      </div>
+    </div>
+    <div id="ref-sourcefile-percentagewithin" class="ref">
+      <h3>method PercentageWithin</h3>
+      <code>
+        <em>sourcefile</em>.PercentageWithin(<em>i</em>, <em>i2</em>) =&gt; <em>decimal</em>
+      </code>
+      <div class="description">
+        Returns the fraction of source lines that have been executed in sampling at least <em>i</em> times, but not more
+	than <em>i2</em> times.  If <em>i2</em> is less than or equal to 0, then no upper limit is applied.  The range
+	of <em>decimal</em> is 0.0 to 1.0, where 1.0 indicates 100%.  The percentage is computed against the count of all
+	lines that were actually executed in sampling or determined to be executable by analysis.
+      </div>
+    </div>
+  </div>
+  <div id="ref-progresshandler" class="ref">
+    <h3>abstract class ProgressHandler</h3>
+    <div class="description">
+      This abstract class provides a mechanism for receiving notifications of progress, which is particularly useful for the
+      sometimes lengthy execution sampling phase.  You can pass a derived class to the <a href="#ref-sample">Sample</a>, 
+      <a href="#ref-analyzeall">AnalyzeAll</a>, or <a href="#ref-markupall">MarkupAll</a> methods to process these notifications.
+    </div>
+    <div id="ref-progresshandler-onprogress" class="ref">
+      <h3>abstract method OnProgress</h3>
+      <code><em>ProgressHandler</em>.OnProgress(<em>a</em>, <em>a2</em>, <em>a3</em>)</code>
+      <div class="description">
+        This abstract method is called by CodeCoverage to report on progress.  The first argument (<em>a</em>) receives the name
+	of the phase ("Sample", "Analyze", or "Markup").  The second argument (<em>a2</em>) is the name of the file being processed.
+	The third argument (<em>a3</em>) is an alphanumeric version of the line number.  This third argument currently only has
+	meaning during the "Sample" phase, and is passed a single space on the other phases (which only call OnProgress once for
+	each file).
+      </div>
+    </div>
+    <div id="ref-progressstdout" clas="ref">
+      <h3>class ProgressStdOut extends ProgressHandler</h3>
+      <div class="description">
+        This derived class of ProgressHandler simply outputs a progress message to stdout.  Each message is prefixed with a
+	carriage-return (%char(13)) so that when displayed in a console it overwrites the previous one.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+;-----------------------------------------------------------------------------
+;
+; cover.dbl		Utility to gather code coverage information
+;
+; Chip Camden		November, 2009
+;
+; usage:  dbs cover dbrname [args]
+;
+; where:
+;
+;	dbrname	is the name of the program to run
+;	args	are optional arguments to that process
+;
+; The program dbrname will be executed in remote debug and driven
+; by a Telnet session on localhost port 2499.
+;
+; Line number coverage information will be send to stdout.
+;
+;-----------------------------------------------------------------------------
+;
+.include "SYNTHESIS:synthesis.def"
+
+main coverage
+record
+	ndx	,i4
+	cmdlin	,a1024
+proc
+	flags(01001010,1)
+	cmdln(cmdlin)		;Get the command line
+	if (ndx = instr(1,cmdlin,"cover "))
+	  cmdlin = cmdlin(ndx+6,^size(cmdlin))
+	if (cmdlin) then
+	  begin
+	    data cc, @CodeCoverage
+	    data badfiles, @ls
+	    data file, a260
+	    data src, @CodeCoverage.SourceFile
+	    data iter, @Hash.Iterator
+
+	    cc = new CodeCoverage()
+	    cc.Sample(cmdlin)
+	    badfiles = cc.AnalyzeAll()
+	    if (badfiles.Count > 0)
+	      Console.WriteLine("Could not open files: " + badfiles.join(' '))
+	    Console.WriteLine("Source file" + char(9) + "Line" + char(9) + "Executions")
+	    Console.WriteLine("-----------" + char(9) + "----" + char(9) + "----------")
+	    iter = new Hash.Iterator(cc.Map, true)
+	    while ((src = iter.Next(file)) != ^null)
+	      begin
+		data len, int, trim(file)
+		data iter2, @Hash.Iterator
+		data line, a7
+		data linct, @*
+
+		if (len < 8)
+		  len += 7
+		iter2 = new Hash.Iterator(src.lines)
+		while ((linct = iter2.Next(line)) != ^null)
+		  begin
+		    Console.WriteLine(file(1:len) + char(9) + atrim(line) + char(9) + linct.ToString())
+		  end
+	      end
+	  end
+	else
+	  Console.WriteLine("usage: dbs coverage dbrname [args]")
+	stop
+end

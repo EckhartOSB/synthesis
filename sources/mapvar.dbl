@@ -1,0 +1,180 @@
+;MapVar -- derived classes of MapObject that handle lazy Var operations.
+
+.ifndef D_MAPVAR_CLASS
+.ifndef D_MAPVAR_PRIMITIVE
+.ifndef D_MAPVAR_OP
+
+.include "SYNTHESIS:synthesis.def"
+namespace Synthesis
+
+public class MapVar extends MapObject
+;
+; Class to map an object as a Var
+;
+    public override method map, @*
+    D_INARG obj, @*
+    proc
+    	mreturn obj	;This method doesn't do anything.  You're expected to
+			; use an operator or method on MapVar to produce a derived class,
+			; but if you happen to end up with one of these, you don't die.
+    end
+
+.define D_MAPVAR_OP, op_Addition
+.define D_MAPVAR_OPCLASS, MapVarAdd
+.include "mapvar"
+.define D_MAPVAR_OP, op_Subtraction
+.define D_MAPVAR_OPCLASS, MapVarSubtract
+.include "mapvar"
+.define D_MAPVAR_OP, op_Multiply
+.define D_MAPVAR_OPCLASS, MapVarMultiply
+.include "mapvar"
+.define D_MAPVAR_OP, op_Division
+.define D_MAPVAR_OPCLASS, MapVarDivide
+.include "mapvar"
+.define D_MAPVAR_OP, modulo
+.define D_MAPVAR_OPCLASS, MapVarModulo
+.include "mapvar"
+
+    public static method op_UnaryNegation, @MapVar
+    D_INARG op, @MapVar
+    proc
+    	mreturn new MapVarNegate(op)
+    end
+
+    protected method resolve, @Var
+    D_INARG mo, @*
+    D_INARG obj, @*
+    record
+    	op	,@*
+    proc
+    	op = mo
+	while (op .is. MapObject)
+	  op = ((MapObject)op).map(obj)
+	mreturn (Var)op
+    end
+
+endclass
+
+; Now the derived classes:
+
+.define D_MAPVAR_CLASS, MapVarAdd
+.define D_MAPVAR_METHOD, add
+.include "mapvar"
+.define D_MAPVAR_CLASS, MapVarSubtract
+.define D_MAPVAR_METHOD, subtract
+.include "mapvar"
+.define D_MAPVAR_CLASS, MapVarMultiply
+.define D_MAPVAR_METHOD, multiply
+.include "mapvar"
+.define D_MAPVAR_CLASS, MapVarDivide
+.define D_MAPVAR_METHOD, divide
+.include "mapvar"
+.define D_MAPVAR_CLASS, MapVarModulo
+.define D_MAPVAR_METHOD, modulo
+.include "mapvar"
+
+public class MapVarNegate extends MapVar
+
+    public method MapVarNegate
+    D_INARG op, @MapVar
+    proc
+    	m_op = op
+    end
+
+    public override method map, @*
+    D_INARG obj, @*
+    proc
+    	mreturn resolve(m_op, obj).negate()
+    end
+
+    private m_op, @MapVar
+
+endclass
+
+endnamespace
+
+
+.else
+    public static method D_MAPVAR_OP, @MapVar
+    D_INARG op1, @MapVar
+    D_INARG op2, @Var
+    proc
+    	mreturn new D_MAPVAR_OPCLASS(op1, op2)
+    end
+
+    public static method D_MAPVAR_OP, @MapVar
+    D_INARG op1, @Var
+    D_INARG op2, @MapVar
+    proc
+    	mreturn new D_MAPVAR_OPCLASS(op1, op2)
+    end
+
+    public static method D_MAPVAR_OP, @MapVar
+    D_INARG op1, @MapVar
+    D_INARG op2, @MapVar
+    proc
+    	mreturn new D_MAPVAR_OPCLASS(op1, op2)
+    end
+
+;Now create auto-boxing versions:
+.define D_MAPVAR_PRIMITIVE, int
+.include "mapvar"
+.define D_MAPVAR_PRIMITIVE, decimal
+.include "mapvar"
+.define D_MAPVAR_PRIMITIVE, a
+.include "mapvar"
+
+.undefine D_MAPVAR_OP
+.undefine D_MAPVAR_OPCLASS
+.endc
+
+.else	;D_MAPVAR_PRIMITIVE
+
+    public static method D_MAPVAR_OP, @MapVar
+    D_INARG op1, @MapVar
+    D_INARG op2, D_MAPVAR_PRIMITIVE
+    proc
+    	mreturn new D_MAPVAR_OPCLASS(op1, Var.Box(op2))
+    end
+
+    public static method D_MAPVAR_OP, @MapVar
+    D_INARG op1, D_MAPVAR_PRIMITIVE
+    D_INARG op2, @MapVar
+    proc
+    	mreturn new D_MAPVAR_OPCLASS(Var.Box(op1), op2)
+    end
+
+.undefine D_MAPVAR_PRIMITIVE
+.endc
+
+.else	;D_MAPVAR_CLASS
+
+public class D_MAPVAR_CLASS extends MapVar
+
+    public method D_MAPVAR_CLASS
+    D_INARG op1, @*
+    D_INARG op2, @*
+    proc
+        m_op1 = op1
+	m_op2 = op2
+    end
+
+    public override method map, @*
+    D_INARG obj, @*
+    record
+    	op1, @Var
+	op2, @Var
+    proc
+    	op1 = resolve(m_op1, obj)
+	op2 = resolve(m_op2, obj)
+	mreturn op1.D_MAPVAR_METHOD(op2)
+    end
+
+    private m_op1, @*
+    private m_op2, @*
+
+endclass
+
+.undefine D_MAPVAR_CLASS
+.undefine D_MAPVAR_METHOD
+.endc

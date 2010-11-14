@@ -1,0 +1,187 @@
+<html>
+<head>
+<title>Hash class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Hash</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class providess a high-performance associative array for Synergy/DE.  It only supports
+alphanumeric keys and does not automatically box primitives.  It also only supports one object
+per key, and treats ^null as not set.  For an associative array that breaks these limitations
+(albeit at a performance cost) see <a href="ls.html">ls</a>.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-casesensitive">CaseSensitive</a> - case-sensitivity of keys</li>
+    <li><a href="#ref-count">Count</a> - number of non-null objects</li>
+    <li><a href="#ref-dispose">Dispose</a> - release resources</li>
+    <li><a href="#ref-indexer">Indexer</a> - array-style member access</li>
+    <li><a href="#ref-iterator">Iterator</a> - iterator class
+      <ol>
+        <li><a href="#ref-iterctor">(constructor)</a> - create a Hash iterator</li>
+        <li><a href="#ref-iterfirst">First</a> - return the first item</li>
+        <li><a href="#ref-iterlast">Last</a> - return the last item</li>
+        <li><a href="#ref-iternext">Next</a> - return the next item</li>
+        <li><a href="#ref-iterprev">Prev</a> - return the previous item</li>
+        <li><a href="#ref-itersorted">Sorted</a> - control order of iteration</li>
+      </ol>
+    </li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-casesensitive" class="ref">
+    <h3>property CaseSensitive</h3>
+    <code>
+      <em>hash</em>.CaseSensitive =&gt; <em>boolean</em><br/>
+      <em>hash</em>.CaseSensitive = <em>boolean</em>
+    </code>
+    <div class="description">
+      This property controls whether keys that differ only by case are considered unique.  If you change this
+      property after any items have been added, an exception will be thrown.  This property is false by default.
+    </div>
+  </div>
+  <div id="ref-count" class="ref">
+    <h3>property Count</h3>
+    <code>
+      <em>hash</em>.Count =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      This read-only property returns the number of non-null objects referenced by <em>hash</em>.
+    </div>
+  </div>
+  <div id="ref-dispose" class="ref">
+    <h3>method Dispose</h3>
+    <code>
+      <em>hash</em>.Dispose()
+    </code>
+    <div class="description">
+      This method releases the internal resources used for maintaining the key =&gt; value associations.
+      It is called automatically by the destructor, but on .NET you may wish to call it explicitly to
+      ensure that resources are released before the program stops.  If it is called more than once, no
+      error occurs.
+    </div>
+  </div>
+  <div id="ref-indexer" class="ref">
+    <h3>indexer</h3>
+    <code>
+      <em>hash</em>[<em>a</em>] =&gt; <em>object</em><br/>
+      <em>hash</em>[<em>a</em>] = <em>object</em>
+    </code>
+    <div class="description">
+      This indexer references the object associated with the key <em>a</em>.  When assigning,
+      any previous object associated with the key is no longer associated.  When accessing,
+      if there is no such key, ^null is returned.  Therefore, assign ^null to remove an
+      association.  Note, though, that every key ever assigned remains in the internal symbol
+      table, even if it is assigned a null reference.
+    </div>
+  </div>
+  <div id="ref-iterator" class="ref">
+    <h3>class Iterator</h3>
+    <p>This class provides a way to iterate over the members of a Hash.  Members include:</p>
+    <div id="ref-iterctor" class="ref">
+      <h4>constructor</h4>
+      <code>
+        new Hash.Iterator(<em>hash</em>) =&gt; <em>iterator</em><br/>
+        new Hash.Iterator(<em>hash</em>, <em>boolean</em>) =&gt; <em>iterator</em>
+      </code>
+      <div class="description">
+        Creates a new iterator for <em>hash</em>.  If <em>boolean</em> is passed, it specifies
+	whether the iteration should be sorted in key order.  This can be modified later using
+	the <a href="#ref-itersorted">Sorted</a> property.
+      </div>
+    </div>
+    <div id="ref-iterfirst" class="ref">
+      <h4>method First</h4>
+      <code>
+        <em>iterator</em>).First() =&gt; <em>object</em><br/>
+        <em>iterator</em>).First(<em>a</em>) =&gt; <em>object</em>
+      </code>
+      <div class="description">
+        Returns the first non-null object in the hash, according to the order specified by the
+	<a href="#ref-itersorted">Sorted</a> property.  If <em>a</em> is passed, it must
+	be a variable into which the item's hash key will be returned.  If the hash contains
+	no objects, ^null is returned.
+      </div>
+    </div>
+    <div id="ref-iterlast" class="ref">
+      <h4>method Last</h4>
+      <code>
+        <em>iterator</em>).Last() =&gt; <em>object</em><br/>
+        <em>iterator</em>).Last(<em>a</em>) =&gt; <em>object</em>
+      </code>
+      <div class="description">
+        Returns the last non-null object in the hash, according to the order specified by the
+	<a href="#ref-itersorted">Sorted</a> property.  If <em>a</em> is passed, it must
+	be a variable into which the item's hash key will be returned.  If the hash contains
+	no objects, ^null is returned.
+      </div>
+    </div>
+    <div id="ref-iternext" class="ref">
+      <h4>method Next</h4>
+      <code>
+        <em>iterator</em>).Next() =&gt; <em>object</em><br/>
+        <em>iterator</em>).Next(<em>a</em>) =&gt; <em>object</em>
+      </code>
+      <div class="description">
+        Returns the next non-null object in the hash, according to the order specified by the
+	<a href="#ref-itersorted">Sorted</a> property.  If <em>a</em> is passed, it must
+	be a variable into which the item's hash key will be returned.  If the hash contains
+	no objects, or the previously obtained object was the last one, ^null is returned.
+	If no object has been previously obtained, this method returns the first one.
+      </div>
+    </div>
+    <div id="ref-iterprev" class="ref">
+      <h4>method Prev</h4>
+      <code>
+        <em>iterator</em>).Prev() =&gt; <em>object</em><br/>
+        <em>iterator</em>).Prev(<em>a</em>) =&gt; <em>object</em>
+      </code>
+      <div class="description">
+        Returns the previous non-null object in the hash, according to the order specified by the
+	<a href="#ref-itersorted">Sorted</a> property.  If <em>a</em> is passed, it must
+	be a variable into which the item's hash key will be returned.  if the hash contains
+	no objects, or the previously obtained object was the first one, or no object was
+	previously obtained, ^null is returned.
+      </div>
+    </div>
+    <div id="ref-itersorted" class="ref">
+      <h4>property Sorted</h4>
+      <code>
+        <em>iterator</em>).Sorted =&gt; <em>boolean</em><br/>
+        <em>iterator</em>).Sorted = <em>boolean</em>
+      </code>
+      <div class="description">
+        If this property is true, the iteration will proceed in alphanumeric key order.  If false,
+	the order in which objects were added will be used instead.  If you modify this property,
+	a call to <a href="#ref-iternext">Next</a> will return the first item in the new order.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

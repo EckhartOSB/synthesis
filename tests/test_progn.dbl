@@ -1,0 +1,41 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	x	,int
+	y	,int
+	dec	,decimal
+	a1	,a6
+	s1	,string
+	v1	,@Var
+	v2	,@Var
+proc
+	assert(Progn.Do(x = 2)
+	           &.Then(y = 3)
+	           &.Returning(x * y)
+		& == 6)
+	assert(Progn.Do(x = 8)
+		   &.Then(x /= 2)
+		   &.Returning(x)
+		& == 4)
+	assert(Progn.Do(dec = 3)
+		   &.Then(y = dec * 2)
+		   &.Returning(dec * y)
+		& == 18)
+	assert(Progn.Do(a1 = "hello ")
+		   &.Then(s1 = "world")
+		   &.Returning(a1 + s1)
+		& == "hello world")
+	assert(Progn.Do(v1 = (Var)3.0)
+		   &.Then(v2 = Var.Box("Ha"))
+		   &.Then(x = 1)
+		   &.Returning((v1 + x) * v2)
+		& == "HaHaHaHa")
+	;Nested
+	assert(Progn.Do(x = 2)
+		   &.Then(y = Progn.Do(x *= 2).Returning(x))
+		   &.Returning(y * x)	;X and Y should now be 4
+		& == 16)
+
+	pass()
+end

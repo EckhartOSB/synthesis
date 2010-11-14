@@ -1,0 +1,143 @@
+; socket.dbl - class wrapper for socket API
+;
+; Chip Camden	November, 2009
+;
+.include "SYNTHESIS:synthesis.def"
+.include "DBLDIR:synsock.def"
+
+namespace synthesis
+
+    public class SocketException extends Synergex.SynergyDE.SynException
+
+        public method SocketException
+	D_INARG status, i
+	  parent("Socket error: " + %string(status))
+	proc
+	    SocketStatus = status
+	end
+
+	public SocketStatus, int
+
+    endclass
+
+    public class Socket extends Transport
+
+	public static method GetHostByName, i
+	D_INARG name, a
+	record
+	    sts, i4
+	    addr,i4
+	proc
+	    if ((sts = ss_gethostbyname(name, addr)) != SS_SUCCESS)
+	      throw new SocketException(sts)
+	    mreturn addr
+	end
+
+	public static method IPAddress, i
+	D_INARG dotted_form, a
+	record
+	    sts	,i4
+	    addr,i4
+	proc
+	    if ((sts = ss_inet_addr(dotted_form, addr)) != SS_SUCCESS)
+	      throw new SocketException(sts)
+	    mreturn addr
+	end
+
+    	public method Socket
+	D_INARG type, i
+	record
+		sts	,i4
+	proc
+	    	if ((sts = ss_socket(m_socket, type)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		m_connected = false
+	end
+
+	public method Socket
+	  this(SS_SOCK_STREAM)
+	proc
+	end
+
+	method ~Socket
+	proc
+	    if (m_connected)
+	      this.Close()
+	end
+
+	public method Listen, boolean
+	D_INARG port, i
+	record
+		sts	,i4
+	proc
+		if ((sts = ss_bind(m_socket, port, SS_INADDR_ANY)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		if ((sts = ss_listen(m_socket)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		mreturn true
+	end
+
+	public method Accept, @Socket
+	record
+		s	,@Socket
+		sts	,int
+	proc
+		s = (Socket)MemberWiseClone()
+		if ((sts = ss_accept(m_socket, s.m_socket)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		s.m_connected = true
+		mreturn s
+	end
+
+	public method Connect, boolean
+	D_INARG host, i
+	D_INARG port, i
+	record
+		sts	,i4
+	proc
+		if ((sts = ss_connect(m_socket, port, host)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		m_connected = true
+		mreturn true
+	end
+
+	public method Close, boolean
+	proc
+		m_connected = false
+		mreturn (ss_close(m_socket) == SS_SUCCESS)	;No exception here
+	end
+
+	public property Connected, boolean
+	  method get
+	  proc
+	    mreturn m_connected
+	  end
+	endproperty
+
+	public override method Send, boolean
+	D_INARG buf, a
+	record
+		sts	,i4
+	proc
+		if ((sts = ss_sendbuf(m_socket, buf)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		mreturn true
+	end
+
+	public override method Receive, i
+	out req buf, a
+	record
+		sts	,i4
+		recvd	,i4
+	proc
+		if ((sts = ss_recv(m_socket, buf, recvd)) != SS_SUCCESS)
+		  throw new SocketException(sts)
+		mreturn recvd
+	end
+
+    protected m_socket, D_ADDR
+    protected m_connected, boolean
+
+    endclass
+
+endnamespace

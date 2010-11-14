@@ -1,0 +1,11 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+proc
+	openelb(D_TKLIB)
+	assert(%GotToolkit() == D_TOOLKIT_AVAILABLE)
+	assert(%GotToolkit(D_NO_START) == D_TOOLKIT_AVAILABLE)
+	assert(%GotToolkit(D_START) == D_TOOLKIT_STARTED)
+	assert(%GotToolkit(D_START_ANYWAY) == D_TOOLKIT_STARTED)
+	pass()
+end

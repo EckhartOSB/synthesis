@@ -1,0 +1,320 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+	public class Lets
+
+	    ; Static members:
+
+	    public static method Return, @*
+	    ;
+	    ; Description:  Scoping frame of the Let
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_assignment, @Lets	;Object maintaining the assignment(s)
+
+	    D_INARG a_rval, @*		;Return value of body function
+	    ;
+	    ; Return value:  a_rval
+
+	    record
+	    	rslt	,@*
+	    proc
+		rslt = a_rval		;Copy result locally in case it gets released
+		a_assignment.Release()	;Release all scoped assignments
+	    	mreturn rslt		;This is all we need to do
+	    endmethod
+
+	    public static method Return, @Var
+	    ;
+	    ; Description:  Scoping frame of the Let
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_assignment	,@Lets	;Object maintaining the assignment(s)
+
+	    D_INARG a_rval, @Var		;Return value of body function
+	    ;
+	    ; Return value:  a_rval
+
+	    record
+	    	rslt	,@Var
+	    proc
+		rslt = a_rval		;Copy result locally in case it gets released
+		a_assignment.Release()	;Release all scoped assignments
+	    	mreturn rslt		;This is all we need to do
+	    endmethod
+
+	    public static method Return, i
+	    ;
+	    ; Description:  Version of Return for integer values
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_assignment	,@Lets	;Object maintaining the assignment(s)
+
+	    D_INARG a_rval, i		;Return value of body function
+	    ;
+	    ; Return value:  a_rval
+
+	    proc
+	    	a_assignment.Release()
+		mreturn a_rval
+	    endmethod
+
+.ifdef DBLNET
+	    public static method Return, int
+	    ;
+	    ; Description:  Version of Return for integer values
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_assignment	,@Lets	;Object maintaining the assignment(s)
+
+	    D_INARG byval a_rval, int		;Return value of body function
+	    ;
+	    ; Return value:  a_rval
+
+	    proc
+	    	a_assignment.Release()
+		mreturn a_rval
+	    endmethod
+.endc
+
+	    public static method Return, decimal
+	    ;
+	    ; Description:  Version of Return for decimal values
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_assignment	,@Lets	;Object maintaining the assignment(s)
+
+	    D_INARG a_rval, decimal	;Return value of body function
+	    ;
+	    ; Return value:  a_rval
+
+	    proc
+	    	a_assignment.Release()
+		mreturn a_rval
+	    endmethod
+
+	    public static method Return, a
+	    ;
+	    ; Description:  Version of Return for alphanumeric values
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_assignment	,@Lets	;Object maintaining the assignment(s)
+
+	    D_INARG a_rval, a	;Return value of body function
+	    ;
+	    ; Return value:  a_rval
+
+	    proc
+	    	a_assignment.Release()
+		mreturn a_rval
+	    endmethod
+
+	    public static method Set, @Lets
+	    ;
+	    ; Description:  Create a scoped Let assignment
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_name, a		;Name of the variable to assign
+
+	    D_INARG a_value, @*		;Its value as an object (boxed if primitive)
+	    ;
+	    ; Return value: a new @Lets object that maintains the assignment's scope
+	    ;
+	    proc
+	    	mreturn new Lets(a_name, a_value)
+	    endmethod
+
+	    public static method Set, @Lets
+	    ;
+	    ; Description:  Create a scoped Let assignment using an integer input
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_name, a		;Name of the variable to assign
+
+	    D_INARG a_value, int		;Its value as an integer
+	    ;
+	    proc
+	    	mreturn Lets.Set(a_name, Var.Box(a_value))
+	    endmethod
+
+	    public static method Set, @Lets
+	    ;
+	    ; Description:  Create a scoped Let assignment using a decimal input
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_name, a		;Name of the variable to assign
+
+	    D_INARG a_value, decimal	;Its value as decimal
+	    ;
+	    proc
+	    	mreturn Lets.Set(a_name, Var.Box(a_value))
+	    endmethod
+
+	    public static method Set, @Lets
+	    ;
+	    ; Description:  Create a scoped Let assignment using an alphanumeric input
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_name, a		;Name of the variable to assign
+
+	    D_INARG a_value, a		;Its value as alpha
+	    ;
+	    proc
+	    	mreturn Lets.Set(a_name, Var.Box(a_value))
+	    endmethod
+
+	    public static method op_LogicalAnd, @Lets
+	    ;
+	    ; Description:  Chain scoped Let assignments
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG op1, @Lets		;Both assignments
+	    D_INARG op2, @Lets
+	    ;
+	    ; Return value:  The first assignment, which holds a reference to the second
+	    ;
+	    proc
+		if (op1.chain == ^null) then
+	    	  op1.chain = op2
+		else
+		  op1.chain = op1.chain && op2	;Link to end
+		mreturn op1
+	    endmethod
+
+	    public static method Get, @*
+	    ;
+	    ; Description:  Retrieve the value of an assigned variable
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_name, a		;Name of the variable
+	    ;
+	    ; Return value:  Its value as an object
+	    ;
+	    record
+		o	,@*
+	    	s	,@ls
+	    proc
+		if ((o = variables[a_name]) != ^null) 
+		  begin
+		    s = (ls)o
+		    if (s.Count > 0)
+		      mreturn ((Lets)s[0]).val
+		  end
+	    	mreturn ^null
+	    endmethod
+
+	    public static property Gensym_, a
+	    method get
+	    ;
+	    ; Description:  Generate a unique symbol name
+	    ;
+	    ; Arguments:  None
+	    ;
+	    ; Return value:  Generated name
+	    ;
+	    ; Note:  This name isn't guaranteed to be unique, but its pretty likely.
+	    ;	     To insure uniqueness, avoid explicitly using names beginning with "#:G"
+	    proc
+	    	mreturn "#:G" + string(gensym_count+=1)	;a la Common Lisp
+	    endmethod
+	    endproperty
+
+	    public static property It_, @*	;Value of last assignement
+	    method get
+	    proc
+	    	if ((its != ^null) && (its.Count > 0))
+		  mreturn ((Lets)its[0]).val
+	    	mreturn ^null
+	    endmethod
+	    endproperty
+
+	    public static property Itsname_, string	;Name of the last variable assigned
+	    method get
+	    proc
+	    	if ((its != ^null) && (its.Count > 0))
+		  mreturn ((Lets)its[0]).name
+		mreturn ""
+	    endmethod
+	    endproperty
+
+	    private static variables, @Hash	;Variable => Stack of values
+	    private static gensym_count, int	;Counter for generating unique variable names
+	    private static its, @ls		;Stack of most recent assignments
+
+	    ; Instance members:
+
+	    public method Lets
+	    ;
+	    ; Description:  Constructor
+	    ;
+	    ; Arguments:
+	    ;
+	    D_INARG a_name, a		;Name of the variable to assign
+
+	    D_INARG a_value, @*		;Its value as an object (boxed if primitive)
+	    ;
+	    record
+		o	,@*
+	    	s	,@ls
+	    proc
+		released = false
+	    	name = a_name
+		val = a_value
+		if (variables == ^null)
+		  variables = new Hash()
+		if ((o = variables[name]) == ^null) then
+		  variables[name] = s = new ls()
+		else
+		  s = (ls)o
+		s.push(this)
+		if (its == ^null)
+		  its = new ls()
+		its.push(this)
+	    endmethod
+
+	    method ~Lets
+	    proc
+		Release()
+	    end
+
+	    public method Release, void
+	    ;
+	    record
+	    	s	,@*
+	    proc
+		if (!released)
+		  begin
+		    released = true
+		    if (chain != ^null)
+		      begin
+		        chain.Release()		;Roll back values from the end first
+		        clear chain		;Might as well release the object, too
+		      end
+	    	    if ((variables != ^null) && ((s = variables[name]) != ^null))
+		      ((ls)s).remove$(this)
+		    if (its != ^null)
+		      its.remove$(this)
+		  end
+	    end
+
+	    private name, string		;Name of this assignment's variable
+	    private val, @*			;Value of this assignment
+	    private chain, @Lets		;Next chained assignment
+	    private released, boolean		;Have we released yet?
+
+	endclass
+
+endnamespace

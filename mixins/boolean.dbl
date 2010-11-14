@@ -1,0 +1,193 @@
+; Boolean.dbl -- include module to mix in boolean methods
+;
+; Chip Camden	April, 2009
+;
+; This module adds operators for True, LogicalNot, LogicalAnd, LogicalOr, and ExclusiveOr.
+; In the three latter cases, it adds versions for comparing to the including class, as well as
+; boolean (integer), decimal, and alpha for either of the operands.
+;
+; Before including this module, you must .define BOOLEAN_CLASS as the name of your class.  Your class
+; must also implement an instance method named "truth" with the following signature:
+;
+; 	method truth, boolean
+;
+; The method can be public, protected, or private.  It takes no arguments.  It must return true
+; if the object is considered to be truthful.
+;
+; Include this file within your class definition to add the Boolean operators.
+;
+.ifndef D_INARG
+.include "SYNTHESIS:synthesis.def"
+.endc
+
+.ifndef BOOLEAN_CLASS
+.error BOOLEAN_CLASS not defined
+.else
+
+public static method op_True, i
+D_INARG op, @BOOLEAN_CLASS
+proc
+    mreturn op.truth()
+endmethod
+
+public static method op_LogicalNot, i
+D_INARG op, @BOOLEAN_CLASS
+proc
+    mreturn !op.truth()
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1.truth() && op2.truth())
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, i			;Handles boolean and int also
+proc
+    mreturn (op1.truth() && op2)
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, i
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1 && op2.truth())
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, decimal
+proc
+    mreturn (op1.truth() && (op2 != 0))
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, decimal
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn ((op1 != 0) && op2.truth())
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, a
+proc
+    mreturn (op1.truth() && op2)
+endmethod
+
+public static method op_LogicalAnd, i
+D_INARG op1, a
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1 && op2.truth())
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1.truth() || op2.truth())
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, i			;Handles boolean and int also
+proc
+    mreturn (op1.truth() || op2)
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, i
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1 || op2.truth())
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, decimal
+proc
+    mreturn (op1.truth() || (op2 != 0))
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, decimal
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn ((op1 != 0) || op2.truth())
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, a
+proc
+    mreturn (op1.truth() || op2)
+endmethod
+
+public static method op_LogicalOr, i
+D_INARG op1, a
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1 || op2.truth())
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1.truth() .xor. op2.truth())
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, i			;Handles boolean and int also
+proc
+    mreturn (op1.truth() .xor. op2)
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, i
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn (op1 .xor. op2.truth())
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, decimal
+proc
+    mreturn (op1.truth() .xor. (op2 != 0))
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, decimal
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    mreturn ((op1 != 0) .xor. op2.truth())
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, @BOOLEAN_CLASS
+D_INARG op2, a
+proc
+    ;Synergy/DE doesn't know (boolean .xor. a), so we'll write it longhand.
+    ;Order of evaluation doesn't matter here, because op2 has already been
+    ;evaluated, and we will always evaluate op1.truth() within this method.
+    if (op2)
+      mreturn !op1.truth()
+    mreturn op1.truth()
+endmethod
+
+public static method op_ExclusiveOr, i
+D_INARG op1, a
+D_INARG op2, @BOOLEAN_CLASS
+proc
+    if (op1)
+      mreturn !op2.truth()
+    mreturn op2.truth()
+endmethod
+
+.endc

@@ -1,0 +1,145 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace People
+
+class Person
+	
+.define COMPARE_CLASS Person
+.include "MIXINS:comparable"
+	
+    private likability, int
+    
+    public method Person
+	in opt liked, i
+    proc
+	if (^passed(liked)) then 
+	  likability = liked
+	else
+	  likability = 0
+    endmethod
+    
+    protected static method compare, int
+	D_INARG obj1, @Person
+	D_INARG obj2, @Person
+    proc
+	using obj1.likability select
+	(< obj2.likability),    mreturn -1
+	(> obj2.likability),	mreturn 1
+	endusing
+	mreturn 0	;==
+    endmethod
+.undefine COMPARE_CLASS
+endclass
+
+class SalesPerson extends Person
+    
+	private annual_sales, decimal, 0
+    
+	public method make_sale, void
+	D_INARG howmuch,	decimal
+	proc
+	    annual_sales = annual_sales + howmuch
+	endmethod
+    
+.define COMPARE_CLASS SalesPerson
+.define COMPARE_MEMBER annual_sales	;Compare their annual sales
+.include "MIXINS:comparable"
+	
+.define COMPARE_TYPE2 @Person
+.undefine COMPARE_MEMBER		;Don't generate "compare"
+.include "MIXINS:comparable"
+	
+	protected static method compare, int
+	    D_INARG obj1,	@SalesPerson
+	    D_INARG obj2,	@Person
+	proc
+	    mreturn -1	;a SalesPerson is always less than a Person
+	endmethod
+	
+.undefine COMPARE_CLASS
+endclass
+
+class Programmer extends Person
+    
+	public years_coding, int
+	public num_languages, int
+	public ever_used_VB, boolean
+    
+.define COMPARE_CLASS Programmer
+.define COMPARE_MEMBER geekQuotient()
+.include "MIXINS:comparable"
+
+	private method geekQuotient, decimal
+	proc
+	    begin
+	      data quotient, decimal
+	      
+	      quotient = (num_languages * num_languages) * years_coding
+	      if (ever_used_VB)
+		quotient = quotient / ^x(dead)
+	      mreturn quotient
+	    end
+	endmethod
+
+.undefine COMPARE_CLASS
+endclass
+	
+endnamespace
+
+main test_comparable
+record
+	person1, @Person
+	person2, @Person
+	sales1,  @SalesPerson
+	sales2,  @SalesPerson
+	prog1,	 @Programmer
+	prog2,	 @Programmer
+	
+proc
+	person1 = new Person(20)
+	person2 = new Person(50)
+	assert(person1 < person2)
+	assert(person2 > person1)
+	assert(person1 == person1)
+	assert(person1 != person2)
+	assert(person1 <= person2)
+	assert(person2 >= person1)
+	
+	sales1 = new SalesPerson()
+	sales2 = new SalesPerson()
+	sales1.make_sale(100000.00)
+	
+	assert(sales1 > sales2)
+	assert(sales1 < person2)
+	
+	prog1 = new Programmer()
+	prog2 = new Programmer()
+	
+	prog1.years_coding = 20
+	prog1.num_languages = 2
+	prog2.years_coding = 10
+	prog2.num_languages = 15
+	prog2.ever_used_VB = true
+
+	assert(prog1 > prog2)
+	assert(sales1 < person1)
+	assert(prog1 == prog1)
+	assert(prog1 != prog2)
+	assert(prog2 < prog1)
+	assert(sales1 <= person1)
+	assert(prog1 >= sales1)
+
+	assert(!(sales1 == person1))
+	assert(sales1 != person1)
+	assert(!(sales1 > person1))
+	assert(!(sales1 >= person1))
+
+	assert(!(person1 == sales1))
+	assert(person1 != sales1)
+	assert(person1 > sales1)
+	assert(!(person1 < sales1))
+	assert(person1 >= sales1)
+	assert(!(person1 <= sales1))
+
+	pass()
+end

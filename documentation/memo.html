@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>Memoize macro reference</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Macro memoize</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This macro memoizes the result of a function or method.  If the result for
+a given function/argument combination has already been memoized, that stored
+result will be returned.  Otherwise, the function or method will be invoked
+with the specified argument, and the result will be stored and returned.
+</div>
+<div class="ref">
+<h2>Syntax</h2>
+<pre><code>
+	 memoize(<em>object-variable</em>, <em>function</em>, <em>object</em>)
+</code></pre> 
+<p>where:</p>
+<ul>
+  <li><em>object-variable</em> is the name of a variable (type @*) into which to return the result</li>
+  <li><em>function</em> is the name of the function or method being memoized</li>
+  <li><em>object</em> is the argument to that function (can be any type)</li>
+</ul>
+<div class="description">
+  <p>
+  Because Synergy/DE does not have a functional IF statement (and 
+  <a href="fif.html">my attempt to create one</a> evaluates both the then and else clauses)
+  this macro must be passed a variable into which to return the result.  This variable must
+  be declared as an object (@*), so you will probably need to cast it later on.  The
+  <em>function</em> should not be in quotes.  You can pass any type for <em>object</em>, 
+  even primitives.  Likewise, <em>function</em> may return any type, even ^val.
+  </p>
+  <p>
+  While memoize is convenient, you may find greater flexibility in using the underlying Memo
+  class directly.  See details below.
+  </p>
+</div>
+</div>
+<div id="cls-memo">
+<h1>Class Memo</h1>
+<p>
+This class provides a framework for memoization based on an alphanumeric identifier
+(e.g., a function name) and an object (e.g., an argument).  If you need more than one
+alphanumeric identifier, you can concatenate them with an appropriate delimiter.  If
+you need more than one object, pass a list containing them (ls.Equals() evaluates to
+true if the lists have the same number of members and corresponding members yield true
+via object.Equals).
+</p>
+<div class="ref">
+  <h2>Member reference</h2>
+  <div id="ref-retrieve" class="ref">
+    <h3>static method retrieve</h3>
+    <code>
+      Memo.retrieve(<em>a</em>, <em>object</em>) =&gt; <em>object2</em>
+    </code>
+    <div class="description">
+      This method returns the result previously stored for the combination
+      of <em>a</em> and <em>object</em>, or ^null if no such result has been stored.
+      The match for <em>a</em> is case-insensitive,
+      while the match for <em>object</em> uses Object.Equals().
+    </div>
+  </div>
+  <div id="ref-store" class="ref">
+    <h3>static method store</h3>
+    <code>
+      Memo.store(<em>object2</em>, <em>a</em>, <em>object</em>) =&gt; <em>object2</em>
+    </code>
+    <div class="description">
+      This method stores a result (<em>object2</em>) for the combination of <em>a</em>
+      and <em>object</em>, and returns <em>object2</em>.
+      The match for <em>a</em> is case-insensitive,
+      while the match for <em>object</em> uses Object.Equals().
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>

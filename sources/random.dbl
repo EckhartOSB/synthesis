@@ -1,0 +1,200 @@
+.include "SYNTHEIS:synthesis.def"
+;
+; Random number class
+;
+; Chip Camden		February, 2010
+;
+namespace Synthesis
+
+    public class Random
+
+        public method Random
+	record
+	    group dt	,a17
+	      hi	,d7	;YYYYMMD
+	      mid	,d5	;DHHMM
+	      low	,d5	;SSmmm
+	    endgroup
+	proc
+	    dt = %datetime
+	    Seed1 = integer(mid) & ^x(0FFFF)
+	    Seed2 = integer(low) & ^x(0FFFF)
+	end
+
+	public method Random
+	D_INARG a_seed1, int
+	D_INARG a_seed2, int
+	proc
+	    Seed1 = a_seed1
+	    Seed2 = a_seed2
+	end
+
+	public method Next, int
+	;
+	; Returns a number between 0 and 32767
+	;
+	record
+	    num, int
+	    s1, int
+	    s2, int
+	proc
+	    s1 = Seed1
+	    s2 = Seed2
+	    randm(num, s1, s2)
+	    Seed1 = s1
+	    Seed2 = s2
+	    mreturn num
+	end
+
+	public method NextBool, boolean
+	;
+	; Returns a toss of the coin
+	;
+	proc
+	    mreturn (this.Next() > 16383)
+	end
+
+	public method NextInt, int
+	;
+	; Returns a random 32-bit nonnegative value
+	;
+	record
+	    group i, i4
+	      s1   , i2
+	      s2   , i2
+	    endgroup
+	proc
+	    s1 = this.Next()
+	    s2 = this.Next()
+.ifdef D_LITNDN
+	    if (this.NextBool())
+	      s1 |= ^x(08000)		;Make sure we cover the last bit of the first part
+.else
+	    if (this.NextBool())
+	      s2 |= ^x(08000)		;Make sure we cover the first bit of the last part
+.endc
+	    mreturn i
+	end
+
+	public method NextInt, int
+	;
+	; Returns a random 32-bit nonnegative value up to a specified maximum
+	;
+	D_INARG max, int
+
+	proc
+	    if (max <= 32767)
+	      begin
+		if (max < 0)
+		  exite($ERR_INVARG)	;Throws a Synergex.SynergyDE.SynArgumentException
+	        mreturn integer(Next() * (implied(max) / 32767))
+	      end
+	    mreturn integer(NextInt() * (implied(max) / ^x(7FFFFFFF)))
+	end
+
+	public method NextInt, int
+	;
+	; Returns a random 32-bit value between a specified minimum and maximum
+	; (may include negative numbers)
+	;
+	D_INARG min, int
+	D_INARG max, int
+	
+	proc
+	    mreturn min + NextInt(max - min)
+	end
+
+	public method NextLong, long
+	;
+	; Returns a random 64-bit nonnegative value
+	;
+	record
+	    group i, i8
+	      s1   , i4
+	      s2   , i4
+	    endgroup
+	proc
+	    s1 = this.NextInt()
+	    s2 = this.NextInt()
+.ifdef D_LITNDN
+	    if (this.NextBool())
+	      s1 |= ^x(80000000)	;Make sure we cover the last bit of the first part
+.else
+	    if (this.NextBool())
+	      s2 |= ^x(80000000)	;Make sure we cover the first bit of the last part
+.endc
+	    mreturn i
+	end
+
+	public method NextLong, long
+	;
+	; Returns a random 64-bit nonnegative value up to a specified maximum
+	;
+	D_INARG max, long
+
+	proc
+	    if (max <= ^x(7FFFFFFF))
+	      mreturn NextInt((int)max)
+	    mreturn integer(NextLong() * (implied(max) / ^x(7FFFFFFFFFFFFFFF)), 8)
+	end
+
+	public method NextLong, long
+	;
+	; Returns a random 64-bit value between a specified minimum and maximum
+	; (may include negative numbers)
+	;
+	D_INARG min, long
+	D_INARG max, long
+	
+	proc
+	    mreturn min + NextLong(max - min)
+	end
+
+	public method NextDec, decimal
+	;
+	; Returns a random decimal value between 0.0 and 1.0
+	;
+	record
+	    rv	,d28.10
+	proc
+	    rv = Next()
+	    rv = rv / 32767.0
+	    mreturn rv
+	end
+
+	public method NextChars, void
+	;
+	; Fills a buffer with random characters
+	;
+	out req buffer, a
+
+	record
+	    ndx, int
+	proc
+	    for ndx from 1 thru ^size(buffer)
+	      buffer(ndx:1) = char(Next() & ^x(00FF))
+	    mreturn
+	end
+
+	public method NextChars, void
+	;
+	; Fills a buffer with random characters within a character range
+	;
+	out req buffer, a
+	D_INARG min, int	;Minimum ASCII character value (you can use decml(a))
+	D_INARG max, int	;Maximum ASCII character value
+	;
+	record
+	    ndx, int
+	proc
+	    for ndx from 1 thru ^size(buffer)
+	      buffer(ndx:1) = char(NextInt(min, max))
+	    mreturn
+	end
+
+        public Seed1, int
+	public Seed2, int
+
+    endclass
+
+endnamespace

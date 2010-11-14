@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>Console class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Console</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class wraps standard I/O.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-display">Display</a> - display text to STDOUT</li>
+    <li><a href="#ref-readline">ReadLine</a> - read a line from STDIN</li>
+    <li><a href="#ref-writeline">WriteLine</a> - write a line to STDOUT</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-display" class="ref">
+    <h3>static method Display</h3>
+    <code>
+      Console.Display(<em>a</em>)
+    </code>
+    <div class="description">
+      <p>
+      This method writes raw text to STDOUT.  Unlike <a href="#ref-writeline">WriteLine</a>,
+      the text is not terminated by a CRLF pair.
+      </p>
+    </div>
+  </div>
+  <div id="ref-readline" class="ref">
+    <h3>static method ReadLine</h3>
+    <code>
+      Console.ReadLine() =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      This method obtains a line of input from STDIN.  If EOF is encountered, <em>string</em> is
+      returned ^null.
+    </div>
+  </div>
+  <div id="ref-writeline" class="ref">
+    <h3>static method WriteLine</h3>
+    <code>
+      Console.WriteLine(<em>object</em>)
+    </code>
+    <div class="description">
+      <p>
+      This method writes sequentially to STDOUT.  If <em>object</em> is an ArrayList
+      (or derived from ArrayList -- e.g., <a href="ls.html">ls</a>), then each member's string
+      representation (obtained by calling its ToString() method) is output as a separate line.
+      For any other type of object or primitive (a, int, decimal), the string representation
+      of that argument is output as a separate line.
+      </p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	i1	,int, 1
+	i2	,int, 2
+	a1	,a1, "a"
+	a2	,a1, "b"
+	d1	,decimal, 1.1
+	d2	,decimal, 1.2
+	s1	,string
+	s2	,string
+proc
+	swapi(i1,i2)
+	assert(i1 == 2)
+	assert(i2 == 1)
+	swapa(a1,a2)
+	assert(a1 == 'b')
+	assert(a2 == 'a')
+	swapd(d1,d2)
+	assert(d1 == 1.2)
+	assert(d2 == 1.1)
+	swapd(i1,d2)		;Var intermediates should convert (in this case, swapa or swapi would work).
+	assert(i1 == 1)
+	assert(d2 == 2.0)
+	s1 = "string1"
+	s2 = "string2"
+	swapa(s1,s2)
+	open(1,o,"TT:")
+	assert(s1 == "string2")
+	assert(s2 == "string1")
+	begin
+	  data v1, @Var, (Var)1.0
+	  data v2, @Var, (Var)2.0
+	  swapv(v1,v2)
+	  assert(v1 == 2.0)
+	  assert(v2 == 1.0)
+	end
+
+
+	;; Unfortunately, indexers (or any property for that matter) cannot be used on the
+	;; left hand side of an assignment within an expression (tr#23837), so the following
+	;; test doesn't compile:
+	;;
+	;;ary = new ArrayList()
+	;;ary.Add(Var.Box(1))
+	;;ary.Add(Var.Box(2))
+	;;swapo(ary[0],ary[1])
+	;;assert(((Var)ary[0]) == 2)
+	;;assert(((Var)ary[1]) == 1)
+
+	pass()
+end

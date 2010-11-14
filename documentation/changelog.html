@@ -1,0 +1,344 @@
+<html>
+<head>
+<title>Synthesis library change log</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Synthesis Change Log</h1>
+<div id="intro">
+<h2>Introduction</h2>
+This log lists all changes since version 1.0.
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li>Versions
+  <ul>
+    <li><a href="#ver-2.1.4">2.1.4</a> - released 2010-05-26</li>
+    <li><a href="#ver-2.1.3">2.1.3</a> - released 2010-03-18</li>
+    <li><a href="#ver-2.1.2">2.1.2</a> - released 2010-03-08</li>
+    <li><a href="#ver-2.1.1">2.1.1</a> - released 2010-02-22</li>
+    <li><a href="#ver-2.1.0">2.1.0</a> - released 2010-02-17</li>
+    <li><a href="#ver-2.0.4">2.0.4</a> - released 2010-02-12</li>
+    <li><a href="#ver-2.0.3">2.0.3</a> - released 2010-02-02</li>
+    <li><a href="#ver-2.0.2">2.0.2</a> - released 2010-01-20</li>
+    <li><a href="#ver-2.0.1">2.0.1</a> - released 2009-12-31</li>
+    <li><a href="#ver-2.0.0">2.0.0</a> - released 2009-12-26</li>
+  </ul>
+</li>
+</ol>
+</div>
+<div id="ver-2.1.4">
+  <h3>Version 2.1.4, released 2010-05-26</h3>
+  <li>Enhancements
+    <ul>
+      <li>Regex <a href="regex.html#ref-split">split</a> method</li>
+      <li>Var <a href="var.html#ref-split">split</a> method</li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.1.3">
+  <h3>Version 2.1.3, released 2010-03-18</h3>
+  <li>Enhancements
+    <ul>
+      <li><a href="json.html">json</a> - Parse and generate JSON</li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.1.2">
+  <h3>Version 2.1.2, released 2010-03-08</h3>
+  <li>Enhancements
+    <ul>
+      <li><a href="memo.html">memoize</a> - memoize method/function results</li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.1.1">
+  <h3>Version 2.1.1, released 2010-02-22</h3>
+  <li>Important Notes
+    <ul>
+      <li>The command-line syntax for the <a href="htmlcover.html">htmlcover</a>
+	  utility has changed.  The previous syntax will no longer work.</li>
+    </ul>
+  </li>
+  <li>Enhancements
+    <ul>
+      <li>New classes
+        <ul>
+	  <li><a href="random.html">Random</a> - generate random numbers</li>
+	  <li><a href="commandline.html">CommandLine</a> - parse command line</li>
+	</ul>
+      </li>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>Added <a href="regex.html#ref-escape">escape</a> method</li>
+	  <li>Improved compilation performance</li>
+	  <li>Optimized leading, unconditional \G</li>
+	</ul>
+      </li>
+      <li><a href="ls.html">ls</a>
+        <ul>
+	  <li>Added <a href="ls.html#ref-reduce">reduce and reduceRight</a> methods</li>
+	</ul>
+      </li>
+      <li><a href="htmlcover.html">htmlcover</a>
+        <ul>
+	  <li>Ability to sample more than one executable in a single report</li>
+	  <li>-t option to specify report title</li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.1.0">
+  <h3>Version 2.1.0, released 2010-02-17</h3>
+  <li>Enhancements
+    <ul>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>\G to anchor to the end of the last match, and ContinueFrom member</li>
+	  <li>Continue option ('c')</li>
+	  <li>Allow lowercase \ca..\cz for control characters</li>
+	  <li>GNU anchors and word boundaries: \`, \', \&lt;, \&gt;</li>
+	  <li>Allow duplicate group names, capturing to the same group</li>
+	  <li>Alternate (.NET) syntax for named group capture</li>
+	  <li>Alternate (.NET) syntax for named group back-reference</li>
+	  <li>POSIX character classes, including [: :] and \p{ } (Java) syntax</li>
+	  <li>$ tokens for replace</li>
+	  <li>\x00 thru \xFF for replace</li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+  <li>Corrections
+    <ul>
+      <li>Change <a href="file.html">File</a> to allocate channels above 255 when
+      not in Toolkit mode, to avoid later collision with U_START (which can close
+      channels 1 thru 255).</li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.0.4">
+  <h3>Version 2.0.4, released 2010-02-12</h3>
+  <li>Enhancements
+    <ul>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>DotMatchesNewline option ('s')</li>
+	  <li>ExplicitCapture option ('n')</li>
+	  <li>Dynamic options: (?imnxs) and (?-i-m-n-x-s).</li>
+	  <li>Look-ahead (?= ), (?! ); and look-behind (?&lt;= ), (?&lt;! )</li>
+	  <li>Conditionals: (?(group) ), (?(?= ) ), (?(?! ) ), (?(?&lt;= ) ), and (?(?&lt;! ) )</li>
+	  <li>\y and \Y as equivalents for \b and \B (a la TCL)</li>
+	  <li>\m for beginning of word, \M for end of word</li>
+	  <li>Improved performance of the compilation phase</li>
+	</ul>
+      </li>
+      <li><a href="ls.html">ls</a>
+        <ul>
+	  <li>Improved performance of <a href="ls.html#ref-reverse">reverse</a></li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+  <li>Corrections
+    <ul>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>A named group nested in an unnamed group lost the unnamed group's back-reference</li>
+	  <li>Dot should not match newline (%char(10)) unless new DotMatchesNewline option is enabled</li>
+	</ul>
+      </li>
+      <li><a href="coverage.html">CodeCoverage</a>
+        <ul>
+	  <li>"No object for handle" error in Markup phase</li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.0.3">
+  <h3>Version 2.0.3, released 2010-02-02</h3>
+  <li>Important notes
+    <ul>
+      <li>For performance, I changed the <a href="coverage.html#ref-map">CodeCoverage.Map</a> and the
+          <a href="coverage.html#ref-sourcefile-lines">CodeCoverage.SourceFile.lines</a> from associative lists to Hashes.  If you access
+          either of these directly, you may need to modify your code accordingly.</li>
+    </ul>
+  </li>
+  <li>Enhancements
+    <ul>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>{n} and {n,m} to specify minimum/maximum repetitions.</li>
+	  <li>? following *, +, ?, or {} to indicate non-greediness.</li>
+	  <li>\A and \Z,\z for begin and end anchors, respectively.</li>
+	  <li>\b for word boundary, \B for not a word boundary.</li>
+	  <li>\a for bell, \e for escape.</li>
+	  <li>\Q..\E to quote text literally.</li>
+	  <li>(?P&lt;group&gt;) for named group capture.</li>
+	  <li>(?P=group) for named group back-reference within the pattern.</li>
+	  <li>\g&lt;group&gt; for named group substitution in <a href="regex.html#ref-replace">replace</a></li>
+	  <li>Character class subtraction: [a-z-[aeiou]] matches consonants, for instance.</li>
+	  <li>Improved performance on matching an unconditional \A or ^.</li>
+	  <li>Optimized matching when we can rule out further better matches.</li>
+	</ul>
+      </li>
+      <li><a href="coverage.html">CodeCoverage</a>
+        <ul>
+	  <li>Improved performance by replacing associative lists with hashes.</li>
+	  <li>Added <a href="coverage.html#ref-progresshandler">ProgressHandler</a> class to provide progress reporting.</li>
+	  <li>The <a href="htmlcover.html">htmlcover</a> utility now reports more detailed progress to stdout.</li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+  <li>Corrections
+    <ul>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li><a href="regex.html#ref-replace">replace</a> with a \ at the end should treat \ as a character.</li>
+	  <li>/a*/ should always match position 1, with length of zero or more.</li>
+	  <li>/()*/ should always match position 1, with a length of zero.</li>
+	  <li>Avoid infinite recursion on repeating, potentially zero-length matches like /(a?)*/ or /(a*b*)*/</li>
+	</ul>
+      </li>
+      <li><a href="assertions.html">Assertions</a>
+        <ul>
+	  <li>On .NET, capture the inner exception when an exception is thrown from within xsubr.</li>
+	</ul>
+      </li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.0.2">
+  <h3>Version 2.0.2, release 2010-01-20</h3>
+  <li>Enhancements
+    <ul>
+      <li><a href="coverage.html">CodeCoverage</a>
+        <ul>
+	  <li>Sampling performance improved by caching current source file between statements.</li>
+	</ul>
+      </li>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>\1 thru \9 back-reference within the pattern.</li>
+	  <li>(?:) for grouped sub-expression without back-reference.</li>
+	  <li>(?#) for comment.</li>
+	</ul>
+      </li>
+      <li><a href="ls.html">ls</a>
+        <ul>
+	  <li>Added <a href="ls.html#ref-deepcopy">deepcopy</a> method to copy all nested lists.</li>
+	  <li>Improved performance of <a href="ls.html#ref-quicksort">quicksort</a> and
+	      <a href="ls.html#ref-mergesort">mergesort</a>, and changed 
+	      <a href="ls.html#ref-sort">sort</a> to use the best one for each segment,
+	      based on size.</li>
+	</ul>
+      </li>
+      <li>Improved coverage in unit tests</li>
+    </ul>
+  </li>
+  <li>Corrections
+    <ul>
+      <li>Change <a href="gottk.html">GotToolkit</a> to use E_INFO(D_ENV_LEVEL) to test for Toolkit activation (per tr#30959)</li>
+      <li><a href="var.html#ref-tohtml">Var.ToHtml()</a> progressively off by one when expanding tabs</li>
+      <li><a href="version.html#ref-letter">Version.Letter</a> was null when parsing an invalid version, changed to empty string</li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.0.1">
+  <h3>Version 2.0.1, released 2009-12-31</h3>
+  <li>Enhancements
+    <ul>
+      <li><a href="regex.html">Regex</a>
+        <ul>
+	  <li>Support for <a href="regex.html#ref-extended">extended syntax</a> option (x)</li>
+	  <li>Improved performance by removing dead-end optimization and other unnecessary code</li>
+	</ul>
+      </li>
+      <li><a href="coverage.html">CodeCoverage</a>
+        <ul>
+	  <li>Better recognition of USING labels</li>
+	  <li>Better handling of continuation lines</li>
+	  <li>Exclude CATCH statement</li>
+	  <li>Recognize jump into CATCH paragraph</li>
+	  <li>Map filenames without regard to case (except on Unix)</li>
+	</ul>
+      </li>
+      <li>Added D_UNIX definition for all *n?x platforms</li>
+      <li>Improved coverage in unit tests</li>
+    </ul>
+  </li>
+  <li>Corrections
+    <ul>
+      <li><a href="comparable.html">Comparable mixin</a>: decimal COMPARE_MEMBER on .NET produced unreliable results</li>
+      <li><a href="file.html#ref-close">File.Close</a> when channel already closed gave RETURN without CALL on .NET</li>
+      <li>If more than two assignments occurred in a <a href="let.html">let</a>, the second thru next-to-last would not be released.</li>
+      <li><a href="ls.html#ref-subseq">ls.subseq</a> limiting upper index off by 1, resulting in index out of bounds.</li>
+      <li>Decrementing a decimal <a href="var.html">Var</a> failed on .NET</li>
+      <li><a href="ls.html#ref-CompareString">CompareString.TestNatural</a> used the wrong index when testing for space in the second operand.</li>
+      <li><a href="ls.html#ref-CompareString">CompareString.TestNatural</a> same number at the end of operands caused an indexing error.</li>
+      <li><a href="regex.html">Regex</a>: match against /^/ yielded length of 1, corrected to 0.</li>
+      <li>Tests for mixins included files with initial uppercase character - changed to all lower-case</li>
+    </ul>
+  </li>
+</div>
+<div id="ver-2.0.0">
+  <h3>Version 2.0.0, released 2009-12-26</h3>
+  <li>Important Notes
+    <ul>
+      <li>Synthesis now requires at least version 9.3.1 of Synergy/DE</li>
+    </ul>
+  </li>
+  <li>Enhancements
+    <ul>
+      <li>New classes:
+        <ul>
+	  <li><a href="version.html">Version</a></li>
+	  <li><a href="transport.html">Transport</a></li>
+	  <li><a href="socket.html">Socket</a></li>
+	  <li><a href="telnet.html">Telnet</a></li>
+	  <li><a href="coverage.html">CodeCoverage</a></li>
+	</ul>
+      </li>
+      <li>New utilities for code coverage analysis: <a href="cover.html">cover</a> and <a href="htmlcover.html">htmlcover</a>.</li>
+      <li><a href="ls.html">ls</a> constructor for specifying initial capacity.</li>
+      <li>Methods <a href="var.html#ref-increment">increment</a>, <a href="var.html#ref-decrement">decrement</a>, and
+          <a href="var.html#ref-tohtml">ToHtml</a> for the Var class.</li>
+      <li>Display method for the <a href="file.html#ref-display">File</a> and <a href="console.html#ref-display">Console</a> classes.</li>
+      <li><a href="file.html#ref-close">Close</a> method for the File class.
+      <li><a href="hash.html#ref-dispose">Dispose</a> method for the Hash class.
+      <li>Various type declarations for the first argument to <a href="fif.html">fif</a>, to avoid casting to boolean.</li>
+      <li><a href="var.html#ref-asalpha">Var.AsAlpha()</a> for decimal Vars no longer includes trailing zeros
+          or decimal point unless significant.</li>
+    </ul>
+  </li>
+  <li>Corrections
+    <ul>
+      <li><a href="regex.html">Regexen</a> with complex nested subexpressions.</li>
+      <li>Handle regular expressions with ^ or $ within parentheses.</li>
+      <li>Insure alphanumeric/string comparisons use string comparison operators (.eqs., etc.) to test for equal length as well as contents.</li>
+    </ul>
+  </li>
+  <li>Limited compatibility with Synergy.NET beta, which required numerous changes, including:
+    <ul>
+      <li>Rewrote the internals of build_message() for assertions.</li>
+      <li>Handle distinctions between types i, int, and boolean.</li>
+      <li>Handle distinctions between types d and decimal.</li>
+      <li>Create D_EQUALS_PARAM macro for declaring parameter to object.Equals</li>
+      <li>Create D_INARG macro for declaring input parameters as byval for .NET only</li>
+      <li>Don't override object.MemberwiseClone in .NET</li>
+      <li>Declare ls.remove as 'new' for .NET</li>
+      <li>Don't provide ls.contains for .NET (already provided by ArrayList)</li>
+      <li>Abstract classes cannot be nested classes</li>
+      <li>Create makefile dependencies 'net', 'cleannet', and 'runnet'</li>
+    </ul>
+  </li>
+</div>
+</body>
+</html>

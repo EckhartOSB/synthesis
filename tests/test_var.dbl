@@ -1,0 +1,418 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+record
+	tmpd	,@var
+	tmpi	,@var
+	tmpa	,@var
+	tmpr	,@var
+proc
+	open(1,o,"TT:")
+
+	;Initialization
+	tmpd = new VarDec(1)
+	assert((a)tmpd .eqs. "1")
+	tmpd = (Var)1.1
+	tmpr = -tmpd
+	assert(tmpd.Equals((Var)1.1))
+	assert_kind_of(VarDec, tmpd)
+	assert((a)tmpd == "1.1")
+	assert((int)tmpd == 1)
+	assert((decimal)tmpd == 1.1)
+	assert((string)tmpd .eq. "1.1")
+	tmpi = (Var)%integer(1)
+	assert_kind_of(VarInt, tmpi)
+	assert((a)tmpi == "1")
+	assert((int)tmpi == 1)
+	assert((decimal)tmpi == 1)
+	assert((string)tmpi == "1")
+	tmpa = (Var)"3"
+	assert_kind_of(VarAlpha, tmpa)
+	assert((a)tmpa == "3")
+	assert((int)tmpa == 3)
+	assert((decimal)tmpa == 3)
+	assert((string)tmpa == "3")
+	assert(tmpa.ToString() == "3")
+	begin
+	  data s, string
+	  s = "3"
+	  assert(tmpa.Equals(s))
+	  assert(tmpa.Equals(tmpa))
+	  assert(!tmpa.Equals(ls.of("3")))
+	end
+	tmpr = (Var)Var.Box(tmpa)
+	assert(Object.ReferenceEquals(tmpr, tmpa))	;Box of an object is the object
+
+	;Addition
+	tmpr = tmpi + tmpi
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 2)
+	tmpr = tmpi + tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 2.1)
+	tmpr = tmpi + tmpa
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "13")
+	tmpr = tmpd + tmpi
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 2.1)
+	tmpr = tmpd + tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 2.2)
+	tmpr = tmpd + tmpa
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "1.13")
+	tmpr = tmpa + tmpi
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "31")
+	tmpr = tmpa + tmpd
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "31.1")
+	tmpr = tmpa + tmpa
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "33")
+	tmpr = tmpi + integer(1)
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 2)
+	tmpr = tmpd + 2.2
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 3.3)
+	tmpr = 2.2 + tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 3.3)
+	tmpr = tmpa + "hello"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "3hello")
+
+	;Subtraction
+	tmpr = tmpi - tmpi
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 0)
+	tmpr = tmpi - tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == -0.1)
+	tmpr = tmpi - tmpa
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == -2)
+	tmpr = tmpd - tmpi
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 0.1)
+	tmpr = tmpd - tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 0)
+	tmpr = tmpd - tmpa
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == -1.9)
+	tmpr = (Var)"0123" - tmpi
+	assert_kind_of(VarAlpha, tmpr)
+	assert((string)tmpr == "023")
+	tmpr = (var)"1.1abc" - tmpd
+	assert_kind_of(VarAlpha, tmpr)
+	assert((string)tmpr == "abc")
+	tmpr = (Var)"43" - tmpa
+	assert_kind_of(VarAlpha, tmpr)
+	assert((string)tmpr == "4")
+	tmpr = tmpi - integer(2)
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == -1)
+	tmpr = tmpd - 2.2
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == -1.1)
+	tmpr = (Var)"abcde" - "c"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "abde")
+	tmpr = "abcde" - (Var)"c"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "abde")
+	tmpr = Var.Box("abcde") - "x"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "abcde")
+
+	;Multiplication
+	tmpr = tmpi * tmpi
+	assert_kind_of(VarInt, tmpi)
+	assert((int)tmpr == 1)
+	tmpr = tmpi * tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 1.1)
+	tmpr = tmpi * tmpa
+	assert_kind_of(VarAlpha, tmpa)
+	assert((a)tmpr == "3")
+	tmpr = tmpd * tmpi
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 1.1)
+	tmpr = tmpd * tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 1.21)
+	tmpr = tmpd * tmpa
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "3")
+	tmpr = tmpa * (var)%integer(2)
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "33")
+	tmpr = (var)"Hello " * (var)7.2
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "Hello Hello Hello Hello Hello Hello Hello ")
+	tmpr = tmpa * (var)"2"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "33")
+	tmpr = (var)"fred" * (var)"wilma"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr .eqs. "")
+	tmpr = integer(2) * tmpi
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 2)
+	tmpr = tmpi * integer(2)
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 2)
+	tmpr = tmpd * 2.2
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 2.42)
+	tmpr = tmpa * "4"
+	assert_kind_of(VarAlpha, tmpr)
+	assert((a)tmpr == "3333")
+
+	;Division
+	tmpr = (var)%integer(26) / (var)%integer(5)
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 5)
+	tmpr = tmpi / tmpd
+	assert_kind_of(VarDec, tmpr)
+.ifdef DBLNET
+	assert((decimal)tmpr == 0.9090909090909090909090909091)
+.else
+	assert((decimal)tmpr == 0.9090909091)
+.endc
+	tmpr = tmpi / tmpa
+	assert_kind_of(VarDec, tmpr)
+.ifdef DBLNET
+	assert((decimal)tmpr == 0.3333333333333333333333333333)
+.else
+	assert((decimal)tmpr == 0.3333333333)
+.endc
+	tmpr = tmpd / tmpi
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 1.1)
+	tmpr = tmpd / tmpa
+	assert_kind_of(VarDec, tmpr)
+.ifdef DBLNET
+	assert((decimal)tmpr == 0.3666666666666666666666666667)
+.else
+	assert((decimal)tmpr == 0.3666666667)
+.endc
+	tmpr = tmpa / tmpi
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 3)
+	tmpr = tmpa / tmpd
+	assert_kind_of(VarDec, tmpr)
+.ifdef DBLNET
+	assert((decimal)tmpr == 2.7272727272727272727272727273)
+.else
+	assert((decimal)tmpr == 2.7272727273)
+.endc
+	tmpr = tmpa / tmpa
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 1)
+	assert_throws(System.DivideByZeroException, "divide_bad_alpha")
+	tmpr = %integer(5) / (Var)%integer(2)
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 2)
+	tmpr = (var)%integer(5) / integer(2)
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == 2)
+	tmpr = tmpd / 2.2
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 0.5)
+	tmpr = tmpa / "2"
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == 1.5)
+
+	;Negation
+	tmpr = -tmpi
+	assert_kind_of(VarInt, tmpr)
+	assert((int)tmpr == -1)
+	tmpr = -tmpd
+	assert_kind_of(VarDec, tmpr)
+	assert((decimal)tmpr == -1.1)
+	tmpr = -tmpa
+	assert_kind_of(VarAlpha, tmpa)
+	assert((a)tmpr .eqs. "")
+	assert(-(Var)1.0 == -1)
+
+	;Increment
+	begin
+	  data v, @Var
+	  v = new VarInt(1)
+	  incr v
+	  assert(v == 2)
+	  v = (Var)1.1
+	  incr v
+	  assert(v == 2.1)
+	  v = (Var)"a"
+	  incr v
+	  assert(v == "b")
+	  v = Var.Box(char(255))
+	  incr v
+	  assert(v == char(255)+char(1))
+	  incr v
+	  assert(v == char(255)+char(2))
+	  v = Var.Box("")
+	  incr v
+	  assert(v == char(1))
+	end
+
+	;Decrement
+	begin
+	  data v, @Var
+	  v = new VarInt(1)
+	  decr v
+	  assert(v == 0)
+	  v = (Var)1.1
+	  decr v
+	  assert(v == 0.1)
+	  v = (Var)"A"
+	  decr v
+	  assert(v == "@")
+	  v = (Var)""
+	  decr v
+	  assert(v == "")
+	  v = (Var)char(1)
+	  decr v
+	  assert(v == "")
+	  v = (Var)("a" + char(2))
+	  decr v
+	  assert(v == "a" + char(1))
+	  decr v
+	  assert(v == "a")
+	end
+
+	;Modulo
+	assert(Var.Box(10).modulo(3) == 1)
+	assert(Var.Box(7).modulo(integer(4)) == 3)
+	assert(Var.Box(9).modulo("2") == 1)
+
+	;Truth
+	if (tmpi) then nop else flunk()
+	if (tmpd) then nop else flunk()
+	if (tmpa) then nop else flunk()
+	if ((var)%integer(0)) flunk()
+	if ((var)0.0) flunk()
+	if ((var)" ") flunk()
+
+	;Logical not
+	if (!tmpi) flunk()
+	if (!tmpd) flunk()
+	if (!tmpa) flunk()
+	if (!(var)%integer(0)) then nop else flunk()
+	if (!(var)0.0) then nop else flunk()
+	if (!(var)" ") then nop else flunk()
+
+	;Logical and
+	if (tmpi && tmpd) then nop else flunk()
+	if (tmpi && !tmpd) flunk()
+	if (!tmpa && !tmpd) flunk()
+
+	;Logical or
+	if (tmpi || tmpd) then nop else flunk()
+	if (tmpi || !tmpd) then nop else flunk()
+	if (!tmpi || !tmpd) flunk()
+
+	;Exclusive or
+	if (tmpi .xor. tmpd) flunk()
+	if (tmpi .xor. !tmpd) then nop else flunk()
+	if (!tmpi .xor. !tmpd) flunk()
+
+	;Equality
+	assert(tmpi == (Var)%integer(1))
+	if (tmpi == (Var)%integer(2)) flunk()
+	assert(tmpi == (Var)1.0)
+	if (tmpi == tmpd) flunk()
+	assert(tmpi == (Var)"1")
+	if (tmpi == tmpa) flunk()
+	assert((Var)1.0 == tmpi)
+	if (tmpd == tmpi) flunk()
+	assert(tmpd == (Var)1.1)
+	if (tmpd == (Var)1.0) flunk()
+	assert(tmpd == (Var)"1.1")
+	if (tmpd == tmpa) flunk()
+	assert((Var)"1" == tmpi)
+	if (tmpa == tmpi) flunk()
+	assert((Var)"1.1" == tmpd)
+	if (tmpa == tmpd) flunk()
+	assert(tmpa == (Var)"3")
+	if (tmpa == (Var)"hello") flunk()
+	assert(tmpi == %integer(1))
+	if (tmpi == %integer(2)) flunk()
+	assert(%integer(1) == tmpi)
+	if (%integer(2) == tmpi) flunk()
+	assert(tmpd == 1.1)
+	if (tmpd == 1.2) flunk()
+	assert(1.1 == tmpd)
+	if (1.2 == tmpd) flunk()
+	assert(tmpa == "3")
+	if (tmpa == "hello") flunk()
+	assert("3" == tmpa)
+	if ("hello" == tmpa) flunk()
+
+	;Inequality
+	assert(tmpi != 1.1)
+	assert(tmpd != 1.2)
+	assert(tmpa != tmpd)
+
+	;Greater than
+	assert(2 > tmpi)
+	assert(tmpd > %integer(1))
+	assert((Var)"h" > "g")
+
+	;Less than
+	assert((tmpi < tmpd))		;Extra parentheses required for compiler bug (9.1.5b)
+	assert((%integer(3) < Var.Box(%integer(4))))
+	assert((tmpd < 1.2))
+	assert(((Var)"h" < "i"))
+
+	;Greater than or equal
+	assert(1 >= tmpi)
+	assert(tmpd >= 1)
+	assert((Var)"hello" >= "h")
+
+	;Less than or equal
+	assert(tmpi <= tmpd)
+	assert(%integer(3) <= Var.Box(%integer(4)))
+	assert(tmpd <= 1.2)
+	assert((Var)"h" <= "h")
+
+	;Regex
+	assert_equal(2,Var.Box("hello").match(R$('/ell/')).start)
+	tmpa = (Var)"ukelele"
+	tmpr = tmpa.replace(R$('/el?/g'),'alo')
+	assert_equal('ukaloaloalo', (a)tmpr)
+	tmpr = tmpa.replace(R$('/el?/g'), integer(1))
+	assert_equal('uk111', (a)tmpr)
+	tmpr = tmpa.replace(R$('/el?/g'), 2.2)
+	assert_equal('uk2.22.22.2', (a)tmpr)
+	tmpr = tmpa.replace(R$('/el?/g'), ls.of("hi") & "there")
+	assert_equal('uk[hi, there][hi, there][hi, there]', (a)tmpr)
+	assert(Var.Box('All told, we "survived"').split(r$('/[,"]/g')).Equals(
+	&	ls.of('All told')|' we '|'survived'|''))
+	assert(Var.Box('All told, we "survived"').split(r$('/[,"]/g'), false).Equals(
+	&	ls.of('All told')|' we '|'survived'))
+
+	;ToHtml
+	assert_equal("hello&nbsp;&nbsp;&nbsp;&amp;&nbsp;&lt;&apos;goodbye&quot;&gt;", Var.Box("hello" + char(9) + "& <'goodbye"">").ToHtml())
+	assert(Var.Box("").ToHtml() .eqs. "")
+	tmpa = Var.Box(char(9)) * 1366
+	assert_equal(65532, tmpa.ToHtml().Length)	;Should expand to 10928 "&nbsp;", truncated at 65532 chars (10922)
+	tmpr = Var.Box('&') + (Var.Box('a') * 65533)
+	assert_equal(65535, tmpr.ToHtml().Length)	;Expand &amp; truncate a's
+
+	pass()
+end
+
+subroutine divide_bad_alpha
+proc
+	begin
+	  data rslt, @Var
+	  rslt = (Var)"Hello" / (Var)"world"
+	end
+	xreturn
+end

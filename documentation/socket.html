@@ -1,0 +1,170 @@
+<html>
+<head>
+<title>Socket class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Socket extends Transport</h1>
+<div id="intro">
+<h2>Introduction</h2>
+This class wraps the Synergy/DE Socket API as an implementation of the abstract
+<a href="transport.html">Transport</a>, as used by <a href="telnet.html">Telnet</a>.
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-ctor">(constructors)</a></li>
+    <li><a href="#ref-accept">Accept</a> - Accept a connection</li>
+    <li><a href="#ref-close">Close</a> - Close a socket</li>
+    <li><a href="#ref-connect">Connect</a> - Connect to a host</li>
+    <li><a href="#ref-connected">Connected</a> - Is socket connected?</li>
+    <li><a href="#ref-gethostbyname">GetHostByName</a> - Retrieve an IP address for a host name</li>
+    <li><a href="#ref-ipaddress">IPAddress</a> - Convert a dotted IP address to an integer</li>
+    <li><a href="#ref-listen">Listen</a> - Establish a port on which to listen for connections</li>
+    <li><a href="#ref-receive">Receive</a> - Receive text from a sender</li>
+    <li><a href="#ref-send">Send</a> - Send text to a receiver</li>
+    <li><a href="#ref-socketexception">SocketException</a> - exception thrown on socket errors</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-ctor" class="ref">
+    <h3>constructors</h3>
+    <code>
+      <em>socket</em> = new Socket()<br/>
+      <em>socket</em> = new Socket(<em>i</em>)
+    </code>
+    <div class="description">
+      Creates a new socket.  If <em>i</em> is passed, it must be one of the two values 
+      SS_SOCK_STREAM or SS_SOCK_DGRAM defined in DBLDIR:synsock.def.  If not specified, SS_SOCK_STREAM
+      is assumed.
+    </div>
+  </div>
+  <div id="ref-accept" class="ref">
+    <h3>method Accept</h3>
+    <code>
+      <em>socket</em>.Accept() =&gt; <em>socket2</em>
+    </code>
+    <div class="description">
+      This method waits for connection requests on <em>socket</em> and returns <em>socket2</em> on which to
+      carry the conversation.  You must first establish <em>socket</em> as a socket for listening before
+      calling this method by calling the <a href="#ref-listen">Listen</a> method.  Typically, a server will
+      call Listen once, and then Accept in a loop.  If an error occurs, a
+      <a href="#ref-socketexception">SocketException</a> will be thrown.
+    </div>
+  </div>
+  <div id="ref-close" class="ref">
+    <h3>method Close</h3>
+    <code>
+      <em>socket</em>.Close() =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Closes a socket, if it is open, returning true if successful.  If an error occurs, no exception is thrown.  This method is called
+      automatically in the destructor if the socket is open, but you may wish to call it explicitly to
+      control timing.
+    </div>
+  </div>
+  <div id="ref-connect" class="ref">
+    <h3>method Connect</h3>
+    <code>
+      <em>socket</em>.Connect(<em>i</em>, <em>i2</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      Connect to the host at IP address <em>i</em> on port <em>i2</em>.  To translate a
+      host name or a dotted form of the address to an integer as required for <em>i</em>, see
+      the <a href="#ref-gethostbyname">GetHostByName</a> or <a href="#ref-ipaddress">IPAddress</a>
+      methods, respectively. If an error occurs, a
+      <a href="#ref-socketexception">SocketException</a> will be thrown.
+    </div>
+  </div>
+  <div id="ref-connected" class="ref">
+    <h3>property Connected</h3>
+    <code>
+      <em>socket</em>.Connected =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This read-only property returns true if the socket is connected, otherwise false.
+    </div>
+  </div>
+  <div id="ref-gethostbyname" class="ref">
+    <h3>static method GetHostByName</h3>
+    <code>
+      Socket.GetHostByName(<em>a</em>) =&gt; <em>i</em>
+    </code>
+    <div class="description">
+      This static method returns an IP address for the host named in <em>a</em>.  If an error occurs, a
+      <a href="#ref-socketexception">SocketException</a> will be thrown.
+    </div>
+  </div>
+  <div id="ref-ipaddress" class="ref">
+    <h3>static method IPAddress</h3>
+    <code>
+      Socket.IPAddress(<em>a</em>) =&gt; <em>i</em>
+    </code>
+    <div class="description">
+      This static method returns an IP address for the dotted form of the address in <em>a</em>.  If an error occurs, a
+      <a href="#ref-socketexception">SocketException</a> will be thrown.
+    </div>
+  </div>
+  <div id="ref-listen" class="ref">
+    <h3>method Listen</h3>
+    <code>
+      <em>socket</em>.Listen(<em>i</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This method establishes a port <em>i</em> on which to listen for connections as a server.  If successful, it returns
+      true.  If an error occurs, a <a href="#ref-socketexception">SocketException</a> will be thrown.
+    </div>
+  </div>
+  <div id="ref-receive" class="ref">
+    <h3>override method Receive</h3>
+    <code>
+      <em>socket</em>.Receive(<em>a</em>) =&gt; <em>i</em>
+    </code>
+    <div class="description">
+        This method receives data from an open socket and returns it in
+	the parameter <em>a</em>, which must be writable.
+	The method returns the number of characters returned in <em>a</em>.
+    </div>
+  </div>
+  <div id="ref-send" class="ref">
+    <h3>override method Send</h3>
+    <code>
+      <em>socket</em>.Send(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      This method sends the characters in <em>a</em> to the open socket.
+      It returns true if successful.  If an error occurs, a <a href="#ref-socketexception">SocketException</a> will be thrown.
+    </div>
+  </div>
+  <div id="ref-socketexception" class="ref">
+    <h3>class SocketException extends Synergex.SynergyDE.SynException</h3>
+    <div class="description">
+      This class of exception is thrown whenever an unexpected socket error occurs.  Its public member SocketStatus is an
+      integer that contains the socket status returned.  Its inherited Message member is set to "Socket error: n", where n is the socket status code.
+    </div>
+  </div>
+</div>
+</body>
+</html>
