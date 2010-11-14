@@ -20,16 +20,16 @@ namespace Synthesis
 
 .define D_REDUCE_CLASS, ReduceSum
 .define D_REDUCE_OP, +
-.include "reducer"
+.include "SRC:reducer"
 .define D_REDUCE_CLASS, ReduceDifference
 .define D_REDUCE_OP, -
-.include "reducer"
+.include "SRC:reducer"
 .define D_REDUCE_CLASS, ReduceProduct
 .define D_REDUCE_OP, *
-.include "reducer"
+.include "SRC:reducer"
 .define D_REDUCE_CLASS, ReduceQuotient
 .define D_REDUCE_OP, /
-.include "reducer"
+.include "SRC:reducer"
 
 endnamespace
 

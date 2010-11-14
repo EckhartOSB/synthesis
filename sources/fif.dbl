@@ -8,23 +8,23 @@ namespace Synthesis
 ; Generate methods for each type of argument/return value:
 
 .define FIF_TYPE, int
-.include "fif"			;int handles all precisions of integer
+.include "SRC:fif"			;int handles all precisions of integer
 .define FIF_TYPE, decimal
-.include "fif"			;decimal handles numeric literals and implied
+.include "SRC:fif"			;decimal handles numeric literals and implied
 .define FIF_TYPE, a
-.include "fif"			;a handles alphanumeric expressions and strings
+.include "SRC:fif"			;a handles alphanumeric expressions and strings
 .define FIF_TYPE, @*
-.include "fif"			;object handles all other classes
+.include "SRC:fif"			;object handles all other classes
 .define FIF_TYPE, @Var
-.include "fif"			;except for Var, which is special
+.include "SRC:fif"			;except for Var, which is special
 
 .ifdef DBLNET
 .define FIF_TYPE, i		;Different from int in .NET
-.include "fif"
+.include "SRC:fif"
 .define FIF_TYPE, d.		;Different from decimal in .NET
-.include "fif"
+.include "SRC:fif"
 .define FIF_TYPE, boolean	;Different from int or i in .NET
-.include "fif"
+.include "SRC:fif"
 .endc
 
 	endclass
@@ -34,21 +34,21 @@ endnamespace
 .else
 .ifndef FIF_TEST_TYPE
 .define FIF_TEST_TYPE, int
-.include "fif"			;int handles all precisions of integer and boolean on std
+.include "SRC:fif"			;int handles all precisions of integer and boolean on std
 .define FIF_TEST_TYPE, decimal
-.include "fif"			;decimal handles numeric literals and implied
+.include "SRC:fif"			;decimal handles numeric literals and implied
 .define FIF_TEST_TYPE, a
-.include "fif"			;a handles alphanumeric expressions and strings
+.include "SRC:fif"			;a handles alphanumeric expressions and strings
 .define FIF_TEST_TYPE, @Var
-.include "fif"			;Var knows boolean
+.include "SRC:fif"			;Var knows boolean
 
 .ifdef DBLNET
 .define FIF_TEST_TYPE, i	;Different from int in .NET
-.include "fif"
+.include "SRC:fif"
 .define FIF_TEST_TYPE, d.	;Different from decimal in .NET
-.include "fif"
+.include "SRC:fif"
 .define FIF_TEST_TYPE, boolean	;Different from int or i in .NET
-.include "fif"
+.include "SRC:fif"
 .endc
 
 .undefine FIF_TYPE

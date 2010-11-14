@@ -21,19 +21,19 @@ public class MapVar extends MapObject
 
 .define D_MAPVAR_OP, op_Addition
 .define D_MAPVAR_OPCLASS, MapVarAdd
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_OP, op_Subtraction
 .define D_MAPVAR_OPCLASS, MapVarSubtract
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_OP, op_Multiply
 .define D_MAPVAR_OPCLASS, MapVarMultiply
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_OP, op_Division
 .define D_MAPVAR_OPCLASS, MapVarDivide
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_OP, modulo
 .define D_MAPVAR_OPCLASS, MapVarModulo
-.include "mapvar"
+.include "SRC:mapvar"
 
     public static method op_UnaryNegation, @MapVar
     D_INARG op, @MapVar
@@ -59,19 +59,19 @@ endclass
 
 .define D_MAPVAR_CLASS, MapVarAdd
 .define D_MAPVAR_METHOD, add
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_CLASS, MapVarSubtract
 .define D_MAPVAR_METHOD, subtract
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_CLASS, MapVarMultiply
 .define D_MAPVAR_METHOD, multiply
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_CLASS, MapVarDivide
 .define D_MAPVAR_METHOD, divide
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_CLASS, MapVarModulo
 .define D_MAPVAR_METHOD, modulo
-.include "mapvar"
+.include "SRC:mapvar"
 
 public class MapVarNegate extends MapVar
 
@@ -118,11 +118,11 @@ endnamespace
 
 ;Now create auto-boxing versions:
 .define D_MAPVAR_PRIMITIVE, int
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_PRIMITIVE, decimal
-.include "mapvar"
+.include "SRC:mapvar"
 .define D_MAPVAR_PRIMITIVE, a
-.include "mapvar"
+.include "SRC:mapvar"
 
 .undefine D_MAPVAR_OP
 .undefine D_MAPVAR_OPCLASS

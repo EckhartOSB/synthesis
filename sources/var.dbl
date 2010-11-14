@@ -380,17 +380,17 @@ namespace Synthesis
 
 ;.includes to define primitive parameter overloads
 .define D_VAR_PRIMITIVE, int
-.include "var"
+.include "SRC:var"
 .define D_VAR_PRIMITIVE, decimal
-.include "var"
+.include "SRC:var"
 .define D_VAR_PRIMITIVE, a
-.include "var"
+.include "SRC:var"
 
 .ifdef DBLNET
 .define D_VAR_PRIMITIVE, i
-.include "var"
+.include "SRC:var"
 .define D_VAR_PRIMITIVE, d.
-.include "var"
+.include "SRC:var"
 .endc
 
 	endclass
@@ -773,16 +773,16 @@ endnamespace
 
 .define D_VAR_OPERATOR, op_Addition
 .define D_VAR_METHOD, add
-.include "var"
+.include "SRC:var"
 .define D_VAR_OPERATOR, op_Subtraction
 .define D_VAR_METHOD, subtract
-.include "var"
+.include "SRC:var"
 .define D_VAR_OPERATOR, op_Multiply
 .define D_VAR_METHOD, multiply
-.include "var"
+.include "SRC:var"
 .define D_VAR_OPERATOR, op_Division
 .define D_VAR_METHOD, divide
-.include "var"
+.include "SRC:var"
 
 	    public method modulo, @Var
 	    D_INARG divisor, D_VAR_PRIMITIVE

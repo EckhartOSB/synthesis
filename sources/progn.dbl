@@ -7,23 +7,23 @@ namespace Synthesis
     public class Progn
 
 .define D_PROGN_TYPE, int
-.include "progn"
+.include "SRC:progn"
 .define D_PROGN_TYPE, decimal
-.include "progn"
+.include "SRC:progn"
 .define D_PROGN_TYPE, a
-.include "progn"
+.include "SRC:progn"
 .define D_PROGN_TYPE, @Var
-.include "progn"
+.include "SRC:progn"
 .define D_PROGN_TYPE, @*
-.include "progn"
+.include "SRC:progn"
 
 .ifdef DBLNET
 .define D_PROGN_TYPE, i
-.include "progn"
+.include "SRC:progn"
 .define D_PROGN_TYPE, boolean
-.include "progn"
+.include "SRC:progn"
 .define D_PROGN_TYPE, d.
-.include "progn"
+.include "SRC:progn"
 .endc
 
     endclass

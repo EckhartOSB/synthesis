@@ -71,11 +71,11 @@ public abstract class Compare
 
 ;Generate methods for auto-boxing primitives
 .define D_MAPCOMPARE_PRIMITIVE, int
-.include "compare"
+.include "SRC:compare"
 .define D_MAPCOMPARE_PRIMITIVE, decimal
-.include "compare"
+.include "SRC:compare"
 .define D_MAPCOMPARE_PRIMITIVE, a
-.include "compare"
+.include "SRC:compare"
 
 endclass
 

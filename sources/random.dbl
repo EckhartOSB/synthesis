@@ -1,4 +1,4 @@
-.include "SYNTHEIS:synthesis.def"
+.include "SYNTHESIS:synthesis.def"
 ;
 ; Random number class
 ;

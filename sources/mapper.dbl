@@ -176,11 +176,11 @@ public class MapIf extends MapObject
 
  ;Generate constructors for each primitive type for each argument
  .define D_MAPIF_PRIMITIVE, int
- .include "mapper"
+ .include "SRC:mapper"
  .define D_MAPIF_PRIMITIVE, decimal
- .include "mapper"
+ .include "SRC:mapper"
  .define D_MAPIF_PRIMITIVE, a
- .include "mapper"
+ .include "SRC:mapper"
 
     public override method map, @*
     D_INARG obj, @*
@@ -464,22 +464,22 @@ endclass
 
 .define D_MAPCOMPARE_CLASS, MapCompareEqual
 .define D_MAPCOMPARE_OP, ==
-.include "mapper"
+.include "SRC:mapper"
 .define D_MAPCOMPARE_CLASS, MapCompareNotEqual
 .define D_MAPCOMPARE_OP, !=
-.include "mapper"
+.include "SRC:mapper"
 .define D_MAPCOMPARE_CLASS, MapCompareGreaterThan
 .define D_MAPCOMPARE_OP, >
-.include "mapper"
+.include "SRC:mapper"
 .define D_MAPCOMPARE_CLASS, MapCompareLessThan
 .define D_MAPCOMPARE_OP, <
-.include "mapper"
+.include "SRC:mapper"
 .define D_MAPCOMPARE_CLASS, MapCompareGreaterThanOrEqual
 .define D_MAPCOMPARE_OP, >=
-.include "mapper"
+.include "SRC:mapper"
 .define D_MAPCOMPARE_CLASS, MapCompareLessThanOrEqual
 .define D_MAPCOMPARE_OP, <=
-.include "mapper"
+.include "SRC:mapper"
 
 endnamespace
 

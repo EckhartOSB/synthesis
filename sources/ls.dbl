@@ -1673,11 +1673,11 @@ namespace Synthesis
 
     ;Now include redefinitions to automatically box primitives as Vars
     .define D_LS_VARTYPE, int
-    .include "ls"
+    .include "SRC:ls"
     .define D_LS_VARTYPE, decimal
-    .include "ls"
+    .include "SRC:ls"
     .define D_LS_VARTYPE, a
-    .include "ls"
+    .include "SRC:ls"
 
     endclass
 
