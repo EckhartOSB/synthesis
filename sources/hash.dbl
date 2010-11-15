@@ -27,7 +27,7 @@ namespace Synthesis
 	    method ~Hash		;Destructor
 	    proc
 		if (m_dict)		;Release the symbol table
-		  Dispose()
+		  nspc_close(m_dict)	; == Dispose()
 	    endmethod
 
 	    public method Dispose, void

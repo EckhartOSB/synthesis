@@ -1,4 +1,4 @@
-# PVCS Configuration Builder make file
+# Unix makefile for synthesis library
 
 all: $(SYNTHESIS)/synthesis.def prototypes $(SYNTHESIS)/synthesis.elb
 
