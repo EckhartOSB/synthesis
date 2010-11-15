@@ -48,8 +48,13 @@ proc
 	    test("text", "", "dbs TEST_EXE:test_commandline -test text")
 	    test("args", "-- arg1 arg2 arg3", "[-test, args, --, arg1, arg2, arg3]")
 	    test("switch", "-fred", "Got fred, no wilma")
+.ifdef UNIX
 	    test("swargs", "-flintstones fred wilma   pebbles \'dino the -dinosaur\'",
 	    &	  "[fred, wilma, pebbles, dino the -dinosaur]")
+.else
+	    test("swargs", "-flintstones fred wilma   pebbles 'dino the -dinosaur'",
+	    &	  "[fred, wilma, pebbles, dino the -dinosaur]")
+.endc
 	    test("prefix", "-fred", "0")
 	    test("prefix", "/fred", "1")
 	    test("getprefix", "", "-")
