@@ -15,4 +15,4 @@ set RMCMD=del /q
 set CPCMD=copy /y
 set DBG=-d
 set NOVCS=
-set NETLIBPATH=%DBLDIR%\bin\bin40
+set NETLIBPATH=%DBLDIR%\bin
