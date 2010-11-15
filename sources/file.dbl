@@ -76,7 +76,7 @@ namespace Synthesis
 	end
 
 	private m_toolkit, boolean
-        private m_channel, int
+        private m_channel, i4
 	private m_name, string
 	private m_mode, string
 	private static s_uopen, D_ADDR
