@@ -13,7 +13,7 @@ prototypes:
 	dblproto $(SOURCES:C/^/$(SYNTHESIS)\/sources\//)
 
 $(SYNTHESIS)/synthesis.def: synthesis.def
-	$(CPCMD) synthesis.def $(SYNTHESIS)
+	$(CPCMD) $(SRC)/synthesis.def $(SYNTHESIS)
 
 .for SOURCE in $(SOURCES:C/$/.dbl/)
 $(SRC)/obj/$(SOURCE:C/\.dbl/.dbo/): $(SOURCE)
