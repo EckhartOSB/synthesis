@@ -45,7 +45,7 @@ proc
 	    Console.WriteLine("Source file" + char(9) + "Line" + char(9) + "Executions")
 	    Console.WriteLine("-----------" + char(9) + "----" + char(9) + "----------")
 	    iter = new Hash.Iterator(cc.Map, true)
-	    while ((src = iter.Next(file)) != ^null)
+	    while ((src = (CodeCoverage.SourceFile)iter.Next(file)) != ^null)
 	      begin
 		data len, int, trim(file)
 		data iter2, @Hash.Iterator
