@@ -10,7 +10,7 @@
 .ifdef D_GUI					;Windows
 .define launch_process(cmd) spawn(cmd, D_DETACHED|D_NOWAIT)
 .else
-.define launch_process(cmd) spawn(cmd)
+.define launch_process(cmd) spawn(cmd + ' &', 0)
 .endc
 
 ;dbl.def doesn't have an "any flavor of Unix/Xenix/Linux" define, so we'll make one:

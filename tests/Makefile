@@ -9,7 +9,7 @@ tests: $(SOURCES:C/.*/$(TESTS)\/exe\/&.dbr/)
 
 run:
 .for TEST in $(SOURCES:C/.*/$(TESTS)\/exe\/&.dbr/)
-	dbr $(TEST)
+	dbs $(TEST)
 .endfor
 
 clean:
