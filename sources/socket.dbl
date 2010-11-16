@@ -135,8 +135,10 @@ namespace synthesis
 		mreturn recvd
 	end
 
-    protected m_socket, D_ADDR
-    protected m_connected, boolean
+    protected record	;Needed to prevent the "loose int" error
+      m_socket, D_ADDR
+      m_connected, boolean
+    endrecord
 
     endclass
 
