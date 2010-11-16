@@ -21,7 +21,7 @@ It requires Synergy/DE version 9.3.1 or higher.  It's called Synthesis for a few
 <p>The code is intended to be portable across all supported Synergy/DE platforms, which include Linux,
 various Unices, Windows, and OpenVMS.  The Synergy/DE UI Toolkit is not required by this library, but I've
 taken pains to make it compatible with applications that do use the UI Toolkit.</p>
-<p>This site documents Synthesis version 2.2.0.</p>
+<p>This site documents Synthesis version 2.2.1.</p>
 <h3>Downloading</h3>
 <p>
 You can clone the
@@ -150,6 +150,9 @@ If you're on Windows, a 'make net' will build everything for the Synergy.NET ver
 'make run' or 'make runnet' to run the full test suite.  Also in tests, 'make coverage' will use the htmlcover utility
 to generate coverage statistics for all of the tests.  To combine the statistics from all tests into one report,
 use 'make coverall'.
+</p>
+<p>In the main directory, you can do a 'make clean' to perform a 'make clean' in each of the sources, tests, and
+utilities directories.  Likewise, a 'make all' in the main directory will do a 'make' in each of those directories.
 </p>
 <p>
 To use the library in your application, optionally include "SYNTHESIS:synthesis.def" in your client
