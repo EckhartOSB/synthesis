@@ -356,7 +356,7 @@ names adequately communicate their side-effects, I believe.</p>
       ls.from(<em>arraylist</em>) =&gt; <em>ls</em><br/>
       ls.from(<em>hash</em>) =&gt; <em>ls</em><br/>
       ls.from(<em>array</em>) =&gt; <em>ls</em><br/>
-      ls.from(<em>realarray</em>) =&gt; <em>ls</em>&nbsp;&nbsp;&nbsp;<strong>*** Synergy/DE 9.3 and above ***</strong>
+      ls.from(<em>realarray</em>) =&gt; <em>ls</em>
     </code>
     <div class="description">
       <p>Creates a new <em>ls</em> from <em>arraylist</em>, <em>hash</em>, or <em>array</em>.  Members are copied by reference.</p>
@@ -368,14 +368,13 @@ names adequately communicate their side-effects, I believe.</p>
       VarAlpha. Use the <a href="#ref-map">map</a> method to perform these conversions, if desired.  For
       instance, to convert a multi-dimensioned array of strings to a list of lists of VarAlpha:</p>
       <p><code>ls.from(<em>array</em>).map(new MapDeep(new MapAlpha()))</code></p>
-      <p>Real arrays of primitive types ([*]<em>type</em>) only work on Synergy/DE version 9.3 and above, due to a
-      compiler bug (tr#30719).  If you try to use real arrays with this method in Synergy/DE version 9.1*
-      or even in the 9.2.1 beta, it will crash the Synergy/DE runtime.  This method only supports
+      <p>Real arrays of primitive types ([*]<em>type</em>) only supports
       real arrays of one dimension, because I got tired of fighting with the compiler.  The primitive
       values will be boxed as Vars.</p>
       <p>Note also that since arrays are 1-based while ArrayLists are 0-based, the indices of members
       in the resulting list will be one less than their indices in the original array.  That goes for
-      both <em>array</em> and <em>realarray</em></a>
+      both <em>array</em> and <em>realarray</em></a></p>
+      <p>Arrays and real arrays are not supported by this method on Synergy .NET</p>.
     </div>
   </div>
   <div id="ref-issubsetof" class="ref">
