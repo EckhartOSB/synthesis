@@ -6,7 +6,7 @@ namespace Synthesis
 
   ; Represents a version number, but provides comparisons and some static members
 
-    public const Synthesis_Version, a*, "2.2.0"
+    public const Synthesis_Version, a*, "2.2.1"
     public const Synthesis_WhatString, a*, make_what("Synthesis Library", Synthesis_Version)
 
     public static property Synthesis, @Version
