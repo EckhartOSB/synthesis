@@ -1,0 +1,29 @@
+.include "SYNTHESIS:synthesis.def"
+main test_oi
+record
+	l1	,@ls
+	l2	,@ls
+	i1	,int
+	i2	,int
+proc
+	l1 = new ls()
+	l2 = new ls()
+
+	i1 = oi.i(l1)
+	i2 = oi.i(l2)
+	assert_equal(i1, oi.i(l1))	;Identity of index
+	assert_equal(i2, oi.i(l2))
+	assert_not_equal(oi.i(l1), oi.i(l2))	;Uniqueness
+	assert(Object.ReferenceEquals(l1, oi.o(i1)))	;Object identity
+	assert(Object.ReferenceEquals(l2, oi.o(i2)))
+	assert_null(oi.o(-1))			;Boundaries
+	assert_null(oi.o(i2+1))
+	oi.drop(i1)
+	assert_null(oi.o(i1))			;Drop worked
+	assert_equal(i2, oi.i(l2))		;Integrity of index after drop
+	assert_equal(i1, oi.i(l1))		;Reuse dropped index
+	assert(Object.ReferenceEquals(l1, oi.o(i1)))
+	oi.drop(l2)				;Drop by object
+	assert_null(oi.o(i2))
+	pass()
+end

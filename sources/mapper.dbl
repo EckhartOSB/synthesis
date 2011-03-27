@@ -333,6 +333,30 @@ public abstract class MapBoolean
 
 endclass
 
+public class MapIdentity extends MapBoolean
+;
+; Class to compare object identity
+;
+; This class is necessary if for no other reason
+; than ls.IndexOf uses Object.Equals, which may be
+; overridden to treat two different objects as equal.
+;
+    public method MapIdentity
+    D_INARG obj, @*	;This is the object we're looking for
+    proc
+    	m_obj = obj
+    end
+
+    public override method test, boolean
+    D_INARG obj, @*
+    proc
+    	mreturn Object.ReferenceEquals(obj, m_obj)
+    end
+
+    private m_obj, @*
+
+endclass
+
 public class MapMatches extends MapBoolean
 ;
 ; Class to test for regex matching

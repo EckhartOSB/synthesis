@@ -1348,6 +1348,23 @@ namespace Synthesis
 		mreturn newls
 	end
 
+	public method findindex, int
+	;
+	; Description:  Find that returns the index instead of the object
+	;
+	D_INARG map, @MapBoolean	;Mapper function
+	;
+	; Returns:	index of first matching object, or -1 if not found
+	;
+	record
+		ndx	,int
+	proc
+		for ndx from 0 thru this.Count-1
+		  if (map.test(this[ndx]))
+		    mreturn ndx
+	        mreturn -1
+	end
+
 	public method reduce, @*
 	;
 	; Description:  Perform a left fold, or inject, on the list

@@ -1,0 +1,102 @@
+<html>
+<head>
+<title>Oi class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class Oi</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides a mechanism for mapping objects to integers, and vice versa.
+Its name, "Oi," is short for "Object integer."</p>
+<p>Synergy/DE, being a type-safe language, is not friendly to the idea of passing an
+object as a parameter where a primitive type is expected.  Nor can you pass a record
+or group that contains an object.  Thus, a disconnect can easily occur when  you wish
+to use an object in a routine that must be called back from a mechanism where only
+primitives can be passed.</p>
+<p>The obvious solution to this problem is to keep an array of the objects you need
+to reference, and pass their indices instead of their references.  Care must be taken
+to keep the indices from changing as objects are added or removed.  That's what this
+class encapsulates.</p>
+<p>Naturally, adding an object to this mechanism creates a reference, so you must be
+careful to "drop" an object from Oi when you no longer need it.  Oi will reuse that
+index of its internal array.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-drop">drop</a> - Remove an object from Oi</li>
+    <li><a href="#ref-i">i</a> - Return the integer for an object</li>
+    <li><a href="#ref-o">o</a> - Return the object for an integer</li>
+  </ol>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-drop" class="ref">
+    <h3>static method drop</h3>
+    <code>
+      Oi.drop(<em>object</em>)<br/>
+      Oi.drop(<em>int</em>)
+    </code>
+    <div class="description">
+      <p>
+        This method removes an object from Oi.  Any index for that object previously retrieved via
+	<a href="#ref-i">i</a> will no longer be valid.
+      </p>
+      <p>If <em>object</em> is passed, that object (if tracked by Oi) will be removed.  If that object
+      is not currently tracked by Oi, nothing happens.</p>
+      <p>If <em>int</em> is passed, then the object whose index is <em>int</em> will be removed.  If
+      the index is not valid, nothing happens.</p>
+    </div>
+  </div>
+  <div id="ref-i" class="ref">
+    <h3>static method i</h3>
+    <code>
+      Oi.i(<em>object</em>) =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      <p>
+	This method returns an integer that uniquely identifies <em>object</em> within Oi.  If Oi is
+	already tracking the object in question, its index will be returned.  If not, the object will
+	be added to Oi's internal array and the new index will be returned.  The index of previously
+	dropped objects may be reused.  The value will be in the range of 0 through the number of objects
+	currently being tracked by Oi minus one.
+      </p>
+    </div>
+  </div>
+  <div id="ref-o" class="ref">
+    <h3>static method o</h3>
+    <code>
+      Oi.o(<em>int</em>) =&gt; <em>object</em>
+    </code>
+    <div class="description">
+      <p>
+        This method returns the object whose Oi integer value is <em>int</em>, or ^null if <em>int</em>
+	does not correspond to an object currently being tracked by Oi.
+      </p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

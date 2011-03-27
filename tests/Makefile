@@ -3,7 +3,7 @@
 all: tests run
 
 LIBS = SYNTHESIS:synthesis.elb
-SOURCES = test_assertions test_boolean test_commandline test_comparable test_elapsedtime test_fif test_file test_gottk1 test_gottk2 test_gottk3 test_hash test_json test_let test_ls test_memo test_progn test_random test_regex test_singleton test_swap test_telnet test_var test_version
+SOURCES = test_assertions test_boolean test_commandline test_comparable test_elapsedtime test_fif test_file test_gottk1 test_gottk2 test_gottk3 test_hash test_json test_let test_ls test_memo test_oi test_progn test_random test_regex test_singleton test_swap test_telnet test_var test_version
 
 tests: $(SOURCES:C/.*/$(TESTS)\/exe\/&.dbr/)
 

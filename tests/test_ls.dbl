@@ -505,6 +505,29 @@ proc
 	  assert(ls1.findall(is_digit).Equals(ls.of(1)|2|3|4|5))
 	end
 
+	;findindex
+	ls1 = ls.of(1) | 2 | 3
+	cnt = ls1.findindex(new CompareVarInt() == 0)
+	assert_equal(-1, cnt)
+	cnt = ls1.findindex(new CompareVarInt() == 1)
+	assert_equal(0, cnt)
+	cnt = ls1.findindex(new CompareVarInt() == 2)
+	assert_equal(1, cnt)
+	cnt = ls1.findindex(new CompareVarInt() == 3)
+	assert_equal(2, cnt)
+	cnt = ls1.findindex(new CompareVarInt() == 4)
+	assert_equal(-1, cnt)
+
+	ls1 = new ls()
+	ls2 = new ls()
+	ls3 = ls.of(ls1) & ls2
+	cnt = ls3.findindex(new MapIdentity(ls1))
+	assert_equal(0, cnt)
+	cnt = ls3.findindex(new MapIdentity(ls2))
+	assert_equal(1, cnt)
+	cnt = ls3.findindex(new MapIdentity(ls3))
+	assert_equal(-1, cnt)
+
 	;reduce
 	begin
 	  data v, @Var

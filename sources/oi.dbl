@@ -1,0 +1,64 @@
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+;
+; Oi		Object-integer class
+;
+
+  class Oi
+
+    private static s_objects, @ls	;List of registered objects
+
+    public static method i, i
+    D_INARG a_obj, @*
+    record
+    	ndx	,int
+    proc
+    	if (s_objects == ^null)
+	  s_objects = new ls()
+
+	if ((ndx = s_objects.findindex(new MapIdentity(a_obj))) >= 0)
+	  mreturn ndx
+
+	if ((ndx = s_objects.findindex(new MapIdentity(^null))) >= 0)
+	  begin
+	    s_objects[ndx] = a_obj	;Reuse previously dropped
+	    mreturn ndx
+	  end
+	
+	mreturn s_objects.Add(a_obj)
+    end
+
+    public static method o, @*
+    D_INARG a_ndx, i
+    proc
+    	if ((s_objects != ^null) &&
+	&   (a_ndx >= 0) &&
+	&   (a_ndx < s_objects.Count))
+	  mreturn s_objects[a_ndx]
+
+	mreturn ^null
+    end
+
+    public static method drop, void
+    D_INARG a_obj, @*
+    record
+    	ndx	,int
+    proc
+    	if ((s_objects != ^null) &&
+	&   ((ndx = s_objects.findindex(new MapIdentity(a_obj))) >= 0))
+	  s_objects[ndx] = ^null
+    end
+
+    public static method drop, void
+    D_INARG a_ndx, i
+    proc
+    	if ((s_objects != ^null) &&
+	&   (a_ndx >= 0) &&
+	&   (a_ndx < s_objects.Count))
+	  s_objects[a_ndx] = ^null
+    end
+
+  endclass
+
+endnamespace

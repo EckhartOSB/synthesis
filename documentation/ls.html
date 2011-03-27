@@ -41,6 +41,7 @@ System.Collections.Arraylist to enable:
     <li><a href="#ref-equals">Equals</a> - override instance equality testing</li>
     <li><a href="#ref-find">find</a> - find an object that satisfies a condition</li>
     <li><a href="#ref-findall">findall</a> - find all objects that satisfy a condition</li>
+    <li><a href="#ref-findindex">findindex</a> - find an object that satisfies a condition, returning its index</li>
     <li><a href="#ref-flatten">flatten</a> - flatten a list</li>
     <li><a href="#ref-from">from</a> - create a list from another list, array, or Hash</li>
     <li><a href="#ref-intersection">intersection</a> - intersection of two lists</li>
@@ -112,6 +113,7 @@ System.Collections.Arraylist to enable:
     </li>
     <li><a href="#ref-mapboolean">abstract MapBoolean</a> - map an object to a boolean
       <ol>
+	<li><a href="#ref-mapidentity">MapIdentity</a> - map true if identical to an object</li>
 	<li><a href="#ref-mapmatches">MapMatches</a> - map true if Regex matches</li>
         <li><a href="#ref-mapnonnull">MapNonNull</a> - map true if not null</li>
         <li><a href="#ref-mapnull">MapNull</a> - map true if null</li>
@@ -338,6 +340,16 @@ names adequately communicate their side-effects, I believe.</p>
     <div class="description">
       Returns a list of all elements of <em>ls</em> for which <em>mapboolean</em>.test()
       returns true.  If no objects match, an empty list is returned.
+    </div>
+  </div>
+  <div id="ref-findindex" class="ref">
+    <h3>method findindex</h3>
+    <code>
+      <em>ls</em>.findindex(<em>mapboolean</em>) =&gt; <em>int</em>
+    </code>
+    <div class="description">
+      Returns the index of the first element of <em>ls</em> for which <em>mapboolean</em>.test()
+      returns true.  If no objects match, -1 is returned.
     </div>
   </div>
   <div id="ref-flatten" class="ref">
@@ -1101,6 +1113,16 @@ which correspond to the two abstract classes <a href="#ref-mapobject">MapObject<
   MapBoolean or <a href="#compare">Compare</a> classes.  But you may create your own derived classes
   to perform other tests.</p>
   <p>The following additional derived classes are provided:</p>
+  <div id="ref-mapidentity" class="ref">
+    <h3>MapIdentity</h3>
+    <code>
+      new MapIdentity(<em>object</em>)
+    </code>
+    <div class="description">
+      Maps objects to true they are identical to <em>object</em>.  Identity is determined by the result
+      of Object.ReferenceEquals().
+    </div>
+  </div>
   <div id="ref-mapmatches" class="ref">
     <h3>MapMatches</h3>
     <code>
