@@ -9,7 +9,7 @@ namespace Synthesis
 
     private static s_objects, @ls	;List of registered objects
 
-    public static method i, i
+    public static method o2i, i
     D_INARG a_obj, @*
     record
     	ndx	,int
@@ -29,7 +29,7 @@ namespace Synthesis
 	mreturn s_objects.Add(a_obj)
     end
 
-    public static method o, @*
+    public static method i2o, @*
     D_INARG a_ndx, i
     proc
     	if ((s_objects != ^null) &&
