@@ -1,0 +1,43 @@
+;------------------------------------------------------------------------------
+;
+; multisignal.dbl - Class for queuing Toolkit events in Synergy/DE
+;
+; Chip Camden		January 2012
+;
+;------------------------------------------------------------------------------
+
+.include "SYNTHESIS:synthesis.def"
+
+namespace Synthesis
+
+    class MultiSignal
+
+	public static property list, @ls	;List of events
+	  method get
+	  proc
+	    if (s_list == ^null)
+	        s_list = new ls()
+	    mreturn s_list
+	  end
+	endproperty
+
+	public static method signal, boolean	;Queue an event
+	D_INARG entnam, a
+	record
+	  sentnam	,string
+	proc
+	  sentnam = entnam
+	  MultiSignal.list.add(sentnam.ToUpper())
+	  mreturn m_signal(entnam)
+	end
+
+	public static method remove, string	;Dequeue an event
+	proc
+	  mreturn (string)(MultiSignal.list.pop())
+	end
+
+	private static s_list, @ls
+
+    endclass
+
+endnamespace
