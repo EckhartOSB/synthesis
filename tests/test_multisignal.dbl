@@ -1,0 +1,87 @@
+.include "SYNTHESIS:synthesis.def"
+
+main
+proc
+	GotToolkit(D_START_ANYWAY)		;We need the Toolkit
+	xsubr("run_tests")			;Since we dynamically linked Toolkit
+	pass()
+end
+
+subroutine run_tests
+.define D_DEFINES_ONLY
+.include "WND:tools.def"
+record
+	bldid		,int
+	inpid		,int
+	data		,a1
+	entnam		,a10
+	sentnam		,string
+proc
+	;First, build our window
+	ib_input(bldid, "", 1, 1)
+	ib_field(bldid, "f1", D_FLD_CHANGE, "msignal_change",
+	&		D_FLD_DISPLAY, "msignal_display",
+	&		D_FLD_LEAVE, "msignal_leave")
+	ib_end(bldid, inpid)
+	u_window(D_PLACE, inpid, 1, 1)
+
+	;Let's prove there is a problem
+	i_force("A")		;Remove need for interaction
+	i_input(inpid,, data)
+	assert(m_signal(entnam, D_REMOVE))
+	assert(entnam .eq. "LEAVE ")
+	assert(!m_signal(entnam, D_REMOVE) && !entnam)
+	;Note that we only got the last event signaled
+
+	;Now we'll implement the solution
+	;Change the methods to use multisignal:
+	i_fldmod(inpid, "f1",,, D_FLD_CHANGE, "multisignal_change",
+	&	D_FLD_DISPLAY, "multisignal_display",
+	&	D_FLD_LEAVE, "multisignal_leave")
+	i_force("A")		;Remove need for interaction
+	i_input(inpid,, data)
+	assert_not_null(sentnam = multi_remove())
+	assert_equal("CHANGE", sentnam)
+	assert_not_null(sentnam = multi_remove())
+	assert_equal("DISPLAY", sentnam)
+	assert_not_null(sentnam = multi_remove())
+	assert_equal("LEAVE", sentnam)
+	assert_null(sentnam = multi_remove())	;^null == no more
+	xreturn
+end
+
+function msignal_change, ^val, reentrant
+proc
+	m_signal("change")
+	freturn D_OK
+end
+
+function msignal_display, ^val, reentrant
+proc
+	m_signal("display")
+	freturn TRUE
+end
+
+function msignal_leave, ^val, reentrant
+proc
+	m_signal("leave")
+	freturn TRUE
+end
+
+function multisignal_change, ^val, reentrant
+proc
+	multi_signal("change")
+	freturn D_OK
+end
+
+function multisignal_display, ^val, reentrant
+proc
+	multi_signal("display")
+	freturn TRUE
+end
+
+function multisignal_leave, ^val, reentrant
+proc
+	multi_signal("leave")
+	freturn TRUE
+end

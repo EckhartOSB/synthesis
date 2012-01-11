@@ -2,7 +2,7 @@
 
 all: $(SYNTHESIS)/synthesis.def prototypes $(SYNTHESIS)/synthesis.elb
 
-SOURCES= assertions commandline compare console coverage elapsedtime fif file gottk hash json let ls mapper mapvar memo oi progn random reducer regex socket telnet transport var version
+SOURCES= assertions commandline compare console coverage elapsedtime fif file gottk hash json let ls mapper mapvar memo multisignal oi progn random reducer regex socket telnet transport var version
 
 clean:
 	$(RMCMD) $(PROTO)synthesis-*.dbh $(PROTO)synthesis-*.dbp

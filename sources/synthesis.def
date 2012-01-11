@@ -122,5 +122,9 @@
 .define D_TOOLKIT_AVAILABLE	,1	;Toolkit linked, but not started
 .define D_TOOLKIT_STARTED	,2	;Toolkit started
 
+;multi_signal
+.define multi_signal(entnam)	MultiSignal.signal(entnam)		;Add an event to the queue
+.define multi_remove		MultiSignal.remove			;Dequeue an event
+
 import Synthesis
 .endc
