@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>MultiSignal class reference (Synergy/DE)</title>
+<link rel="stylesheet" href="reference.css" type="text/css"/>
+<script type="text/javascript" src="template.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<h1>Class MultiSignal</h1>
+<div id="intro">
+<h2>Introduction</h2>
+<p>This class provides a mechanism for signaling multiple Synergy/DE UI Toolkit
+events (often called "menu entries") before consuming any of them.  The standard
+mechanism for signaling these events (M_SIGNAL) obliterates all except for the
+last event signaled.  That can be problematic when methods that get invoked one
+after another each signal their own event.</p>
+<p>MultiSignal implements an event queue.  Signaling an event adds it to the queue,
+and consuming an event removes and returns the first one signaled.  The queue itself
+is also exposed as a public property, so client code can deal with events in any order
+desirable.  For compatibility, the signaling method also calls M_SIGNAL.</p>
+<p>Even though this is implemented as a class, the recommended usage is through the
+function-like macros <a href="#ref-signal">multi_signal</a> and
+<a href="#ref-remove">multi_remove</a>.</p>
+<p>The supplied test program, test_multisignal.dbl, demonstrates both the original
+problem and how MultiSignal solves it.</p>
+</div>
+<div id="outline">
+<h2>Contents</h2>
+<ol>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#outline">Contents</a></li>
+<li><a href="#symbols">Explanation of symbols used</a></li>
+<li><a href="#reference">Member reference</a>
+  <ol>
+    <li><a href="#ref-list">list</a> - Retrieve the list of pending events</li>
+    <li><a href="#ref-remove">remove</a> - Remove and return one event from the queue</li>
+    <li><a href="#ref-signal">signal</a> - Signal a new event</li>
+  </ol>
+</li>
+</ol>
+</div>
+<div id="symbols">
+<h2>Explanation of symbols used</h2>
+<p>
+Words in italics indicate an instance of a class.  The word corresponds to the class name, except where
+more than one instance is represented in the same statement.  In that case a number (2, 3, etc.) is appended
+to the class name.</p>
+<p>
+Words in normal typeface are to be taken literally (required punctuation, class name in a static reference,
+method name, etc.)</p>
+<p>The symbol =&gt; is used to separate an expression (on the left) from its return value (on the right).</p>
+<p>An ellipsis (...) indicates that the previous argument may be repeated any number of times.  The
+description will indicate whether one instance is required.</p>
+</div>
+<div id="reference">
+<h2>Member reference</h2>
+  <div id="ref-list" class="ref">
+    <h3>static property list</h3>
+    <code>
+      MultiSignal.list =&gt; <em>ls</em>
+    </code>
+    <div class="description">
+      Returns the list of pending events as an <a href="ls.html">ls</a>.  This list contains strings,
+      in the same order as the events signaled.  In other words, element 0 will be the earliest event.
+      Modifications made to <em>ls</em> will affect future calls to <a href="#ref-remove">
+      multi_remove</a>.
+    </div>
+  </div>
+  <div id="ref-remove" class="ref">
+    <h3>static method remove</h3>
+    <code>
+      MultiSignal.remove() =&gt; <em>string</em><br/>
+      multi_remove() =&gt; <em>string</em>
+    </code>
+    <div class="description">
+      <p>Removes the first (earliest) entry in the event queue, and returns it as a string.  If the event queue
+      is empty, returns ^NULL.  This method does not alter anything in the UI Toolkit.
+      </p>
+    <p>For convenience, the macro "multi_remove" can be used instead of "MultiSignal.remove".</p>
+    </div>
+  </div>
+  <div id="ref-signal" class="ref">
+    <h3>static method signal</h3>
+    <code>
+      MultiSignal.signal(<em>a</em>) =&gt; <em>boolean</em><br/>
+      multi_signal(<em>a</em>) =&gt; <em>boolean</em>
+    </code>
+    <div class="description">
+      <p>
+      Adds a string containing the upper-cased value of <em>a</em> to the end of the event queue.
+      For compatibility, it then passes <em>a</em> to M_SIGNAL.  This also insures that if signaled
+      during a direct callback, the calling routine will exit back to the client program.
+    </p>
+    <p>For convenience, the macro "multi_signal" can be used instead of "MultiSignal.signal".</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
