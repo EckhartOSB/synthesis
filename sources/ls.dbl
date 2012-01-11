@@ -941,7 +941,7 @@ namespace Synthesis
 			  obj = parent[ndx]
 		      end
 		    else
-		      Add(obj2)
+		      this.Add(obj2)
 		  end
 		mreturn this
 	end

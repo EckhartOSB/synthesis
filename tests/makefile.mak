@@ -13,7 +13,11 @@ tests: $[f,exe,$(SOURCES),dbr]
 
 run:
 	%ForEach test in $[f,exe,$(SOURCES),dbr]
-	    dbs $(test)
+	    %If $(test) == $[f,exe,test_multisignal,dbr]
+	        dbr $(test)
+	    %Else
+	        dbs $(test)
+	    %Endif
 	%EndFor
 
 net: $[f,exe,synthesis,dll] $[f,exe,synthesis,pdb] $[f,exe,$(SOURCES),exe]
@@ -45,6 +49,11 @@ $[f,exe,synthesis,pdb]: $[f,$(SYNTHESIS),synthesis,pdb]
 	$(CPCMD) $(_Source) exe
 $[f,coverage,coverall,html]: $[f,exe,$(SOURCES),dbr]
 	dbs SYNTHESIS:htmlcover -o $(_Target) -r $(_Sources) -t 'Coverage for full test suite'
+
+$[f,exe,test_multisignal,dbr]:	$[f,obj,test_multisignal,dbo]
+	dblink $(DBG) -o $(_Target) $(_Source) $(LIBS) WND:tklib.elb
+$[f,exe,test_multisignal,exe]:	$[f,,test_multisignal,dbl]
+	dblnet $(DBG) -out=$(Target) -target=exe -ref=$[f,exe,synthesis,dll] -ref=$[f,$(DBLDIR)\bin,Synergex.SynergyDE.tklib,dll] 
 
 .dbo.dbr:
 	dblink $(DBG) -o $(_Target) $(_Source) $(LIBS)

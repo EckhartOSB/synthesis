@@ -5,7 +5,7 @@ all: $[f,$(SYNTHESIS),synthesis,def] prototypes $[f,$(SYNTHESIS),synthesis,elb]
 net: $[f,$(SYNTHESIS),synthesis,def] $[f,$(SYNTHESIS),synthesis,dll]
 
 SOURCES = assertions commandline compare console coverage elapsedtime fif file gottk \
-hash json let ls mapper mapvar memo oi progn random reducer regex socket telnet transport var version
+hash json let ls mapper mapvar memo multisignal oi progn random reducer regex socket telnet transport var version
 SOURCES_NET = assertions var commandline compare console elapsedtime fif file gottk \
 hash json let ls mapper mapvar memo oi progn random reducer regex socket telnet transport version
 
@@ -24,11 +24,7 @@ prototypes:
 	dblproto $(SOURCES)
 
 $[f,$(SYNTHESIS),synthesis,def]: synthesis.def
-	%If %Defined(NOVCS)
 	$(CPCMD) synthesis.def $(SYNTHESIS)
-	%Else
-	get -u synthesis.dev($[f,$(SYNTHESIS),synthesis,def])
-	%EndIf
 
 $[f,$(SYNTHESIS),synthesis,elb]: $[f,obj,$(SOURCES),dbo]
 	dblink $(DBG) -l $(_Target) $(_Sources)
