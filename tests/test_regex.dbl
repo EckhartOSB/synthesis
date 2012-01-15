@@ -1467,7 +1467,9 @@ proc
 	  r1 = r$('/[[:alpha:]]/g')
 	  assert_equal('  #55', r1.replace('Hey there #55', ''))
 	  r1 = r$('/[[:ascii:]]/g')
+.ifndef DBLNET		;.NET doesn't handle >127 to string conversion
 	  assert_equal(%char(128), r1.replace(%char(0) + 'abc~' + %char(128), ''))
+.endc
 	  r1 = r$('/[[:blank:]]/g')
 	  assert_equal('Hellotheretab', r1.replace('Hello there'+%char(9)+'tab', ''))
 	  r1 = r$('/[[:cntrl:]]/g')

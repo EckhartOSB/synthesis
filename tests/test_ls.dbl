@@ -132,9 +132,11 @@ proc
 	&		  (ls.of(4) & 5))
 	assert(ls1.count == 2)
 	assert(((ls)(ls1.car)).count == 2)
-	assert((var)(((ls)(ls1.car)).car) == 1)
+	ls2 = (ls)(ls1.car)
+	assert((var)(ls2.car) == 1)
 	assert(((ls)(ls1[1])).count == 2)
-	assert((var)(((ls)(ls1[1])).car) == 3)
+	ls2 =(ls)(ls1[1])
+	assert((var)(ls2.car) == 3)
 	ls2 = ls1.flatten()
 	assert(ls2.count == 5)
 	for ndx from 1 thru 5

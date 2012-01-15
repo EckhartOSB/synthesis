@@ -53,7 +53,7 @@ $[f,coverage,coverall,html]: $[f,exe,$(SOURCES),dbr]
 $[f,exe,test_multisignal,dbr]:	$[f,obj,test_multisignal,dbo]
 	dblink $(DBG) -o $(_Target) $(_Source) $(LIBS) WND:tklib.elb
 $[f,exe,test_multisignal,exe]:	$[f,,test_multisignal,dbl]
-	dblnet $(DBG) -out=$(Target) -target=exe -ref=$[f,exe,synthesis,dll] -ref=$[f,$(DBLDIR)\bin,Synergex.SynergyDE.tklib,dll] 
+	dblnet $(DBG) -out=$(_Target) -target=exe -ref=$[f,exe,synthesis,dll] -ref=$(DBLDIR)\bin\Synergex.SynergyDE.tklib.dll $(_Source)
 
 .dbo.dbr:
 	dblink $(DBG) -o $(_Target) $(_Source) $(LIBS)

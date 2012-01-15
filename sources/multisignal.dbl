@@ -28,7 +28,11 @@ namespace Synthesis
 	proc
 	  sentnam = entnam
 	  MultiSignal.list.add(sentnam.ToUpper())
+.ifdef DBLNET
+	  mreturn xsubr("m_signal", entnam)
+.else
 	  mreturn m_signal(entnam)
+.endc
 	end
 
 	public static method remove, string	;Dequeue an event
